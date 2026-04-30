@@ -1,5 +1,5 @@
-const storeKey = "habit-tracker:v1";
-const nutritionStoreKey = "habit-tracker:nutrition:v1";
+const storeKey = "habit-health-iphone:habits:v1";
+const nutritionStoreKey = "habit-health-iphone:nutrition:v1";
 const today = toDateKey(new Date());
 let deferredInstallPrompt = null;
 let filter = "all";
@@ -172,7 +172,8 @@ function renderHabit(habit) {
   weekScore.textContent = `${completedThisWeek}/7 this week`;
   note.textContent = habit.note || "";
   note.hidden = !habit.note;
-  calendarLink.href = getGoogleCalendarUrl(habit);
+  calendarLink.href = getAppleCalendarUrl(habit);
+  calendarLink.download = `${getSafeFileName(habit.name)}.ics`;
 
   detailItems.forEach((item) => {
     const chip = document.createElement("span");
@@ -194,7 +195,7 @@ function renderHabit(habit) {
   return fragment;
 }
 
-function getGoogleCalendarUrl(habit) {
+function getAppleCalendarUrl(habit) {
   const start = getCalendarStart(habit.time || "Anytime");
   const end = new Date(start.getTime() + 30 * 60 * 1000);
   const details = [
@@ -203,15 +204,24 @@ function getGoogleCalendarUrl(habit) {
     `Priority: ${habit.priority || "Normal"}`,
     "Created from Habit & Health Tracker."
   ].filter(Boolean).join("\n");
-  const params = new URLSearchParams({
-    action: "TEMPLATE",
-    text: `Habit: ${habit.name}`,
-    details,
-    dates: `${toCalendarDateTime(start)}/${toCalendarDateTime(end)}`,
-    recur: "RRULE:FREQ=DAILY"
-  });
+  const calendar = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Habit and Health Tracker//iPhone//EN",
+    "CALSCALE:GREGORIAN",
+    "BEGIN:VEVENT",
+    `UID:${habit.id}@habit-health-tracker`,
+    `DTSTAMP:${toCalendarDateTime(new Date())}`,
+    `DTSTART:${toCalendarDateTime(start)}`,
+    `DTEND:${toCalendarDateTime(end)}`,
+    "RRULE:FREQ=DAILY",
+    `SUMMARY:${escapeCalendarText(`Habit: ${habit.name}`)}`,
+    `DESCRIPTION:${escapeCalendarText(details)}`,
+    "END:VEVENT",
+    "END:VCALENDAR"
+  ].join("\r\n");
 
-  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+  return `data:text/calendar;charset=utf-8,${encodeURIComponent(calendar)}`;
 }
 
 function getCalendarStart(time) {
@@ -235,6 +245,22 @@ function toCalendarDateTime(date) {
   const minutes = String(date.getMinutes()).padStart(2, "0");
   const seconds = String(date.getSeconds()).padStart(2, "0");
   return `${year}${month}${day}T${hours}${minutes}${seconds}`;
+}
+
+function escapeCalendarText(value) {
+  return String(value)
+    .replace(/\\/g, "\\\\")
+    .replace(/;/g, "\\;")
+    .replace(/,/g, "\\,")
+    .replace(/\n/g, "\\n");
+}
+
+function getSafeFileName(value) {
+  return String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "") || "habit";
 }
 
 function toggleHabit(id) {

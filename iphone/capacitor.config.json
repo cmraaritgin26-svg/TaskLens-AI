@@ -1,0 +1,8 @@
+{
+  "appId": "com.habithealth.tracker.iphone",
+  "appName": "Habit & Health Tracker",
+  "webDir": ".",
+  "ios": {
+    "scheme": "HabitHealth"
+  }
+}

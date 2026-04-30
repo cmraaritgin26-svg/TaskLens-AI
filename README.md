@@ -1,4 +1,4 @@
-# Habit Tracker
+# Habit & Health Tracker
 
 An installable Android-friendly habit tracking Progressive Web App.
 

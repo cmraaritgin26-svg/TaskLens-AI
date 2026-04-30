@@ -1,0 +1,32 @@
+{
+  "name": "habit-health-tracker-iphone",
+  "version": "1.0.0",
+  "description": "Installable iPhone PWA for tracking habits, health metrics, nutrition, and weight with Apple Calendar exports.",
+  "private": false,
+  "type": "module",
+  "scripts": {
+    "pack:iphone": "npm pack --pack-destination ..",
+    "native:sync": "npx cap sync ios",
+    "native:add:ios": "npx cap add ios",
+    "native:open:ios": "npx cap open ios",
+    "serve": "python -m http.server 8080"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/ios": "^7.0.0"
+  },
+  "files": [
+    "index.html",
+    "app.js",
+    "styles.css",
+    "manifest.webmanifest",
+    "service-worker.js",
+    "capacitor.config.json",
+    "NATIVE_INSTALL.md",
+    "README.md",
+    "icons/icon.svg",
+    "icons/icon-192.png",
+    "icons/icon-512.png"
+  ]
+}
