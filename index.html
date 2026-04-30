@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#d6336c">
+    <meta name="description" content="Track daily habits, streaks, and weekly progress offline.">
+    <title>Habit Tracker</title>
+    <link rel="manifest" href="manifest.webmanifest?v=3">
+    <link rel="icon" href="icons/icon.svg?v=3" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icons/icon.svg?v=3">
+    <link rel="stylesheet" href="styles.css?v=3">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow" id="todayLabel"></p>
+          <h1>Habit Tracker</h1>
+        </div>
+        <button class="icon-button" id="installButton" type="button" aria-label="Install app" hidden>
+          <span aria-hidden="true">+</span>
+        </button>
+      </header>
+
+      <section class="summary-grid" aria-label="Habit summary">
+        <article class="metric">
+          <span id="completeCount">0</span>
+          <p>Done today</p>
+        </article>
+        <article class="metric">
+          <span id="activeCount">0</span>
+          <p>Active habits</p>
+        </article>
+        <article class="metric">
+          <span id="bestStreak">0</span>
+          <p>Best streak</p>
+        </article>
+      </section>
+
+      <form class="composer" id="habitForm">
+        <label class="field">
+          <span>Habit</span>
+          <input id="habitName" name="habitName" type="text" maxlength="32" autocomplete="off" placeholder="Drink water" required>
+        </label>
+        <label class="field color-field">
+          <span>Color</span>
+          <input id="habitColor" name="habitColor" type="color" value="#d6336c" aria-label="Habit color">
+        </label>
+        <button class="primary-button" type="submit">Add</button>
+      </form>
+
+      <section class="toolbar" aria-label="Habit filters">
+        <div class="segmented" role="tablist" aria-label="Filter habits">
+          <button type="button" class="segment active" data-filter="all">All</button>
+          <button type="button" class="segment" data-filter="today">Today</button>
+          <button type="button" class="segment" data-filter="missed">Missed</button>
+        </div>
+        <button class="text-button" id="clearDoneButton" type="button">Reset Today</button>
+      </section>
+
+      <section class="graph-panel" aria-labelledby="graphTitle">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Movement</p>
+            <h2 id="graphTitle">14-day progress</h2>
+          </div>
+          <span class="graph-score" id="graphAverage">0%</span>
+        </div>
+        <div class="trend-wrap">
+          <svg id="trendGraph" class="trend-graph" viewBox="0 0 640 220" role="img" aria-labelledby="trendLabel">
+            <title id="trendLabel">Habit completion movement for the last fourteen days</title>
+            <g class="grid-lines"></g>
+            <polyline class="trend-area" points=""></polyline>
+            <polyline class="trend-line" points=""></polyline>
+            <g class="trend-points"></g>
+          </svg>
+        </div>
+        <div class="bar-graph" id="barGraph" aria-label="Daily completion bars"></div>
+      </section>
+
+      <section class="habit-list" id="habitList" aria-live="polite"></section>
+
+      <template id="habitTemplate">
+        <article class="habit-card">
+          <button class="check-button" type="button" aria-label="Toggle habit"></button>
+          <div class="habit-main">
+            <div class="habit-row">
+              <h2></h2>
+              <button class="delete-button" type="button" aria-label="Delete habit">x</button>
+            </div>
+            <div class="habit-stats">
+              <span class="streak"></span>
+              <span class="week-score"></span>
+            </div>
+            <div class="week-strip" aria-label="Last seven days"></div>
+          </div>
+        </article>
+      </template>
+
+      <section class="empty-state" id="emptyState" hidden>
+        <h2>No habits yet</h2>
+        <p>Add one daily habit to start tracking your streak.</p>
+      </section>
+    </main>
+
+    <script src="app.js?v=3" defer></script>
+  </body>
+</html>
