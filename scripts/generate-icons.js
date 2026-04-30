@@ -24,6 +24,13 @@ function chunk(type, data) {
 function makePng(size) {
   const raw = Buffer.alloc((size * 4 + 1) * size);
   const radius = size * 0.18;
+  const palette = [
+    [250, 204, 21],
+    [236, 72, 153],
+    [124, 58, 237],
+    [6, 182, 212],
+    [34, 197, 94]
+  ];
 
   for (let y = 0; y < size; y += 1) {
     const row = y * (size * 4 + 1);
@@ -36,9 +43,14 @@ function makePng(size) {
         (x < radius && y > size - radius && Math.hypot(radius - x, y - (size - radius)) > radius) ||
         (x > size - radius && y > size - radius && Math.hypot(x - (size - radius), y - (size - radius)) > radius);
 
-      raw[offset] = 214;
-      raw[offset + 1] = 51;
-      raw[offset + 2] = 108;
+      const angle = Math.atan2(y - size * 0.5, x - size * 0.5) + Math.PI;
+      const ring = Math.floor(Math.hypot(x - size * 0.5, y - size * 0.5) / (size * 0.12));
+      const slice = Math.floor(angle / ((Math.PI * 2) / palette.length));
+      const color = palette[(slice + ring) % palette.length];
+
+      raw[offset] = color[0];
+      raw[offset + 1] = color[1];
+      raw[offset + 2] = color[2];
       raw[offset + 3] = inCorner ? 0 : 255;
 
       const checkA = y > size * 0.47 && y < size * 0.68 && x > size * 0.25 && x < size * 0.44 && Math.abs(y - (x + size * 0.2)) < size * 0.05;
@@ -49,12 +61,12 @@ function makePng(size) {
 
       if (checkA || checkB) {
         raw[offset] = 255;
-        raw[offset + 1] = 214;
-        raw[offset + 2] = 228;
+        raw[offset + 1] = 255;
+        raw[offset + 2] = 255;
       } else if (dot) {
         raw[offset] = 255;
-        raw[offset + 1] = 210;
-        raw[offset + 2] = 223;
+        raw[offset + 1] = 255;
+        raw[offset + 2] = 255;
       }
     }
   }
