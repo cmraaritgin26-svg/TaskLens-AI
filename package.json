@@ -22,6 +22,7 @@
     "styles.css",
     "manifest.webmanifest",
     "service-worker.js",
+    "www",
     "capacitor.config.json",
     "NATIVE_INSTALL.md",
     "README.md",

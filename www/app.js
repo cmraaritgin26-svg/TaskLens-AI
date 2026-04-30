@@ -1,0 +1,527 @@
+const storeKey = "habit-tracker:v1";
+const nutritionStoreKey = "habit-tracker:nutrition:v1";
+const today = toDateKey(new Date());
+let deferredInstallPrompt = null;
+let filter = "all";
+let habits = loadHabits();
+let nutritionEntries = loadNutritionEntries();
+
+const habitForm = document.querySelector("#habitForm");
+const habitName = document.querySelector("#habitName");
+const habitCategory = document.querySelector("#habitCategory");
+const habitTime = document.querySelector("#habitTime");
+const habitPriority = document.querySelector("#habitPriority");
+const habitColor = document.querySelector("#habitColor");
+const habitNote = document.querySelector("#habitNote");
+const nutritionForm = document.querySelector("#nutritionForm");
+const nutritionDate = document.querySelector("#nutritionDate");
+const calories = document.querySelector("#calories");
+const carbs = document.querySelector("#carbs");
+const weight = document.querySelector("#weight");
+const avgCalories = document.querySelector("#avgCalories");
+const avgCarbs = document.querySelector("#avgCarbs");
+const latestWeight = document.querySelector("#latestWeight");
+const nutritionRows = document.querySelector("#nutritionRows");
+const nutritionEmpty = document.querySelector("#nutritionEmpty");
+const habitList = document.querySelector("#habitList");
+const habitTemplate = document.querySelector("#habitTemplate");
+const emptyState = document.querySelector("#emptyState");
+const todayLabel = document.querySelector("#todayLabel");
+const clearDoneButton = document.querySelector("#clearDoneButton");
+const installButton = document.querySelector("#installButton");
+const barGraph = document.querySelector("#barGraph");
+const graphAverage = document.querySelector("#graphAverage");
+const trendArea = document.querySelector(".trend-area");
+const trendLine = document.querySelector(".trend-line");
+const caloriesLine = document.querySelector(".calories-line");
+const carbsLine = document.querySelector(".carbs-line");
+const weightLine = document.querySelector(".weight-line");
+const trendPoints = document.querySelector(".trend-points");
+const gridLines = document.querySelector(".grid-lines");
+
+todayLabel.textContent = new Intl.DateTimeFormat(undefined, {
+  weekday: "long",
+  month: "short",
+  day: "numeric"
+}).format(new Date());
+nutritionDate.value = today;
+
+habitForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const name = habitName.value.trim();
+
+  if (!name) return;
+
+  habits.unshift({
+    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+    name,
+    category: habitCategory.value,
+    time: habitTime.value,
+    priority: habitPriority.value,
+    color: habitColor.value,
+    note: habitNote.value.trim(),
+    completions: []
+  });
+
+  habitName.value = "";
+  habitNote.value = "";
+  saveHabits();
+  render();
+});
+
+nutritionForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const date = nutritionDate.value || today;
+  const entry = {
+    date,
+    calories: parseNutritionNumber(calories.value),
+    carbs: parseNutritionNumber(carbs.value),
+    weight: parseNutritionNumber(weight.value)
+  };
+
+  nutritionEntries = [
+    entry,
+    ...nutritionEntries.filter((item) => item.date !== date)
+  ].sort((first, second) => second.date.localeCompare(first.date));
+
+  saveNutritionEntries();
+  renderNutrition();
+  renderGraph();
+});
+
+clearDoneButton.addEventListener("click", () => {
+  habits = habits.map((habit) => ({
+    ...habit,
+    completions: habit.completions.filter((date) => date !== today)
+  }));
+  saveHabits();
+  render();
+});
+
+document.querySelectorAll("[data-filter]").forEach((button) => {
+  button.addEventListener("click", () => {
+    filter = button.dataset.filter;
+    document.querySelectorAll("[data-filter]").forEach((item) => {
+      item.classList.toggle("active", item === button);
+    });
+    render();
+  });
+});
+
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  installButton.hidden = false;
+});
+
+installButton.addEventListener("click", async () => {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  installButton.hidden = true;
+});
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("service-worker.js");
+  });
+}
+
+function render() {
+  habitList.textContent = "";
+  const visibleHabits = habits.filter((habit) => {
+    const done = habit.completions.includes(today);
+    if (filter === "today") return done;
+    if (filter === "missed") return !done;
+    return true;
+  });
+
+  visibleHabits.forEach((habit) => habitList.appendChild(renderHabit(habit)));
+
+  emptyState.hidden = habits.length > 0;
+  renderGraph();
+  renderNutrition();
+}
+
+function renderHabit(habit) {
+  const fragment = habitTemplate.content.cloneNode(true);
+  const card = fragment.querySelector(".habit-card");
+  const checkButton = fragment.querySelector(".check-button");
+  const deleteButton = fragment.querySelector(".delete-button");
+  const title = fragment.querySelector("h2");
+  const streak = fragment.querySelector(".streak");
+  const weekScore = fragment.querySelector(".week-score");
+  const attributes = fragment.querySelector(".habit-attributes");
+  const note = fragment.querySelector(".habit-note");
+  const calendarLink = fragment.querySelector(".calendar-link");
+  const weekStrip = fragment.querySelector(".week-strip");
+  const completedToday = habit.completions.includes(today);
+  const recentDays = getRecentDays();
+  const completedThisWeek = recentDays.filter((day) => habit.completions.includes(day.key)).length;
+  const detailItems = [
+    habit.category || "General",
+    habit.time || "Anytime",
+    habit.priority || "Normal"
+  ];
+
+  card.style.setProperty("--habit-color", habit.color);
+  card.classList.toggle("done", completedToday);
+  title.textContent = habit.name;
+  streak.textContent = `${getStreak(habit)} day streak`;
+  weekScore.textContent = `${completedThisWeek}/7 this week`;
+  note.textContent = habit.note || "";
+  note.hidden = !habit.note;
+  calendarLink.href = getGoogleCalendarUrl(habit);
+
+  detailItems.forEach((item) => {
+    const chip = document.createElement("span");
+    chip.textContent = item;
+    attributes.appendChild(chip);
+  });
+
+  recentDays.forEach((day) => {
+    const item = document.createElement("span");
+    item.className = "day";
+    item.textContent = day.label;
+    item.classList.toggle("complete", habit.completions.includes(day.key));
+    weekStrip.appendChild(item);
+  });
+
+  checkButton.addEventListener("click", () => toggleHabit(habit.id));
+  deleteButton.addEventListener("click", () => deleteHabit(habit.id));
+
+  return fragment;
+}
+
+function getGoogleCalendarUrl(habit) {
+  const start = getCalendarStart(habit.time || "Anytime");
+  const end = new Date(start.getTime() + 30 * 60 * 1000);
+  const details = [
+    habit.note,
+    `Category: ${habit.category || "General"}`,
+    `Priority: ${habit.priority || "Normal"}`,
+    "Created from Habit & Health Tracker."
+  ].filter(Boolean).join("\n");
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: `Habit: ${habit.name}`,
+    details,
+    dates: `${toCalendarDateTime(start)}/${toCalendarDateTime(end)}`,
+    recur: "RRULE:FREQ=DAILY"
+  });
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+function getCalendarStart(time) {
+  const start = new Date();
+  const hourByTime = {
+    Morning: 8,
+    Afternoon: 13,
+    Evening: 18,
+    Night: 21,
+    Anytime: 9
+  };
+  start.setHours(hourByTime[time] || 9, 0, 0, 0);
+  return start;
+}
+
+function toCalendarDateTime(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+  return `${year}${month}${day}T${hours}${minutes}${seconds}`;
+}
+
+function toggleHabit(id) {
+  habits = habits.map((habit) => {
+    if (habit.id !== id) return habit;
+    const completions = habit.completions.includes(today)
+      ? habit.completions.filter((date) => date !== today)
+      : [...habit.completions, today];
+    return { ...habit, completions };
+  });
+
+  saveHabits();
+  render();
+}
+
+function deleteHabit(id) {
+  habits = habits.filter((habit) => habit.id !== id);
+  saveHabits();
+  render();
+}
+
+function getStreak(habit) {
+  const completions = new Set(habit.completions);
+  let streak = 0;
+  const cursor = new Date();
+
+  while (completions.has(toDateKey(cursor))) {
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  return streak;
+}
+
+function getRecentDays(count = 7) {
+  return Array.from({ length: count }, (_, index) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (count - 1 - index));
+    return {
+      key: toDateKey(date),
+      label: new Intl.DateTimeFormat(undefined, { weekday: "narrow" }).format(date)
+    };
+  });
+}
+
+function renderGraph() {
+  const days = getRecentDays(14);
+  const movement = days.map((day) => {
+    const nutrition = nutritionEntries.find((entry) => entry.date === day.key) || {};
+    const complete = habits.filter((habit) => habit.completions.includes(day.key)).length;
+    const percent = habits.length ? Math.round((complete / habits.length) * 100) : 0;
+    return {
+      ...day,
+      complete,
+      percent,
+      calories: nutrition.calories,
+      carbs: nutrition.carbs,
+      weight: nutrition.weight
+    };
+  });
+  const average = movement.length
+    ? Math.round(movement.reduce((total, day) => total + day.percent, 0) / movement.length)
+    : 0;
+
+  graphAverage.textContent = `${average}%`;
+  renderTrendGraph(movement);
+  renderBarGraph(movement);
+}
+
+function renderTrendGraph(movement) {
+  const width = 640;
+  const height = 220;
+  const padding = 26;
+  const graphHeight = height - padding * 2;
+  const step = (width - padding * 2) / Math.max(movement.length - 1, 1);
+  const points = getLinePoints(movement, step, padding, graphHeight, height, (day) => day.percent, 0, 100);
+  const caloriePoints = getMetricPoints(movement, step, padding, graphHeight, height, "calories");
+  const carbPoints = getMetricPoints(movement, step, padding, graphHeight, height, "carbs");
+  const weightPoints = getMetricPoints(movement, step, padding, graphHeight, height, "weight");
+  const areaPoints = [
+    `${padding},${height - padding}`,
+    ...points,
+    `${width - padding},${height - padding}`
+  ].join(" ");
+
+  gridLines.textContent = "";
+  [0, 25, 50, 75, 100].forEach((value) => {
+    const y = padding + graphHeight - (value / 100) * graphHeight;
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("x1", padding);
+    line.setAttribute("x2", width - padding);
+    line.setAttribute("y1", y);
+    line.setAttribute("y2", y);
+    gridLines.appendChild(line);
+  });
+
+  trendArea.setAttribute("points", areaPoints);
+  trendLine.setAttribute("points", points.join(" "));
+  caloriesLine.setAttribute("points", caloriePoints.join(" "));
+  carbsLine.setAttribute("points", carbPoints.join(" "));
+  weightLine.setAttribute("points", weightPoints.join(" "));
+  trendPoints.textContent = "";
+
+  movement.forEach((day, index) => {
+    const [x, y] = points[index].split(",");
+    const point = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    point.setAttribute("cx", x);
+    point.setAttribute("cy", y);
+    point.setAttribute("r", day.percent > 0 ? 6 : 4);
+    trendPoints.appendChild(point);
+  });
+}
+
+function getMetricPoints(movement, step, padding, graphHeight, height, key) {
+  const values = movement.map((day) => day[key]).filter(Number.isFinite);
+  if (!values.length) return [];
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+
+  return getLinePoints(movement, step, padding, graphHeight, height, (day) => day[key], min, max);
+}
+
+function getLinePoints(movement, step, padding, graphHeight, height, getValue, min, max) {
+  const range = max - min || 1;
+  return movement.map((day, index) => {
+    const rawValue = getValue(day);
+    const normalized = Number.isFinite(rawValue) ? (rawValue - min) / range : 0;
+    const x = padding + index * step;
+    const y = padding + graphHeight - normalized * graphHeight;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+}
+
+function renderBarGraph(movement) {
+  barGraph.textContent = "";
+
+  movement.forEach((day) => {
+    const bar = document.createElement("div");
+    const fill = document.createElement("span");
+    const label = document.createElement("strong");
+    const value = document.createElement("small");
+
+    bar.className = "bar";
+    fill.className = "bar-fill";
+    fill.style.height = `${Math.max(day.percent, habits.length ? 6 : 0)}%`;
+    label.textContent = day.label;
+    value.textContent = `${day.percent}%`;
+    bar.title = [
+      `${day.complete} of ${habits.length} habits completed`,
+      Number.isFinite(day.calories) ? `${formatWholeNumber(day.calories)} calories` : null,
+      Number.isFinite(day.carbs) ? `${formatWholeNumber(day.carbs)}g carbs` : null,
+      Number.isFinite(day.weight) ? `${formatDecimal(day.weight)} lb` : null
+    ].filter(Boolean).join(" | ");
+
+    bar.append(fill, label, value);
+    barGraph.appendChild(bar);
+  });
+}
+
+function renderNutrition() {
+  const recentEntries = [...nutritionEntries]
+    .sort((first, second) => second.date.localeCompare(first.date))
+    .slice(0, 14);
+  const sevenDayEntries = nutritionEntries.filter((entry) => {
+    const entryDate = new Date(`${entry.date}T00:00:00`);
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() - 6);
+    return entryDate >= start && entryDate <= new Date();
+  });
+  const calorieValues = sevenDayEntries.map((entry) => entry.calories).filter(Number.isFinite);
+  const carbValues = sevenDayEntries.map((entry) => entry.carbs).filter(Number.isFinite);
+  const latestWeightEntry = nutritionEntries.find((entry) => Number.isFinite(entry.weight));
+
+  avgCalories.textContent = calorieValues.length ? formatWholeNumber(getAverage(calorieValues)) : "0";
+  avgCarbs.textContent = carbValues.length ? `${formatWholeNumber(getAverage(carbValues))}g` : "0g";
+  latestWeight.textContent = latestWeightEntry ? `${formatDecimal(latestWeightEntry.weight)} lb` : "--";
+  nutritionRows.textContent = "";
+  nutritionEmpty.hidden = recentEntries.length > 0;
+
+  recentEntries.forEach((entry, index) => {
+    const row = document.createElement("tr");
+    const previousWeight = findPreviousWeight(recentEntries, index);
+    const delta = Number.isFinite(entry.weight) && Number.isFinite(previousWeight)
+      ? entry.weight - previousWeight
+      : null;
+    const cells = [
+      formatEntryDate(entry.date),
+      Number.isFinite(entry.calories) ? formatWholeNumber(entry.calories) : "--",
+      Number.isFinite(entry.carbs) ? `${formatWholeNumber(entry.carbs)}g` : "--",
+      Number.isFinite(entry.weight) ? `${formatDecimal(entry.weight)} lb` : "--",
+      formatWeightDelta(delta)
+    ];
+
+    cells.forEach((value) => {
+      const cell = document.createElement("td");
+      cell.textContent = value;
+      row.appendChild(cell);
+    });
+
+    nutritionRows.appendChild(row);
+  });
+}
+
+function findPreviousWeight(entries, currentIndex) {
+  const olderEntries = entries.slice(currentIndex + 1);
+  const previous = olderEntries.find((entry) => Number.isFinite(entry.weight));
+  return previous ? previous.weight : null;
+}
+
+function parseNutritionNumber(value) {
+  if (value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function getAverage(values) {
+  return values.reduce((total, value) => total + value, 0) / values.length;
+}
+
+function formatWholeNumber(value) {
+  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(value);
+}
+
+function formatDecimal(value) {
+  return new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1
+  }).format(value);
+}
+
+function formatWeightDelta(value) {
+  if (!Number.isFinite(value)) return "--";
+  if (Math.abs(value) < 0.05) return "0.0 lb";
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${formatDecimal(value)} lb`;
+}
+
+function formatEntryDate(dateKey) {
+  const date = new Date(`${dateKey}T00:00:00`);
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric"
+  }).format(date);
+}
+
+function toDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function loadHabits() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(storeKey));
+    return Array.isArray(saved) ? saved : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHabits() {
+  localStorage.setItem(storeKey, JSON.stringify(habits));
+}
+
+function loadNutritionEntries() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(nutritionStoreKey));
+    return Array.isArray(saved)
+      ? saved
+        .filter((entry) => entry && entry.date)
+        .map((entry) => ({
+          date: entry.date,
+          calories: Number.isFinite(entry.calories) ? entry.calories : null,
+          carbs: Number.isFinite(entry.carbs) ? entry.carbs : null,
+          weight: Number.isFinite(entry.weight) ? entry.weight : null
+        }))
+        .sort((first, second) => second.date.localeCompare(first.date))
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveNutritionEntries() {
+  localStorage.setItem(nutritionStoreKey, JSON.stringify(nutritionEntries));
+}
+
+render();

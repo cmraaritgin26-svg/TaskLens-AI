@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f97316">
+    <meta name="description" content="Track habits, health metrics, nutrition, and weight offline.">
+    <title>Habit &amp; Health Tracker</title>
+    <link rel="manifest" href="manifest.webmanifest?v=17">
+    <link rel="icon" href="icons/icon.svg?v=17" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icons/icon.svg?v=17">
+    <link rel="stylesheet" href="styles.css?v=17">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow" id="todayLabel"></p>
+          <h1>Habit &amp; Health Tracker</h1>
+        </div>
+        <button class="icon-button" id="installButton" type="button" aria-label="Install app" hidden>
+          <span aria-hidden="true">+</span>
+        </button>
+      </header>
+
+      <section class="nutrition-panel" aria-labelledby="nutritionTitle">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Food & body</p>
+            <h2 id="nutritionTitle">Nutrition and weight</h2>
+          </div>
+        </div>
+
+        <form class="nutrition-form" id="nutritionForm">
+          <label class="field">
+            <span>Date</span>
+            <input id="nutritionDate" name="nutritionDate" type="date" required>
+          </label>
+          <label class="field">
+            <span>Calories</span>
+            <input id="calories" name="calories" type="number" min="0" step="1" inputmode="numeric" placeholder="1800">
+          </label>
+          <label class="field">
+            <span>Carbs</span>
+            <input id="carbs" name="carbs" type="number" min="0" step="1" inputmode="numeric" placeholder="180">
+          </label>
+          <label class="field">
+            <span>Weight</span>
+            <input id="weight" name="weight" type="number" min="0" step="0.1" inputmode="decimal" placeholder="150.0">
+          </label>
+          <button class="primary-button" type="submit">Save</button>
+        </form>
+
+        <div class="nutrition-summary" aria-label="Nutrition summary">
+          <article class="metric compact">
+            <span id="avgCalories">0</span>
+            <p>7-day avg calories</p>
+          </article>
+          <article class="metric compact">
+            <span id="avgCarbs">0g</span>
+            <p>7-day avg carbs</p>
+          </article>
+          <article class="metric compact">
+            <span id="latestWeight">--</span>
+            <p>Latest weight</p>
+          </article>
+        </div>
+
+        <div class="nutrition-table-wrap">
+          <table class="nutrition-table">
+            <thead>
+              <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Calories</th>
+                <th scope="col">Carbs</th>
+                <th scope="col">Weight</th>
+                <th scope="col">Change</th>
+              </tr>
+            </thead>
+            <tbody id="nutritionRows"></tbody>
+          </table>
+          <p class="nutrition-empty" id="nutritionEmpty">Record calories, carbs, and weight to compare your daily intake with weight movement.</p>
+        </div>
+      </section>
+
+      <form class="composer" id="habitForm">
+        <label class="field">
+          <span>Habit</span>
+          <input id="habitName" name="habitName" type="text" maxlength="32" autocomplete="off" placeholder="Drink water" required>
+        </label>
+        <label class="field">
+          <span>Category</span>
+          <select id="habitCategory" name="habitCategory">
+            <option value="Health">Health</option>
+            <option value="Fitness">Fitness</option>
+            <option value="Mind">Mind</option>
+            <option value="Home">Home</option>
+            <option value="Work">Work</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Time</span>
+          <select id="habitTime" name="habitTime">
+            <option value="Anytime">Anytime</option>
+            <option value="Morning">Morning</option>
+            <option value="Afternoon">Afternoon</option>
+            <option value="Evening">Evening</option>
+            <option value="Night">Night</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Priority</span>
+          <select id="habitPriority" name="habitPriority">
+            <option value="Normal">Normal</option>
+            <option value="High">High</option>
+            <option value="Low">Low</option>
+          </select>
+        </label>
+        <label class="field color-field">
+          <span>Color</span>
+          <input id="habitColor" name="habitColor" type="color" value="#f97316" aria-label="Habit color">
+        </label>
+        <label class="field note-field">
+          <span>Note</span>
+          <input id="habitNote" name="habitNote" type="text" maxlength="72" autocomplete="off" placeholder="Optional reminder">
+        </label>
+        <button class="primary-button" type="submit">Add</button>
+      </form>
+
+      <section class="toolbar" aria-label="Habit filters">
+        <div class="segmented" role="tablist" aria-label="Filter habits">
+          <button type="button" class="segment active" data-filter="all">All</button>
+          <button type="button" class="segment" data-filter="today">Today</button>
+          <button type="button" class="segment" data-filter="missed">Missed</button>
+        </div>
+        <button class="text-button" id="clearDoneButton" type="button">Reset Today</button>
+      </section>
+
+      <section class="graph-panel" aria-labelledby="graphTitle">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Movement</p>
+            <h2 id="graphTitle">14-day habit and health progress</h2>
+          </div>
+          <span class="graph-score" id="graphAverage">0%</span>
+        </div>
+        <div class="chart-legend" aria-label="Chart lines">
+          <span class="legend-item habit">Habits</span>
+          <span class="legend-item calories">Calories</span>
+          <span class="legend-item carbs">Carbs</span>
+          <span class="legend-item weight">Weight</span>
+        </div>
+        <div class="trend-wrap">
+          <svg id="trendGraph" class="trend-graph" viewBox="0 0 640 220" role="img" aria-labelledby="trendLabel">
+            <title id="trendLabel">Habit completion, calories, carbs, and weight movement for the last fourteen days</title>
+            <g class="grid-lines"></g>
+            <polyline class="trend-area" points=""></polyline>
+            <polyline class="trend-line" points=""></polyline>
+            <polyline class="health-line calories-line" points=""></polyline>
+            <polyline class="health-line carbs-line" points=""></polyline>
+            <polyline class="health-line weight-line" points=""></polyline>
+            <g class="trend-points"></g>
+          </svg>
+        </div>
+        <div class="bar-graph" id="barGraph" aria-label="Daily completion bars"></div>
+      </section>
+
+      <section class="habit-list" id="habitList" aria-live="polite"></section>
+
+      <template id="habitTemplate">
+        <article class="habit-card">
+          <button class="check-button" type="button" aria-label="Toggle habit"></button>
+          <div class="habit-main">
+            <div class="habit-row">
+              <h2></h2>
+              <button class="delete-button" type="button" aria-label="Delete habit">x</button>
+            </div>
+            <div class="habit-stats">
+              <span class="streak"></span>
+              <span class="week-score"></span>
+            </div>
+            <div class="habit-attributes"></div>
+            <p class="habit-note"></p>
+            <div class="habit-actions">
+              <a class="calendar-link" target="_blank" rel="noopener">Add to Google Calendar</a>
+            </div>
+            <div class="week-strip" aria-label="Last seven days"></div>
+          </div>
+        </article>
+      </template>
+
+      <section class="empty-state" id="emptyState" hidden>
+        <h2>No habits yet</h2>
+        <p>Add one daily habit to start tracking your streak.</p>
+      </section>
+    </main>
+
+    <script src="app.js?v=17" defer></script>
+  </body>
+</html>
