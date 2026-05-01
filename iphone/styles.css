@@ -423,6 +423,113 @@ input[type="color"] {
   text-align: center;
 }
 
+.water-field {
+  grid-column: 1 / -1;
+}
+
+.water-control {
+  display: grid;
+  gap: 10px;
+}
+
+.water-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.water-summary p {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.water-summary strong {
+  color: var(--heading);
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.water-summary span {
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.water-clear {
+  min-height: 36px;
+  padding-inline: 14px;
+}
+
+.water-glasses {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(56px, 1fr));
+  gap: 8px;
+}
+
+.water-glass {
+  position: relative;
+  min-height: 78px;
+  border: 1px solid var(--line);
+  border-radius: 14px 14px 10px 10px;
+  background: linear-gradient(180deg, rgba(20, 26, 35, 0.04), rgba(20, 26, 35, 0.08));
+  color: var(--ink);
+  padding: 0;
+  overflow: hidden;
+}
+
+.water-glass::before {
+  content: "";
+  position: absolute;
+  inset: 9px 10px 8px;
+  border: 1px solid rgba(37, 99, 235, 0.36);
+  border-radius: 10px 10px 8px 8px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.04));
+}
+
+.water-glass::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 10px;
+  height: var(--fill, 0%);
+  border-radius: 8px 8px 6px 6px;
+  background: linear-gradient(180deg, rgba(125, 211, 252, 0.95), rgba(37, 99, 235, 0.82));
+  transition: height 0.18s ease;
+}
+
+.water-glass span {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  padding-top: 10px;
+  color: var(--heading);
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.water-glass.active {
+  border-color: rgba(37, 99, 235, 0.48);
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.14);
+}
+
+.water-glass.active span {
+  color: #dbeafe;
+}
+
+.water-glass:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.22);
+  outline-offset: 2px;
+}
+
 .nutrition-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));

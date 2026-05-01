@@ -23,6 +23,11 @@ const glucose = document.querySelector("#glucose");
 const systolic = document.querySelector("#systolic");
 const diastolic = document.querySelector("#diastolic");
 const water = document.querySelector("#water");
+const waterGlasses = document.querySelector("#waterGlasses");
+const waterCount = document.querySelector("#waterCount");
+const waterClear = document.querySelector("#waterClear");
+const WATER_GLASS_OZ = 8;
+const WATER_GLASS_COUNT = 8;
 const avgCalories = document.querySelector("#avgCalories");
 const avgCarbs = document.querySelector("#avgCarbs");
 const latestWeight = document.querySelector("#latestWeight");
@@ -108,6 +113,18 @@ nutritionForm.addEventListener("submit", (event) => {
   renderGraph();
 });
 
+waterGlasses.addEventListener("click", (event) => {
+  const button = event.target.closest(".water-glass");
+  if (!button) return;
+  const selectedGlasses = Number(button.dataset.glassIndex);
+  if (!Number.isFinite(selectedGlasses)) return;
+  setWaterAmount(selectedGlasses * WATER_GLASS_OZ);
+});
+
+waterClear.addEventListener("click", () => {
+  setWaterAmount(null);
+});
+
 clearDoneButton.addEventListener("click", () => {
   habits = habits.map((habit) => ({
     ...habit,
@@ -161,6 +178,7 @@ function render() {
   emptyState.hidden = habits.length > 0;
   renderGraph();
   renderNutrition();
+  renderWaterControl();
 }
 
 function renderHabit(habit) {
@@ -492,6 +510,38 @@ function renderNutrition() {
 
     nutritionRows.appendChild(row);
   });
+}
+
+function renderWaterControl() {
+  if (!waterGlasses.children.length) {
+    for (let index = 1; index <= WATER_GLASS_COUNT; index += 1) {
+      const button = document.createElement("button");
+      const label = document.createElement("span");
+
+      button.type = "button";
+      button.className = "water-glass";
+      button.dataset.glassIndex = String(index);
+      button.setAttribute("aria-label", `${index} glass${index === 1 ? "" : "es"}, ${index * WATER_GLASS_OZ} ounces`);
+      label.textContent = String(index);
+      button.appendChild(label);
+      waterGlasses.appendChild(button);
+    }
+  }
+
+  const ounces = parseNutritionNumber(water.value);
+  const selectedGlasses = Number.isFinite(ounces) ? Math.max(0, Math.min(WATER_GLASS_COUNT, Math.round(ounces / WATER_GLASS_OZ))) : 0;
+
+  waterCount.textContent = Number.isFinite(ounces) ? formatWholeNumber(ounces) : "0";
+  waterGlasses.querySelectorAll(".water-glass").forEach((button, index) => {
+    const active = index < selectedGlasses;
+    button.classList.toggle("active", active);
+    button.style.setProperty("--fill", active ? "100%" : "0%");
+  });
+}
+
+function setWaterAmount(ounces) {
+  water.value = Number.isFinite(ounces) && ounces > 0 ? String(ounces) : "";
+  renderWaterControl();
 }
 
 function findPreviousWeight(entries, currentIndex) {

@@ -9,10 +9,10 @@
     <meta name="apple-mobile-web-app-title" content="Habit Health">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>Habit &amp; Health Tracker for iPhone</title>
-    <link rel="manifest" href="manifest.webmanifest?v=9">
-    <link rel="icon" href="icons/icon.svg?v=9" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="icons/icon-192.png?v=9">
-    <link rel="stylesheet" href="styles.css?v=10">
+    <link rel="manifest" href="manifest.webmanifest?v=10">
+    <link rel="icon" href="icons/icon.svg?v=10" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icons/icon-192.png?v=10">
+    <link rel="stylesheet" href="styles.css?v=11">
   </head>
   <body>
     <main class="app-shell">
@@ -75,7 +75,14 @@
           </label>
           <label class="field">
             <span>Water</span>
-            <input id="water" name="water" type="number" min="0" step="1" inputmode="numeric" placeholder="64">
+            <div class="water-control">
+              <div class="water-summary">
+                <p><strong id="waterCount">0</strong><span>oz drank</span></p>
+                <button class="text-button water-clear" id="waterClear" type="button">Clear</button>
+              </div>
+              <div class="water-glasses" id="waterGlasses" role="group" aria-label="Tap glasses to record water intake"></div>
+              <input id="water" name="water" type="hidden">
+            </div>
           </label>
           <button class="primary-button" type="submit">Save</button>
         </form>
@@ -253,6 +260,6 @@
       </section>
     </main>
 
-    <script src="app.js?v=2" defer></script>
+    <script src="app.js?v=3" defer></script>
   </body>
 </html>
