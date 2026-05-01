@@ -9,9 +9,9 @@
   --accent: #0b4ea2;
   --accent-strong: #c81f2a;
   --danger: #9b1230;
-  --shadow: 0 14px 36px rgba(20, 37, 54, 0.1);
+  --shadow: 0 14px 36px rgba(20, 37, 54, 0.08);
   --font-body: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Avenir Next Condensed", "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   font-family: var(--font-body);
 }
 
@@ -24,8 +24,8 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   background:
-    linear-gradient(180deg, rgba(11, 78, 162, 0.10), transparent 26%),
-    linear-gradient(135deg, #fbfdff 0%, #f1f5fa 48%, #eef4f8 100%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.06), transparent 24%),
+    linear-gradient(135deg, #fbfcfe 0%, #eef3f7 52%, #e8eef3 100%),
     var(--bg);
   background-attachment: fixed;
   color: var(--ink);
@@ -43,18 +43,18 @@ body::after {
 
 body::before {
   background:
-    linear-gradient(90deg, rgba(20, 37, 54, 0.04) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(20, 37, 54, 0.04) 1px, transparent 1px);
-  background-size: 44px 44px;
-  opacity: 0.35;
+    linear-gradient(90deg, rgba(20, 37, 54, 0.03) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(20, 37, 54, 0.03) 1px, transparent 1px);
+  background-size: 56px 56px;
+  opacity: 0.28;
   transform: none;
 }
 
 body::after {
   z-index: -1;
   background:
-    radial-gradient(circle at 12% 8%, rgba(11, 78, 162, 0.08), transparent 26%),
-    radial-gradient(circle at 88% 18%, rgba(200, 31, 42, 0.06), transparent 28%);
+    radial-gradient(circle at 50% 0%, rgba(20, 37, 54, 0.06), transparent 38%),
+    radial-gradient(circle at 100% 100%, rgba(11, 78, 162, 0.04), transparent 30%);
   mix-blend-mode: normal;
 }
 
@@ -101,7 +101,7 @@ p {
 h1 {
   font-family: var(--font-display);
   font-size: clamp(2.6rem, 9vw, 5.4rem);
-  font-weight: 800;
+  font-weight: 700;
   line-height: 0.95;
   letter-spacing: 0;
   font-style: normal;
@@ -109,7 +109,7 @@ h1 {
 
 h2 {
   font-family: var(--font-display);
-  font-weight: 800;
+  font-weight: 700;
   font-style: normal;
 }
 
