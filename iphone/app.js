@@ -260,7 +260,7 @@ function getAppleCalendarUrl(habit) {
     habit.note,
     `Category: ${habit.category || "General"}`,
     `Priority: ${habit.priority || "Normal"}`,
-    "Created from Habit & Health Tracker."
+    "Created from Health & Habit Tracker."
   ].filter(Boolean).join("\n");
   const calendar = [
     "BEGIN:VCALENDAR",

@@ -259,7 +259,7 @@ function getGoogleCalendarUrl(habit) {
     habit.note,
     `Category: ${habit.category || "General"}`,
     `Priority: ${habit.priority || "Normal"}`,
-    "Created from Habit & Health Tracker."
+    "Created from Health & Habit Tracker."
   ].filter(Boolean).join("\n");
   const params = new URLSearchParams({
     action: "TEMPLATE",
