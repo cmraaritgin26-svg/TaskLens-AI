@@ -444,13 +444,20 @@ input[type="color"] {
   gap: 12px;
 }
 
-.water-summary p {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
+.water-toggle {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
 }
 
-.water-summary strong {
+.water-toggle strong {
   color: var(--heading);
   font-family: var(--font-heading);
   font-size: 2rem;
@@ -458,7 +465,7 @@ input[type="color"] {
   line-height: 1;
 }
 
-.water-summary span {
+.water-toggle span {
   color: var(--muted);
   font-size: 0.84rem;
   font-weight: 800;
@@ -472,6 +479,14 @@ input[type="color"] {
 
 .water-glasses {
   display: grid;
+  gap: 8px;
+}
+
+.water-glasses.collapsed {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.water-glasses.expanded {
   grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
   gap: 8px;
 }

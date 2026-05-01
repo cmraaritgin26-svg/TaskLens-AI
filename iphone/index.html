@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.webmanifest?v=11">
     <link rel="icon" href="icons/icon.svg?v=11" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icons/icon-192.png?v=11">
-    <link rel="stylesheet" href="styles.css?v=17">
+    <link rel="stylesheet" href="styles.css?v=18">
   </head>
   <body>
     <main class="app-shell">
@@ -77,10 +77,13 @@
             <span>Water</span>
             <div class="water-control">
               <div class="water-summary">
-                <p><strong id="waterCount">0</strong><span>oz drank</span></p>
+                <button class="water-toggle" id="waterToggle" type="button">
+                  <strong id="waterCount">0</strong>
+                  <span>Water consumption</span>
+                </button>
                 <button class="text-button water-clear" id="waterClear" type="button">Clear</button>
               </div>
-              <div class="water-glasses" id="waterGlasses" role="group" aria-label="Tap glasses to record water intake"></div>
+              <div class="water-glasses collapsed" id="waterGlasses" role="group" aria-label="Tap glasses to record water intake"></div>
               <input id="water" name="water" type="hidden">
             </div>
           </label>
@@ -260,6 +263,6 @@
       </section>
     </main>
 
-    <script src="app.js?v=4" defer></script>
+    <script src="app.js?v=5" defer></script>
   </body>
 </html>

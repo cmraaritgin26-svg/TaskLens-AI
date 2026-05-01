@@ -25,9 +25,12 @@ const diastolic = document.querySelector("#diastolic");
 const water = document.querySelector("#water");
 const waterGlasses = document.querySelector("#waterGlasses");
 const waterCount = document.querySelector("#waterCount");
+const waterToggle = document.querySelector("#waterToggle");
 const waterClear = document.querySelector("#waterClear");
 const WATER_GLASS_OZ = 8;
 const WATER_GLASS_COUNT = 8;
+const WATER_GLASS_COLLAPSED_COUNT = 2;
+let waterExpanded = false;
 const avgCalories = document.querySelector("#avgCalories");
 const avgCarbs = document.querySelector("#avgCarbs");
 const latestWeight = document.querySelector("#latestWeight");
@@ -118,7 +121,12 @@ waterGlasses.addEventListener("click", (event) => {
   if (!button) return;
   const selectedGlasses = Number(button.dataset.glassIndex);
   if (!Number.isFinite(selectedGlasses)) return;
+  setWaterExpanded(true);
   setWaterAmount(selectedGlasses * WATER_GLASS_OZ);
+});
+
+waterToggle.addEventListener("click", () => {
+  setWaterExpanded(!waterExpanded);
 });
 
 waterClear.addEventListener("click", () => {
@@ -557,13 +565,23 @@ function renderWaterControl() {
 
   const ounces = parseNutritionNumber(water.value);
   const selectedGlasses = Number.isFinite(ounces) ? Math.max(0, Math.min(WATER_GLASS_COUNT, Math.round(ounces / WATER_GLASS_OZ))) : 0;
+  const visibleGlasses = waterExpanded ? WATER_GLASS_COUNT : WATER_GLASS_COLLAPSED_COUNT;
 
   waterCount.textContent = Number.isFinite(ounces) ? formatWholeNumber(ounces) : "0";
+  waterToggle.setAttribute("aria-expanded", String(waterExpanded));
+  waterGlasses.classList.toggle("expanded", waterExpanded);
+  waterGlasses.classList.toggle("collapsed", !waterExpanded);
   waterGlasses.querySelectorAll(".water-glass").forEach((button, index) => {
+    button.hidden = index >= visibleGlasses;
     const active = index < selectedGlasses;
     button.classList.toggle("active", active);
     button.style.setProperty("--fill", active ? "100%" : "0%");
   });
+}
+
+function setWaterExpanded(expanded) {
+  waterExpanded = Boolean(expanded);
+  renderWaterControl();
 }
 
 function setWaterAmount(ounces) {
