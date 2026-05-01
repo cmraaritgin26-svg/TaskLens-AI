@@ -1,15 +1,15 @@
 :root {
   color-scheme: light;
-  --bg: #11151c;
-  --surface: rgba(20, 26, 35, 0.92);
-  --surface-strong: #1a202b;
+  --bg: #0e1623;
+  --surface: rgba(16, 23, 36, 0.92);
+  --surface-strong: #172133;
   --ink: #e5e9ef;
-  --muted: #97a3b3;
-  --line: rgba(148, 163, 184, 0.16);
-  --accent: #7b8ca6;
-  --accent-strong: #9aa8ba;
-  --danger: #c08497;
-  --heading: #8b96a7;
+  --muted: #95a9bf;
+  --line: rgba(148, 163, 184, 0.18);
+  --accent: #4f8fdc;
+  --accent-strong: #7aa9ee;
+  --danger: #7b9bcf;
+  --heading: #88a8cb;
   --shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
   --font-body: "Segoe UI", "Helvetica Neue", Arial, system-ui, sans-serif;
   --font-heading: "Baskerville", "Palatino Linotype", "Iowan Old Style", "Garamond", "Times New Roman", serif;
@@ -25,8 +25,8 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 24%),
-    linear-gradient(135deg, #0d1117 0%, #111827 48%, #161d29 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 24%),
+    linear-gradient(135deg, #0b1420 0%, #101c2f 50%, #14253c 100%),
     var(--bg);
   background-attachment: fixed;
   color: var(--ink);
@@ -54,8 +54,8 @@ body::before {
 body::after {
   z-index: -1;
   background:
-    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.05), transparent 36%),
-    radial-gradient(circle at 100% 100%, rgba(255, 255, 255, 0.03), transparent 30%);
+    radial-gradient(circle at 50% 0%, rgba(125, 211, 252, 0.05), transparent 36%),
+    radial-gradient(circle at 100% 100%, rgba(96, 165, 250, 0.04), transparent 30%);
   mix-blend-mode: normal;
 }
 
@@ -223,7 +223,7 @@ input[type="text"]:focus,
 input[type="date"]:focus,
 input[type="number"]:focus,
 select:focus {
-  outline: 3px solid rgba(249, 115, 22, 0.24);
+  outline: 3px solid rgba(96, 165, 250, 0.24);
   border-color: var(--accent);
 }
 
@@ -305,7 +305,7 @@ input[type="color"] {
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.88);
   padding: 14px;
-  box-shadow: 0 8px 28px rgba(45, 28, 105, 0.13);
+  box-shadow: 0 8px 28px rgba(20, 48, 88, 0.18);
 }
 
 .section-heading {
@@ -367,31 +367,31 @@ input[type="color"] {
 }
 
 .legend-item.calories {
-  --legend-color: #e11d48;
+  --legend-color: #2563eb;
 }
 
 .legend-item.carbs {
-  --legend-color: #0891b2;
+  --legend-color: #0ea5e9;
 }
 
 .legend-item.weight {
-  --legend-color: #7c3aed;
+  --legend-color: #6366f1;
 }
 
 .legend-item.ketosis {
-  --legend-color: #0f766e;
+  --legend-color: #14b8a6;
 }
 
 .legend-item.glucose {
-  --legend-color: #b45309;
+  --legend-color: #0284c7;
 }
 
 .legend-item.blood-pressure {
-  --legend-color: #be123c;
+  --legend-color: #3b82f6;
 }
 
 .legend-item.water {
-  --legend-color: #2563eb;
+  --legend-color: #60a5fa;
 }
 
 .nutrition-panel {
@@ -617,8 +617,8 @@ input[type="color"] {
   border: 1px solid var(--line);
   border-radius: 8px;
   background:
-    radial-gradient(circle at 18% 20%, rgba(250, 204, 21, 0.22), transparent 34%),
-    radial-gradient(circle at 80% 70%, rgba(249, 115, 22, 0.18), transparent 34%),
+    radial-gradient(circle at 18% 20%, rgba(125, 211, 252, 0.16), transparent 34%),
+    radial-gradient(circle at 80% 70%, rgba(96, 165, 250, 0.16), transparent 34%),
     rgba(255, 255, 255, 0.9);
 }
 
@@ -627,15 +627,16 @@ input[type="color"] {
   width: 100%;
   height: auto;
   min-height: 160px;
+  shape-rendering: geometricPrecision;
 }
 
 .grid-lines line {
-  stroke: rgba(154, 79, 22, 0.22);
+  stroke: rgba(96, 165, 250, 0.18);
   stroke-width: 1;
 }
 
 .trend-area {
-  fill: rgba(249, 115, 22, 0.18);
+  fill: rgba(96, 165, 250, 0.14);
   stroke: none;
 }
 
@@ -662,35 +663,35 @@ input[type="color"] {
 }
 
 .calories-line {
-  stroke: #e11d48;
+  stroke: #2563eb;
 }
 
 .carbs-line {
-  stroke: #0891b2;
+  stroke: #0ea5e9;
 }
 
 .weight-line {
-  stroke: #7c3aed;
+  stroke: #6366f1;
 }
 
 .ketosis-line {
-  stroke: #0f766e;
+  stroke: #14b8a6;
 }
 
 .glucose-line {
-  stroke: #b45309;
+  stroke: #0284c7;
 }
 
 .systolic-line {
-  stroke: #be123c;
+  stroke: #3b82f6;
 }
 
 .diastolic-line {
-  stroke: #f59e0b;
+  stroke: #60a5fa;
 }
 
 .water-line {
-  stroke: #2563eb;
+  stroke: #1d4ed8;
 }
 
 .bar-graph {
@@ -719,7 +720,7 @@ input[type="color"] {
   display: block;
   min-height: 3px;
   border-radius: 8px 8px 2px 2px;
-  background: linear-gradient(180deg, #facc15, #f97316 52%, #e11d48);
+  background: linear-gradient(180deg, #bfdbfe, #60a5fa 52%, #2563eb);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
 }
 

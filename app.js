@@ -362,11 +362,7 @@ function renderTrendGraph(movement) {
   const systolicPoints = getMetricPoints(movement, step, padding, graphHeight, height, "systolic");
   const diastolicPoints = getMetricPoints(movement, step, padding, graphHeight, height, "diastolic");
   const waterPoints = getMetricPoints(movement, step, padding, graphHeight, height, "water");
-  const areaPoints = [
-    `${padding},${height - padding}`,
-    ...points,
-    `${width - padding},${height - padding}`
-  ].join(" ");
+  const areaPath = buildAreaPath(points, width, height, padding);
 
   gridLines.textContent = "";
   [0, 25, 50, 75, 100].forEach((value) => {
@@ -379,16 +375,16 @@ function renderTrendGraph(movement) {
     gridLines.appendChild(line);
   });
 
-  trendArea.setAttribute("points", areaPoints);
-  trendLine.setAttribute("points", points.join(" "));
-  caloriesLine.setAttribute("points", caloriePoints.join(" "));
-  carbsLine.setAttribute("points", carbPoints.join(" "));
-  weightLine.setAttribute("points", weightPoints.join(" "));
-  ketosisLine.setAttribute("points", ketosisPoints.join(" "));
-  glucoseLine.setAttribute("points", glucosePoints.join(" "));
-  systolicLine.setAttribute("points", systolicPoints.join(" "));
-  diastolicLine.setAttribute("points", diastolicPoints.join(" "));
-  waterLine.setAttribute("points", waterPoints.join(" "));
+  trendArea.setAttribute("d", areaPath);
+  trendLine.setAttribute("d", smoothPath(points));
+  caloriesLine.setAttribute("d", smoothPath(caloriePoints));
+  carbsLine.setAttribute("d", smoothPath(carbPoints));
+  weightLine.setAttribute("d", smoothPath(weightPoints));
+  ketosisLine.setAttribute("d", smoothPath(ketosisPoints));
+  glucoseLine.setAttribute("d", smoothPath(glucosePoints));
+  systolicLine.setAttribute("d", smoothPath(systolicPoints));
+  diastolicLine.setAttribute("d", smoothPath(diastolicPoints));
+  waterLine.setAttribute("d", smoothPath(waterPoints));
   trendPoints.textContent = "";
 
   movement.forEach((day, index) => {
@@ -399,6 +395,37 @@ function renderTrendGraph(movement) {
     point.setAttribute("r", day.percent > 0 ? 6 : 4);
     trendPoints.appendChild(point);
   });
+}
+
+function smoothPath(points) {
+  if (!points.length) return "";
+  if (points.length === 1) return `M ${points[0].replace(",", " ")}`;
+
+  const coordinates = points.map((point) => {
+    const [x, y] = point.split(",").map(Number);
+    return { x, y };
+  });
+  let path = `M ${coordinates[0].x.toFixed(1)} ${coordinates[0].y.toFixed(1)}`;
+
+  for (let index = 0; index < coordinates.length - 1; index += 1) {
+    const current = coordinates[index];
+    const next = coordinates[index + 1];
+    const previous = coordinates[index - 1] || current;
+    const after = coordinates[index + 2] || next;
+    const control1X = current.x + (next.x - previous.x) / 6;
+    const control1Y = current.y + (next.y - previous.y) / 6;
+    const control2X = next.x - (after.x - current.x) / 6;
+    const control2Y = next.y - (after.y - current.y) / 6;
+    path += ` C ${control1X.toFixed(1)} ${control1Y.toFixed(1)}, ${control2X.toFixed(1)} ${control2Y.toFixed(1)}, ${next.x.toFixed(1)} ${next.y.toFixed(1)}`;
+  }
+
+  return path;
+}
+
+function buildAreaPath(points, width, height, padding) {
+  if (!points.length) return "";
+  const linePath = smoothPath(points);
+  return `${linePath} L ${width - padding} ${height - padding} L ${padding} ${height - padding} Z`;
 }
 
 function getMetricPoints(movement, step, padding, graphHeight, height, key) {
