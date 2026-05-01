@@ -19,10 +19,17 @@ const calories = document.querySelector("#calories");
 const carbs = document.querySelector("#carbs");
 const weight = document.querySelector("#weight");
 const ketosisPhase = document.querySelector("#ketosisPhase");
+const glucose = document.querySelector("#glucose");
+const systolic = document.querySelector("#systolic");
+const diastolic = document.querySelector("#diastolic");
+const water = document.querySelector("#water");
 const avgCalories = document.querySelector("#avgCalories");
 const avgCarbs = document.querySelector("#avgCarbs");
 const latestWeight = document.querySelector("#latestWeight");
 const latestKetosis = document.querySelector("#latestKetosis");
+const latestGlucose = document.querySelector("#latestGlucose");
+const latestBloodPressure = document.querySelector("#latestBloodPressure");
+const latestWater = document.querySelector("#latestWater");
 const nutritionRows = document.querySelector("#nutritionRows");
 const nutritionEmpty = document.querySelector("#nutritionEmpty");
 const habitList = document.querySelector("#habitList");
@@ -39,6 +46,10 @@ const caloriesLine = document.querySelector(".calories-line");
 const carbsLine = document.querySelector(".carbs-line");
 const weightLine = document.querySelector(".weight-line");
 const ketosisLine = document.querySelector(".ketosis-line");
+const glucoseLine = document.querySelector(".glucose-line");
+const systolicLine = document.querySelector(".systolic-line");
+const diastolicLine = document.querySelector(".diastolic-line");
+const waterLine = document.querySelector(".water-line");
 const trendPoints = document.querySelector(".trend-points");
 const gridLines = document.querySelector(".grid-lines");
 
@@ -80,7 +91,11 @@ nutritionForm.addEventListener("submit", (event) => {
     calories: parseNutritionNumber(calories.value),
     carbs: parseNutritionNumber(carbs.value),
     weight: parseNutritionNumber(weight.value),
-    ketosisPhase: ketosisPhase.value || null
+    ketosisPhase: ketosisPhase.value || null,
+    glucose: parseNutritionNumber(glucose.value),
+    systolic: parseNutritionNumber(systolic.value),
+    diastolic: parseNutritionNumber(diastolic.value),
+    water: parseNutritionNumber(water.value)
   };
 
   nutritionEntries = [
@@ -298,7 +313,11 @@ function renderGraph() {
       carbs: nutrition.carbs,
       weight: nutrition.weight,
       ketosisPhase: nutrition.ketosisPhase,
-      ketosisLevel: getKetosisPhaseLevel(nutrition.ketosisPhase)
+      ketosisLevel: getKetosisPhaseLevel(nutrition.ketosisPhase),
+      glucose: nutrition.glucose,
+      systolic: nutrition.systolic,
+      diastolic: nutrition.diastolic,
+      water: nutrition.water
     };
   });
   const average = movement.length
@@ -321,6 +340,10 @@ function renderTrendGraph(movement) {
   const carbPoints = getMetricPoints(movement, step, padding, graphHeight, height, "carbs");
   const weightPoints = getMetricPoints(movement, step, padding, graphHeight, height, "weight");
   const ketosisPoints = getMetricPoints(movement, step, padding, graphHeight, height, "ketosisLevel");
+  const glucosePoints = getMetricPoints(movement, step, padding, graphHeight, height, "glucose");
+  const systolicPoints = getMetricPoints(movement, step, padding, graphHeight, height, "systolic");
+  const diastolicPoints = getMetricPoints(movement, step, padding, graphHeight, height, "diastolic");
+  const waterPoints = getMetricPoints(movement, step, padding, graphHeight, height, "water");
   const areaPoints = [
     `${padding},${height - padding}`,
     ...points,
@@ -344,6 +367,10 @@ function renderTrendGraph(movement) {
   carbsLine.setAttribute("points", carbPoints.join(" "));
   weightLine.setAttribute("points", weightPoints.join(" "));
   ketosisLine.setAttribute("points", ketosisPoints.join(" "));
+  glucoseLine.setAttribute("points", glucosePoints.join(" "));
+  systolicLine.setAttribute("points", systolicPoints.join(" "));
+  diastolicLine.setAttribute("points", diastolicPoints.join(" "));
+  waterLine.setAttribute("points", waterPoints.join(" "));
   trendPoints.textContent = "";
 
   movement.forEach((day, index) => {
@@ -395,7 +422,10 @@ function renderBarGraph(movement) {
       Number.isFinite(day.calories) ? `${formatWholeNumber(day.calories)} calories` : null,
       Number.isFinite(day.carbs) ? `${formatWholeNumber(day.carbs)}g carbs` : null,
       Number.isFinite(day.weight) ? `${formatDecimal(day.weight)} lb` : null,
-      day.ketosisPhase ? `Ketosis: ${formatKetosisPhase(day.ketosisPhase)}` : null
+      day.ketosisPhase ? `Ketosis: ${formatKetosisPhase(day.ketosisPhase)}` : null,
+      Number.isFinite(day.glucose) ? `${formatWholeNumber(day.glucose)} glucose` : null,
+      formatBloodPressure(day.systolic, day.diastolic),
+      Number.isFinite(day.water) ? `${formatWholeNumber(day.water)} oz water` : null
     ].filter(Boolean).join(" | ");
 
     bar.append(fill, label, value);
@@ -418,11 +448,21 @@ function renderNutrition() {
   const carbValues = sevenDayEntries.map((entry) => entry.carbs).filter(Number.isFinite);
   const latestWeightEntry = nutritionEntries.find((entry) => Number.isFinite(entry.weight));
   const latestKetosisEntry = nutritionEntries.find((entry) => entry.ketosisPhase);
+  const latestGlucoseEntry = nutritionEntries.find((entry) => Number.isFinite(entry.glucose));
+  const latestBloodPressureEntry = nutritionEntries.find(
+    (entry) => Number.isFinite(entry.systolic) && Number.isFinite(entry.diastolic)
+  );
+  const latestWaterEntry = nutritionEntries.find((entry) => Number.isFinite(entry.water));
 
   avgCalories.textContent = calorieValues.length ? formatWholeNumber(getAverage(calorieValues)) : "0";
   avgCarbs.textContent = carbValues.length ? `${formatWholeNumber(getAverage(carbValues))}g` : "0g";
   latestWeight.textContent = latestWeightEntry ? `${formatDecimal(latestWeightEntry.weight)} lb` : "--";
   latestKetosis.textContent = latestKetosisEntry ? formatKetosisPhase(latestKetosisEntry.ketosisPhase) : "--";
+  latestGlucose.textContent = latestGlucoseEntry ? `${formatWholeNumber(latestGlucoseEntry.glucose)} mg/dL` : "--";
+  latestBloodPressure.textContent = latestBloodPressureEntry
+    ? formatBloodPressure(latestBloodPressureEntry.systolic, latestBloodPressureEntry.diastolic, true)
+    : "--";
+  latestWater.textContent = latestWaterEntry ? `${formatWholeNumber(latestWaterEntry.water)} oz` : "--";
   nutritionRows.textContent = "";
   nutritionEmpty.hidden = recentEntries.length > 0;
 
@@ -438,6 +478,9 @@ function renderNutrition() {
       Number.isFinite(entry.carbs) ? `${formatWholeNumber(entry.carbs)}g` : "--",
       Number.isFinite(entry.weight) ? `${formatDecimal(entry.weight)} lb` : "--",
       formatKetosisPhase(entry.ketosisPhase),
+      Number.isFinite(entry.glucose) ? `${formatWholeNumber(entry.glucose)} mg/dL` : "--",
+      formatBloodPressure(entry.systolic, entry.diastolic),
+      Number.isFinite(entry.water) ? `${formatWholeNumber(entry.water)} oz` : "--",
       formatWeightDelta(delta)
     ];
 
@@ -524,7 +567,11 @@ function loadNutritionEntries() {
           calories: Number.isFinite(entry.calories) ? entry.calories : null,
           carbs: Number.isFinite(entry.carbs) ? entry.carbs : null,
           weight: Number.isFinite(entry.weight) ? entry.weight : null,
-          ketosisPhase: typeof entry.ketosisPhase === "string" && entry.ketosisPhase ? entry.ketosisPhase : null
+          ketosisPhase: typeof entry.ketosisPhase === "string" && entry.ketosisPhase ? entry.ketosisPhase : null,
+          glucose: Number.isFinite(entry.glucose) ? entry.glucose : null,
+          systolic: Number.isFinite(entry.systolic) ? entry.systolic : null,
+          diastolic: Number.isFinite(entry.diastolic) ? entry.diastolic : null,
+          water: Number.isFinite(entry.water) ? entry.water : null
         }))
         .sort((first, second) => second.date.localeCompare(first.date))
       : [];
@@ -549,6 +596,14 @@ function getKetosisPhaseLevel(phase) {
 
 function formatKetosisPhase(phase) {
   return phase ? phase : "--";
+}
+
+function formatBloodPressure(systolicValue, diastolicValue, includeUnits = false) {
+  if (!Number.isFinite(systolicValue) && !Number.isFinite(diastolicValue)) return "--";
+  const systolicText = Number.isFinite(systolicValue) ? formatWholeNumber(systolicValue) : "--";
+  const diastolicText = Number.isFinite(diastolicValue) ? formatWholeNumber(diastolicValue) : "--";
+  const value = `${systolicText}/${diastolicText}`;
+  return includeUnits ? `${value} mmHg` : value;
 }
 
 render();

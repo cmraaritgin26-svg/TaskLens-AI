@@ -6,10 +6,10 @@
     <meta name="theme-color" content="#0b4ea2">
     <meta name="description" content="Track habits, health metrics, nutrition, and weight offline.">
     <title>Habit &amp; Health Tracker</title>
-    <link rel="manifest" href="manifest.webmanifest?v=19">
-    <link rel="icon" href="icons/icon.svg?v=19" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="icons/icon.svg?v=19">
-    <link rel="stylesheet" href="styles.css?v=19">
+    <link rel="manifest" href="manifest.webmanifest?v=20">
+    <link rel="icon" href="icons/icon.svg?v=20" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icons/icon.svg?v=20">
+    <link rel="stylesheet" href="styles.css?v=20">
   </head>
   <body>
     <main class="app-shell">
@@ -27,7 +27,7 @@
         <div class="section-heading">
           <div>
             <p class="eyebrow">Food & body</p>
-            <h2 id="nutritionTitle">Nutrition, weight, and ketosis</h2>
+            <h2 id="nutritionTitle">Nutrition, weight, ketosis, and vitals</h2>
           </div>
         </div>
 
@@ -58,6 +58,22 @@
               <option value="Exiting">Exiting</option>
             </select>
           </label>
+          <label class="field">
+            <span>Glucose</span>
+            <input id="glucose" name="glucose" type="number" min="0" step="1" inputmode="numeric" placeholder="95">
+          </label>
+          <label class="field">
+            <span>Blood pressure</span>
+            <div class="bp-inputs">
+              <input id="systolic" name="systolic" type="number" min="0" step="1" inputmode="numeric" placeholder="120" aria-label="Systolic blood pressure">
+              <span aria-hidden="true">/</span>
+              <input id="diastolic" name="diastolic" type="number" min="0" step="1" inputmode="numeric" placeholder="80" aria-label="Diastolic blood pressure">
+            </div>
+          </label>
+          <label class="field">
+            <span>Water</span>
+            <input id="water" name="water" type="number" min="0" step="1" inputmode="numeric" placeholder="64">
+          </label>
           <button class="primary-button" type="submit">Save</button>
         </form>
 
@@ -78,6 +94,18 @@
             <span id="latestKetosis">--</span>
             <p>Latest ketosis phase</p>
           </article>
+          <article class="metric compact">
+            <span id="latestGlucose">--</span>
+            <p>Latest glucose</p>
+          </article>
+          <article class="metric compact">
+            <span id="latestBloodPressure">--</span>
+            <p>Latest blood pressure</p>
+          </article>
+          <article class="metric compact">
+            <span id="latestWater">--</span>
+            <p>Latest water</p>
+          </article>
         </div>
 
         <div class="nutrition-table-wrap">
@@ -89,12 +117,15 @@
                 <th scope="col">Carbs</th>
                 <th scope="col">Weight</th>
                 <th scope="col">Ketosis</th>
+                <th scope="col">Glucose</th>
+                <th scope="col">Blood Pressure</th>
+                <th scope="col">Water</th>
                 <th scope="col">Change</th>
               </tr>
             </thead>
             <tbody id="nutritionRows"></tbody>
           </table>
-          <p class="nutrition-empty" id="nutritionEmpty">Record calories, carbs, weight, and ketosis phase to compare intake with health movement.</p>
+          <p class="nutrition-empty" id="nutritionEmpty">Record calories, carbs, weight, ketosis phase, glucose, blood pressure, and water to compare intake with health movement.</p>
         </div>
       </section>
 
@@ -165,10 +196,13 @@
           <span class="legend-item carbs">Carbs</span>
           <span class="legend-item weight">Weight</span>
           <span class="legend-item ketosis">Ketosis</span>
+          <span class="legend-item glucose">Glucose</span>
+          <span class="legend-item blood-pressure">Blood Pressure</span>
+          <span class="legend-item water">Water</span>
         </div>
         <div class="trend-wrap">
           <svg id="trendGraph" class="trend-graph" viewBox="0 0 640 220" role="img" aria-labelledby="trendLabel">
-            <title id="trendLabel">Habit completion, calories, carbs, weight, and ketosis phase movement for the last fourteen days</title>
+            <title id="trendLabel">Habit completion, calories, carbs, weight, ketosis phase, glucose, blood pressure, and water movement for the last fourteen days</title>
             <g class="grid-lines"></g>
             <polyline class="trend-area" points=""></polyline>
             <polyline class="trend-line" points=""></polyline>
@@ -176,6 +210,10 @@
             <polyline class="health-line carbs-line" points=""></polyline>
             <polyline class="health-line weight-line" points=""></polyline>
             <polyline class="health-line ketosis-line" points=""></polyline>
+            <polyline class="health-line glucose-line" points=""></polyline>
+            <polyline class="health-line systolic-line" points=""></polyline>
+            <polyline class="health-line diastolic-line" points=""></polyline>
+            <polyline class="health-line water-line" points=""></polyline>
             <g class="trend-points"></g>
           </svg>
         </div>

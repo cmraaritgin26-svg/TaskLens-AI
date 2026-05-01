@@ -383,6 +383,18 @@ input[type="color"] {
   --legend-color: #0f766e;
 }
 
+.legend-item.glucose {
+  --legend-color: #b45309;
+}
+
+.legend-item.blood-pressure {
+  --legend-color: #be123c;
+}
+
+.legend-item.water {
+  --legend-color: #2563eb;
+}
+
 .nutrition-panel {
   margin: 0 0 16px;
   border: 1px solid var(--line);
@@ -394,14 +406,27 @@ input[type="color"] {
 
 .nutrition-form {
   display: grid;
-  grid-template-columns: minmax(130px, 0.9fr) repeat(4, minmax(110px, 1fr)) 88px;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 10px;
   align-items: end;
 }
 
+.bp-inputs {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 6px;
+  align-items: center;
+}
+
+.bp-inputs span {
+  color: var(--muted);
+  font-weight: 900;
+  text-align: center;
+}
+
 .nutrition-summary {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
   gap: 10px;
   margin-top: 12px;
 }
@@ -426,7 +451,7 @@ input[type="color"] {
 
 .nutrition-table {
   width: 100%;
-  min-width: 660px;
+  min-width: 960px;
   border-collapse: collapse;
   text-align: left;
 }
@@ -525,6 +550,22 @@ input[type="color"] {
 
 .ketosis-line {
   stroke: #0f766e;
+}
+
+.glucose-line {
+  stroke: #b45309;
+}
+
+.systolic-line {
+  stroke: #be123c;
+}
+
+.diastolic-line {
+  stroke: #f59e0b;
+}
+
+.water-line {
+  stroke: #2563eb;
 }
 
 .bar-graph {
