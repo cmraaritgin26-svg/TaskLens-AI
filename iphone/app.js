@@ -23,6 +23,7 @@ const glucose = document.querySelector("#glucose");
 const systolic = document.querySelector("#systolic");
 const diastolic = document.querySelector("#diastolic");
 const water = document.querySelector("#water");
+const waterControl = document.querySelector(".water-control");
 const waterGlasses = document.querySelector("#waterGlasses");
 const waterCount = document.querySelector("#waterCount");
 const waterToggle = document.querySelector("#waterToggle");
@@ -126,12 +127,24 @@ waterGlasses.addEventListener("click", (event) => {
 });
 
 waterToggle.addEventListener("click", () => {
-  setWaterExpanded(!waterExpanded);
+  setWaterExpanded(true);
 });
 
 waterClear.addEventListener("click", () => {
   setWaterAmount(null);
 });
+
+document.addEventListener("click", (event) => {
+  if (waterExpanded && !waterControl.contains(event.target)) {
+    setWaterExpanded(false);
+  }
+});
+
+window.addEventListener("scroll", () => {
+  if (waterExpanded) {
+    setWaterExpanded(false);
+  }
+}, { passive: true });
 
 clearDoneButton.addEventListener("click", () => {
   habits = habits.map((habit) => ({
