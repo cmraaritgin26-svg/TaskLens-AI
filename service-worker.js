@@ -1,4 +1,4 @@
-const cacheName = "habit-tracker-v24";
+const cacheName = "habit-tracker-v25";
 const assets = [
   "./",
   "./index.html",
