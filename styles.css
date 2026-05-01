@@ -379,6 +379,10 @@ input[type="color"] {
   --legend-color: #7c3aed;
 }
 
+.legend-item.ketosis {
+  --legend-color: #0f766e;
+}
+
 .nutrition-panel {
   margin: 0 0 16px;
   border: 1px solid var(--line);
@@ -390,14 +394,14 @@ input[type="color"] {
 
 .nutrition-form {
   display: grid;
-  grid-template-columns: minmax(130px, 0.9fr) repeat(3, minmax(110px, 1fr)) 88px;
+  grid-template-columns: minmax(130px, 0.9fr) repeat(4, minmax(110px, 1fr)) 88px;
   gap: 10px;
   align-items: end;
 }
 
 .nutrition-summary {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
   margin-top: 12px;
 }
@@ -422,7 +426,7 @@ input[type="color"] {
 
 .nutrition-table {
   width: 100%;
-  min-width: 560px;
+  min-width: 660px;
   border-collapse: collapse;
   text-align: left;
 }
@@ -517,6 +521,10 @@ input[type="color"] {
 
 .weight-line {
   stroke: #7c3aed;
+}
+
+.ketosis-line {
+  stroke: #0f766e;
 }
 
 .bar-graph {

@@ -18,9 +18,11 @@ const nutritionDate = document.querySelector("#nutritionDate");
 const calories = document.querySelector("#calories");
 const carbs = document.querySelector("#carbs");
 const weight = document.querySelector("#weight");
+const ketosisPhase = document.querySelector("#ketosisPhase");
 const avgCalories = document.querySelector("#avgCalories");
 const avgCarbs = document.querySelector("#avgCarbs");
 const latestWeight = document.querySelector("#latestWeight");
+const latestKetosis = document.querySelector("#latestKetosis");
 const nutritionRows = document.querySelector("#nutritionRows");
 const nutritionEmpty = document.querySelector("#nutritionEmpty");
 const habitList = document.querySelector("#habitList");
@@ -36,6 +38,7 @@ const trendLine = document.querySelector(".trend-line");
 const caloriesLine = document.querySelector(".calories-line");
 const carbsLine = document.querySelector(".carbs-line");
 const weightLine = document.querySelector(".weight-line");
+const ketosisLine = document.querySelector(".ketosis-line");
 const trendPoints = document.querySelector(".trend-points");
 const gridLines = document.querySelector(".grid-lines");
 
@@ -76,7 +79,8 @@ nutritionForm.addEventListener("submit", (event) => {
     date,
     calories: parseNutritionNumber(calories.value),
     carbs: parseNutritionNumber(carbs.value),
-    weight: parseNutritionNumber(weight.value)
+    weight: parseNutritionNumber(weight.value),
+    ketosisPhase: ketosisPhase.value || null
   };
 
   nutritionEntries = [
@@ -292,7 +296,9 @@ function renderGraph() {
       percent,
       calories: nutrition.calories,
       carbs: nutrition.carbs,
-      weight: nutrition.weight
+      weight: nutrition.weight,
+      ketosisPhase: nutrition.ketosisPhase,
+      ketosisLevel: getKetosisPhaseLevel(nutrition.ketosisPhase)
     };
   });
   const average = movement.length
@@ -314,6 +320,7 @@ function renderTrendGraph(movement) {
   const caloriePoints = getMetricPoints(movement, step, padding, graphHeight, height, "calories");
   const carbPoints = getMetricPoints(movement, step, padding, graphHeight, height, "carbs");
   const weightPoints = getMetricPoints(movement, step, padding, graphHeight, height, "weight");
+  const ketosisPoints = getMetricPoints(movement, step, padding, graphHeight, height, "ketosisLevel");
   const areaPoints = [
     `${padding},${height - padding}`,
     ...points,
@@ -336,6 +343,7 @@ function renderTrendGraph(movement) {
   caloriesLine.setAttribute("points", caloriePoints.join(" "));
   carbsLine.setAttribute("points", carbPoints.join(" "));
   weightLine.setAttribute("points", weightPoints.join(" "));
+  ketosisLine.setAttribute("points", ketosisPoints.join(" "));
   trendPoints.textContent = "";
 
   movement.forEach((day, index) => {
@@ -386,7 +394,8 @@ function renderBarGraph(movement) {
       `${day.complete} of ${habits.length} habits completed`,
       Number.isFinite(day.calories) ? `${formatWholeNumber(day.calories)} calories` : null,
       Number.isFinite(day.carbs) ? `${formatWholeNumber(day.carbs)}g carbs` : null,
-      Number.isFinite(day.weight) ? `${formatDecimal(day.weight)} lb` : null
+      Number.isFinite(day.weight) ? `${formatDecimal(day.weight)} lb` : null,
+      day.ketosisPhase ? `Ketosis: ${formatKetosisPhase(day.ketosisPhase)}` : null
     ].filter(Boolean).join(" | ");
 
     bar.append(fill, label, value);
@@ -408,10 +417,12 @@ function renderNutrition() {
   const calorieValues = sevenDayEntries.map((entry) => entry.calories).filter(Number.isFinite);
   const carbValues = sevenDayEntries.map((entry) => entry.carbs).filter(Number.isFinite);
   const latestWeightEntry = nutritionEntries.find((entry) => Number.isFinite(entry.weight));
+  const latestKetosisEntry = nutritionEntries.find((entry) => entry.ketosisPhase);
 
   avgCalories.textContent = calorieValues.length ? formatWholeNumber(getAverage(calorieValues)) : "0";
   avgCarbs.textContent = carbValues.length ? `${formatWholeNumber(getAverage(carbValues))}g` : "0g";
   latestWeight.textContent = latestWeightEntry ? `${formatDecimal(latestWeightEntry.weight)} lb` : "--";
+  latestKetosis.textContent = latestKetosisEntry ? formatKetosisPhase(latestKetosisEntry.ketosisPhase) : "--";
   nutritionRows.textContent = "";
   nutritionEmpty.hidden = recentEntries.length > 0;
 
@@ -426,6 +437,7 @@ function renderNutrition() {
       Number.isFinite(entry.calories) ? formatWholeNumber(entry.calories) : "--",
       Number.isFinite(entry.carbs) ? `${formatWholeNumber(entry.carbs)}g` : "--",
       Number.isFinite(entry.weight) ? `${formatDecimal(entry.weight)} lb` : "--",
+      formatKetosisPhase(entry.ketosisPhase),
       formatWeightDelta(delta)
     ];
 
@@ -511,7 +523,8 @@ function loadNutritionEntries() {
           date: entry.date,
           calories: Number.isFinite(entry.calories) ? entry.calories : null,
           carbs: Number.isFinite(entry.carbs) ? entry.carbs : null,
-          weight: Number.isFinite(entry.weight) ? entry.weight : null
+          weight: Number.isFinite(entry.weight) ? entry.weight : null,
+          ketosisPhase: typeof entry.ketosisPhase === "string" && entry.ketosisPhase ? entry.ketosisPhase : null
         }))
         .sort((first, second) => second.date.localeCompare(first.date))
       : [];
@@ -522,6 +535,20 @@ function loadNutritionEntries() {
 
 function saveNutritionEntries() {
   localStorage.setItem(nutritionStoreKey, JSON.stringify(nutritionEntries));
+}
+
+function getKetosisPhaseLevel(phase) {
+  const values = {
+    Entering: 1,
+    Ketosis: 2,
+    "Deep ketosis": 3,
+    Exiting: 1
+  };
+  return values[phase] ?? null;
+}
+
+function formatKetosisPhase(phase) {
+  return phase ? phase : "--";
 }
 
 render();
