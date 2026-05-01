@@ -9,7 +9,7 @@
   --accent: #7b8ca6;
   --accent-strong: #9aa8ba;
   --danger: #c08497;
-  --heading: #aab6c5;
+  --heading: #8b96a7;
   --shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
   --font-body: "Segoe UI", "Helvetica Neue", Arial, system-ui, sans-serif;
   --font-heading: "Baskerville", "Palatino Linotype", "Iowan Old Style", "Garamond", "Times New Roman", serif;
@@ -83,6 +83,8 @@ button {
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 24px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
 }
 
 .eyebrow {
@@ -107,6 +109,7 @@ h1 {
   letter-spacing: 0;
   font-style: italic;
   color: var(--heading);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.18);
 }
 
 h2 {
