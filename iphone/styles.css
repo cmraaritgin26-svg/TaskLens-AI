@@ -87,6 +87,10 @@ button {
   border-bottom: 1px solid var(--line);
 }
 
+.topbar > div {
+  min-width: 0;
+}
+
 .eyebrow {
   margin: 0 0 4px;
   color: var(--muted);
@@ -103,13 +107,14 @@ p {
 
 h1 {
   font-family: var(--font-heading);
-  font-size: clamp(2.1rem, 7vw, 4.2rem);
+  font-size: clamp(1.55rem, 4.6vw, 3.2rem);
   font-weight: 600;
-  line-height: 0.95;
+  line-height: 0.92;
   letter-spacing: 0;
   font-style: italic;
   color: var(--heading);
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.18);
+  white-space: nowrap;
 }
 
 h2 {
