@@ -1,0 +1,37 @@
+{
+  "name": "health-task-tracker-android",
+  "version": "1.0.0",
+  "description": "Installable Android PWA for tracking tasks, health metrics, nutrition, and weight.",
+  "private": false,
+  "type": "module",
+  "scripts": {
+    "start": "npm --prefix backend start",
+    "pack:android": "npm pack",
+    "native:sync": "npx cap sync android",
+    "native:add:android": "npx cap add android",
+    "native:open:android": "npx cap open android",
+    "serve": "python -m http.server 8080"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^6.2.1",
+    "@capacitor/cli": "^6.2.1",
+    "@capacitor/core": "^6.2.1",
+    "playwright": "^1.59.1"
+  },
+  "files": [
+    "index.html",
+    "app.js",
+    "styles.css",
+    "fonts",
+    "manifest.webmanifest",
+    "service-worker.js",
+    "www",
+    "capacitor.config.json",
+    "NATIVE_INSTALL.md",
+    "README.md",
+    "DEPLOY.md",
+    "icons/icon.svg",
+    "icons/icon-192.png",
+    "icons/icon-512.png"
+  ]
+}
