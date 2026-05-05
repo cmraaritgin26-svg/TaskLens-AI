@@ -1,10 +1,11 @@
 {
-  "name": "habit-health-tracker-android",
+  "name": "health-task-tracker-android",
   "version": "1.0.0",
-  "description": "Installable Android PWA for tracking habits, health metrics, nutrition, and weight.",
+  "description": "Installable Android PWA for tracking tasks, health metrics, nutrition, and weight.",
   "private": false,
   "type": "module",
   "scripts": {
+    "start": "npm --prefix backend start",
     "pack:android": "npm pack",
     "native:sync": "npx cap sync android",
     "native:add:android": "npx cap add android",
@@ -14,12 +15,14 @@
   "devDependencies": {
     "@capacitor/android": "^6.2.1",
     "@capacitor/cli": "^6.2.1",
-    "@capacitor/core": "^6.2.1"
+    "@capacitor/core": "^6.2.1",
+    "playwright": "^1.59.1"
   },
   "files": [
     "index.html",
     "app.js",
     "styles.css",
+    "fonts",
     "manifest.webmanifest",
     "service-worker.js",
     "www",
