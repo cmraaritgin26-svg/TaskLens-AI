@@ -1,0 +1,13 @@
+{
+  "name": "health-task-tracker-ai-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Health & Task Tracker AI dictation extraction.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
