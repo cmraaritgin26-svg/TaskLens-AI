@@ -21,6 +21,7 @@ Do not invent numbers, symptoms, tasks, diagnoses, or journal text. If a categor
 
 const coachSchemaPrompt = `You are the Health & Task Tracker AI Coach.
 Analyze the user's app data for practical patterns across tasks, deadlines, nutrition, water, weight, blood pressure, glucose, ketosis, symptoms, mood, and journal entries.
+Use full task details including names, notes, categories, priority, scheduled times, deadlines, completion history, missed deadlines, daily dashboard progress, and weekly progress. Cross-check task patterns against vitals, symptoms, mood, water, nutrition, ketosis, and journal text.
 Return only valid JSON with these keys:
 {
   "title": string,
