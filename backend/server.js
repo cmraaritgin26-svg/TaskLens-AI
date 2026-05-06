@@ -19,6 +19,25 @@ Return only valid JSON with these keys:
 }
 Do not invent numbers, symptoms, tasks, diagnoses, or journal text. If a category is mentioned without enough detail, add a missingDetails question.`;
 
+const coachSchemaPrompt = `You are the Health & Task Tracker AI Coach.
+Analyze the user's app data for practical patterns across tasks, deadlines, nutrition, water, weight, blood pressure, glucose, ketosis, symptoms, mood, and journal entries.
+Return only valid JSON with these keys:
+{
+  "title": string,
+  "body": string,
+  "tone": "steady|action|health|care|neutral",
+  "destination": "tasks|water|vitals|mood|symptoms|journal|settings|null",
+  "actionLabel": string|null,
+  "suggestedTask": string|null
+}
+Rules:
+- Do not diagnose disease.
+- Do not claim certainty.
+- Mention urgent care only for emergency warning patterns.
+- If journal or mood text suggests suicide or self-harm risk, tell the user to call/text 988 in the U.S. and call emergency services for immediate danger.
+- Prefer one specific, useful next step.
+- Keep body under 45 words.`;
+
 const server = http.createServer(async (request, response) => {
   setCorsHeaders(response);
 
@@ -33,11 +52,17 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
+  if (request.url === "/api/dictation/transcribe-extract" && request.method === "POST") {
+    await handleTranscribeExtract(request, response);
+    return;
+  }
+
+  if (request.url === "/api/coach/analyze" && request.method === "POST") {
+    await handleCoachAnalyze(request, response);
+    return;
+  }
+
   if (request.url !== "/api/dictation/extract" || request.method !== "POST") {
-    if (request.url === "/api/dictation/transcribe-extract" && request.method === "POST") {
-      await handleTranscribeExtract(request, response);
-      return;
-    }
     sendJson(response, 404, { error: "Not found" });
     return;
   }
@@ -89,6 +114,31 @@ async function handleTranscribeExtract(request, response) {
     const transcript = await transcribeAudio(audioBase64, mimeType);
     const extraction = await extractDictation(transcript);
     sendJson(response, 200, { transcript, extraction });
+  } catch (error) {
+    sendJson(response, error.statusCode || 500, { error: error.message || "Server error" });
+  }
+}
+
+async function handleCoachAnalyze(request, response) {
+  if (!OPENAI_API_KEY) {
+    sendJson(response, 500, { error: "OPENAI_API_KEY is not configured." });
+    return;
+  }
+
+  if (APP_CLIENT_TOKEN && request.headers["x-app-token"] !== APP_CLIENT_TOKEN) {
+    sendJson(response, 401, { error: "Unauthorized" });
+    return;
+  }
+
+  try {
+    const body = await readJsonBody(request);
+    const snapshot = body.snapshot || body;
+    if (!snapshot || typeof snapshot !== "object") {
+      sendJson(response, 400, { error: "Missing snapshot." });
+      return;
+    }
+    const insight = await analyzeCoachSnapshot(snapshot);
+    sendJson(response, 200, insight);
   } catch (error) {
     sendJson(response, error.statusCode || 500, { error: error.message || "Server error" });
   }
@@ -187,4 +237,33 @@ async function transcribeAudio(audioBase64, mimeType) {
   const transcript = String(data.text || "").trim();
   if (!transcript) throw new Error("OpenAI returned no transcript.");
   return transcript;
+}
+
+async function analyzeCoachSnapshot(snapshot) {
+  const openAiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${OPENAI_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: OPENAI_MODEL,
+      temperature: 0.2,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: coachSchemaPrompt },
+        { role: "user", content: JSON.stringify(snapshot) }
+      ]
+    })
+  });
+
+  if (!openAiResponse.ok) {
+    const details = await openAiResponse.text();
+    throw new Error(details || `OpenAI coach request failed with ${openAiResponse.status}`);
+  }
+
+  const data = await openAiResponse.json();
+  const content = data.choices?.[0]?.message?.content || "";
+  if (!content) throw new Error("OpenAI returned no coach insight.");
+  return JSON.parse(content);
 }
