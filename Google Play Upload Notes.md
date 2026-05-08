@@ -19,19 +19,26 @@ tools, use the GitHub Actions workflow:
 Use this file in Google Play Console:
 1. Open Play Console.
 2. Create or select the Health and Task Tracker app.
-3. Go to Release > Testing or Production.
-4. Create a new release.
+3. Go to Release > Testing.
+4. Create an Internal testing release first.
 5. Upload `HealthTaskTracker-release.aab`.
 6. Complete app signing, privacy, data safety, content rating, target audience, and store listing sections.
-7. Submit for review.
+7. Install the internal test build from Play and verify setup, app lock, journal, charts, tasks, AI settings, crisis alerts, export/import, and offline local-only use.
+8. Promote to Closed testing, then Production after testing passes.
 
 Current Android package:
 `com.habithealth.tracker.android`
 
 Current version:
-`1.0` / version code `1`
+`1.0.1` / version code `2`
 
 Current SDK target:
 Android 15 / API 35
+
+Privacy policy URL:
+`https://cmraaritgin26-svg.github.io/Habit-Tracker/privacy-policy.html`
+
+Account deletion URL:
+`https://cmraaritgin26-svg.github.io/Habit-Tracker/data-deletion.html`
 
 I could not post directly to Google Play from this device because publishing requires your Google Play Console account access and app signing setup.
