@@ -162,6 +162,8 @@ let aiCoachFailedKey = "";
 let aiSafetyScanRequestId = 0;
 let masterChartRangeDays = HISTORY_RETENTION_DAYS;
 let smartCoachRenderTimer = null;
+let activeOnboardingDictationButton = null;
+let activeOnboardingDictationField = null;
 
 function updateDialogScrollLock() {
   const hasOpenDialog = Boolean(document.querySelector(".history-modal:not([hidden]), .affirmation-modal:not([hidden])"));
@@ -5163,9 +5165,18 @@ function renderInitialDataOnboarding() {
 
   if (step.fields && /<(input|textarea|select)\b/i.test(step.fields) && !/type="checkbox"/i.test(step.fields)) {
     const dictateStepButton = document.createElement("button");
-    dictateStepButton.className = "text-button";
+    dictateStepButton.className = "text-button onboarding-dictate-button";
     dictateStepButton.type = "button";
-    dictateStepButton.textContent = "Dictate";
+    dictateStepButton.setAttribute("aria-label", "Dictate into setup field");
+    dictateStepButton.title = "Dictate";
+    dictateStepButton.innerHTML = `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3Z"></path>
+        <path d="M19 11a7 7 0 0 1-14 0"></path>
+        <path d="M12 18v4"></path>
+        <path d="M8 22h8"></path>
+      </svg>
+    `;
     dictateStepButton.addEventListener("click", dictateIntoOnboardingField);
     onboardingActions.appendChild(dictateStepButton);
   }
@@ -5195,17 +5206,32 @@ function renderInitialDataOnboarding() {
   };
 }
 
-function dictateIntoOnboardingField() {
+function dictateIntoOnboardingField(event) {
+  const button = event?.currentTarget;
+  if (activeOnboardingDictationButton && isNativeDictationAvailable() && typeof window.HealthTaskDictation.stop === "function") {
+    window.HealthTaskDictation.stop();
+    activeOnboardingDictationButton.classList.remove("is-listening");
+    activeOnboardingDictationButton = null;
+    return;
+  }
   const field = getActiveOnboardingField();
   if (!field) {
     showToast("Tap a setup field first.");
     return;
   }
+  activeOnboardingDictationField = field;
+  if (button) button.classList.add("is-listening");
+  activeOnboardingDictationButton = button || null;
   startSimpleDictation()
     .then((text) => applyDictatedTextToOnboardingField(field, text))
     .catch(() => {
       const typed = window.prompt("Dictation was unavailable. Type what to add to this field.", "");
       if (typed && typed.trim()) applyDictatedTextToOnboardingField(field, typed.trim());
+    })
+    .finally(() => {
+      if (activeOnboardingDictationButton) activeOnboardingDictationButton.classList.remove("is-listening");
+      activeOnboardingDictationButton = null;
+      activeOnboardingDictationField = null;
     });
 }
 
@@ -5250,8 +5276,9 @@ function applyDictatedTextToOnboardingField(field, text) {
   const dictated = String(text || "").trim();
   if (!dictated || !field) return;
   if (field.tagName === "SELECT") {
-    const option = Array.from(field.options).find((item) => item.textContent.toLowerCase() === dictated.toLowerCase())
-      || Array.from(field.options).find((item) => dictated.toLowerCase().includes(item.textContent.toLowerCase()));
+    const options = Array.from(field.options).filter((item) => item.textContent.trim());
+    const option = options.find((item) => item.textContent.toLowerCase() === dictated.toLowerCase())
+      || options.find((item) => dictated.toLowerCase().includes(item.textContent.toLowerCase()));
     if (option) {
       field.value = option.value;
       field.dispatchEvent(new Event("change", { bubbles: true }));
