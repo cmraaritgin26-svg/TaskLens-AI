@@ -186,7 +186,7 @@ updateDialogScrollLock();
 
 const habitForm = document.querySelector("#habitForm");
 const habitName = document.querySelector("#habitName");
-const taskDay = document.querySelector("#taskDay");
+const taskDate = document.querySelector("#taskDate");
 const habitCategory = document.querySelector("#habitCategory");
 const habitDeadline = document.querySelector("#habitDeadline");
 const habitPriority = document.querySelector("#habitPriority");
@@ -493,13 +493,15 @@ habitForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const name = habitName.value.trim();
   const wasEditing = Boolean(editingHabitId);
+  const date = normalizeTaskDate(taskDate?.value) || today;
 
   if (!name) return;
 
   const task = {
     id: editingHabitId || createHabitId(),
     name,
-    day: taskDay?.value || weekDays[new Date().getDay()],
+    date,
+    day: weekDays[parseDateKey(date).getDay()],
     category: habitCategory.value || "General",
     time: "",
     deadline: normalizeTaskTime(habitDeadline.value),
@@ -518,7 +520,7 @@ habitForm.addEventListener("submit", (event) => {
   habitName.value = "";
   habitNote.value = "";
   habitDeadline.value = "";
-  if (taskDay) taskDay.value = "";
+  if (taskDate) taskDate.value = "";
   habitCategory.value = "";
   habitPriority.value = "";
   habitForm.querySelector(".primary-button").textContent = "Add";
