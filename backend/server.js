@@ -5,7 +5,7 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 const APP_CLIENT_TOKEN = process.env.APP_CLIENT_TOKEN || "";
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
-const MAX_BODY_BYTES = 35_000_000;
+const MAX_BODY_BYTES = 250_000;
 
 const extractionSchemaPrompt = `Search the saved speaker transcript document for Health & Task Tracker data.
 Return only valid JSON with these keys:
@@ -40,25 +40,14 @@ Rules:
 - Prefer one specific, useful next step.
 - Keep body under 45 words.`;
 
-const coachSchemaPrompt = `You are the Health & Task Tracker AI Coach.
-Analyze the user's app data for practical patterns across tasks, deadlines, nutrition, water, weight, blood pressure, glucose, ketosis, symptoms, mood, and journal entries.
-Use full task details including names, notes, categories, priority, scheduled times, deadlines, completion history, missed deadlines, daily dashboard progress, and weekly progress. Cross-check task patterns against vitals, symptoms, mood, water, nutrition, ketosis, and journal text.
-Return only valid JSON with these keys:
-{
-  "title": string,
-  "body": string,
-  "tone": "steady|action|health|care|neutral",
-  "destination": "tasks|water|vitals|mood|symptoms|journal|settings|null",
-  "actionLabel": string|null,
-  "suggestedTask": string|null
-}
-Rules:
-- Do not diagnose disease.
-- Do not claim certainty.
-- Mention urgent care only for emergency warning patterns.
-- If journal or mood text suggests suicide or self-harm risk, tell the user to call/text 988 in the U.S. and call emergency services for immediate danger.
-- Prefer one specific, useful next step.
-- Keep body under 45 words.`;
+const safetySchemaPrompt = `You are a safety scanner for a private health journal app.
+Scan journal entries, mood notes, symptoms, and local trend flags for self-harm, suicide risk, severe hopelessness, plans, means, goodbye/final-note language, or escalating distress.
+Interpret misspellings, slang, euphemisms, and indirect wording.
+Do not diagnose.
+Return only valid JSON:
+{"level":"none|concern|crisis","matchedText":"short excerpt or empty","reason":"brief reason","action":"brief next step"}
+Use crisis for direct self-harm/suicide intent, plan, means, or imminent danger.
+Use concern for severe hopelessness, burden language, not wanting to exist, or repeated escalating distress.`;
 
 const server = http.createServer(async (request, response) => {
   setCorsHeaders(response);
@@ -75,12 +64,17 @@ const server = http.createServer(async (request, response) => {
   }
 
   if (request.url === "/api/dictation/transcribe-extract" && request.method === "POST") {
-    await handleTranscribeExtract(request, response);
+    sendJson(response, 410, { error: "Raw audio upload is disabled. Send transcript text to /api/dictation/extract instead." });
     return;
   }
 
   if (request.url === "/api/coach/analyze" && request.method === "POST") {
     await handleCoachAnalyze(request, response);
+    return;
+  }
+
+  if (request.url === "/api/safety/scan" && request.method === "POST") {
+    await handleSafetyScan(request, response);
     return;
   }
 
@@ -94,14 +88,14 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
-  if (APP_CLIENT_TOKEN && request.headers["x-app-token"] !== APP_CLIENT_TOKEN) {
+  if (!isAuthorized(request)) {
     sendJson(response, 401, { error: "Unauthorized" });
     return;
   }
 
   try {
     const body = await readJsonBody(request);
-    const transcript = String(body.transcript || "").trim();
+    const transcript = limitText(body.transcript, 6000);
     if (!transcript) {
       sendJson(response, 400, { error: "Missing transcript." });
       return;
@@ -115,27 +109,29 @@ const server = http.createServer(async (request, response) => {
 });
 
 async function handleTranscribeExtract(request, response) {
+  sendJson(response, 410, { error: "Raw audio upload is disabled. Send transcript text to /api/dictation/extract instead." });
+}
+
+async function handleSafetyScan(request, response) {
   if (!OPENAI_API_KEY) {
     sendJson(response, 500, { error: "OPENAI_API_KEY is not configured." });
     return;
   }
 
-  if (APP_CLIENT_TOKEN && request.headers["x-app-token"] !== APP_CLIENT_TOKEN) {
+  if (!isAuthorized(request)) {
     sendJson(response, 401, { error: "Unauthorized" });
     return;
   }
 
   try {
     const body = await readJsonBody(request);
-    const audioBase64 = String(body.audioBase64 || "");
-    const mimeType = String(body.mimeType || "audio/webm");
-    if (!audioBase64) {
-      sendJson(response, 400, { error: "Missing audioBase64." });
+    const snapshot = sanitizeSafetySnapshot(body.snapshot || body);
+    if (!snapshot) {
+      sendJson(response, 400, { error: "Missing safety snapshot." });
       return;
     }
-    const transcript = await transcribeAudio(audioBase64, mimeType);
-    const extraction = await extractDictation(transcript);
-    sendJson(response, 200, { transcript, extraction });
+    const result = await scanSafetySnapshot(snapshot);
+    sendJson(response, 200, result);
   } catch (error) {
     sendJson(response, error.statusCode || 500, { error: error.message || "Server error" });
   }
@@ -147,14 +143,14 @@ async function handleCoachAnalyze(request, response) {
     return;
   }
 
-  if (APP_CLIENT_TOKEN && request.headers["x-app-token"] !== APP_CLIENT_TOKEN) {
+  if (!isAuthorized(request)) {
     sendJson(response, 401, { error: "Unauthorized" });
     return;
   }
 
   try {
     const body = await readJsonBody(request);
-    const snapshot = body.snapshot || body;
+    const snapshot = sanitizeCoachSnapshot(body.snapshot || body);
     if (!snapshot || typeof snapshot !== "object") {
       sendJson(response, 400, { error: "Missing snapshot." });
       return;
@@ -177,8 +173,16 @@ function setCorsHeaders(response) {
 }
 
 function sendJson(response, statusCode, payload) {
-  response.writeHead(statusCode, { "Content-Type": "application/json" });
+  response.writeHead(statusCode, {
+    "Content-Type": "application/json",
+    "Cache-Control": "no-store",
+    "Pragma": "no-cache"
+  });
   response.end(JSON.stringify(payload));
+}
+
+function isAuthorized(request) {
+  return !APP_CLIENT_TOKEN || request.headers["x-app-token"] === APP_CLIENT_TOKEN;
 }
 
 function readJsonBody(request) {
@@ -219,7 +223,7 @@ async function extractDictation(transcript) {
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: extractionSchemaPrompt },
-        { role: "user", content: transcript }
+        { role: "user", content: limitText(transcript, 6000) }
       ]
     })
   });
@@ -235,32 +239,6 @@ async function extractDictation(transcript) {
   return JSON.parse(content);
 }
 
-async function transcribeAudio(audioBase64, mimeType) {
-  const buffer = Buffer.from(audioBase64, "base64");
-  const extension = mimeType.includes("mp4") ? "mp4" : mimeType.includes("ogg") ? "ogg" : "webm";
-  const form = new FormData();
-  form.append("model", "gpt-4o-mini-transcribe");
-  form.append("file", new Blob([buffer], { type: mimeType }), `dictation.${extension}`);
-
-  const openAiResponse = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${OPENAI_API_KEY}`
-    },
-    body: form
-  });
-
-  if (!openAiResponse.ok) {
-    const details = await openAiResponse.text();
-    throw new Error(details || `OpenAI transcription failed with ${openAiResponse.status}`);
-  }
-
-  const data = await openAiResponse.json();
-  const transcript = String(data.text || "").trim();
-  if (!transcript) throw new Error("OpenAI returned no transcript.");
-  return transcript;
-}
-
 async function analyzeCoachSnapshot(snapshot) {
   const openAiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -274,7 +252,7 @@ async function analyzeCoachSnapshot(snapshot) {
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: coachSchemaPrompt },
-        { role: "user", content: JSON.stringify(snapshot) }
+        { role: "user", content: JSON.stringify(sanitizeCoachSnapshot(snapshot)) }
       ]
     })
   });
@@ -288,4 +266,88 @@ async function analyzeCoachSnapshot(snapshot) {
   const content = data.choices?.[0]?.message?.content || "";
   if (!content) throw new Error("OpenAI returned no coach insight.");
   return JSON.parse(content);
+}
+
+async function scanSafetySnapshot(snapshot) {
+  const openAiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${OPENAI_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: OPENAI_MODEL,
+      temperature: 0,
+      max_tokens: 260,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: safetySchemaPrompt },
+        { role: "user", content: JSON.stringify(sanitizeSafetySnapshot(snapshot)) }
+      ]
+    })
+  });
+
+  if (!openAiResponse.ok) {
+    const details = await openAiResponse.text();
+    throw new Error(details || `OpenAI safety scan failed with ${openAiResponse.status}`);
+  }
+
+  const data = await openAiResponse.json();
+  const content = data.choices?.[0]?.message?.content || "";
+  if (!content) throw new Error("OpenAI returned no safety scan.");
+  return JSON.parse(content);
+}
+
+function sanitizeCoachSnapshot(snapshot) {
+  if (!snapshot || typeof snapshot !== "object") return null;
+  return {
+    today: snapshot.today,
+    heightInches: snapshot.heightInches,
+    waterGoal: snapshot.waterGoal,
+    weeklyTaskProgress: snapshot.weeklyTaskProgress,
+    todayDashboard: snapshot.todayDashboard,
+    localInsights: Array.isArray(snapshot.localInsights) ? snapshot.localInsights.slice(0, 6) : [],
+    tasks: Array.isArray(snapshot.tasks) ? snapshot.tasks.slice(0, 80).map((task) => ({
+      ...task,
+      note: limitText(task?.note, 180),
+      completions: Array.isArray(task?.completions) ? task.completions.slice(-30) : [],
+      completedRecently: Array.isArray(task?.completedRecently) ? task.completedRecently.slice(-30) : []
+    })) : [],
+    missedDeadlines: Array.isArray(snapshot.missedDeadlines) ? snapshot.missedDeadlines.slice(0, 30) : [],
+    nutritionAndVitals: Array.isArray(snapshot.nutritionAndVitals) ? snapshot.nutritionAndVitals.slice(0, 30) : [],
+    symptoms: Array.isArray(snapshot.symptoms) ? snapshot.symptoms.slice(0, 30).map((entry) => ({ ...entry, note: limitText(entry?.note, 180) })) : [],
+    moods: Array.isArray(snapshot.moods) ? snapshot.moods.slice(0, 30).map((entry) => ({ ...entry, note: limitText(entry?.note, 180) })) : [],
+    journal: Array.isArray(snapshot.journal) ? snapshot.journal.slice(0, 12).map((entry) => ({ ...entry, text: limitText(entry?.text, 500) })) : [],
+    wholeAppTrendScan: Array.isArray(snapshot.wholeAppTrendScan) ? snapshot.wholeAppTrendScan.slice(0, 30) : []
+  };
+}
+
+function sanitizeSafetySnapshot(snapshot) {
+  if (!snapshot || typeof snapshot !== "object") return null;
+  return {
+    scanReason: limitText(snapshot.scanReason, 80),
+    latestJournalText: limitText(snapshot.latestJournalText, 1200),
+    journalEntries: Array.isArray(snapshot.journalEntries) ? snapshot.journalEntries.slice(0, 40).map((entry) => ({
+      date: entry?.date,
+      text: limitText(entry?.text, 700)
+    })) : [],
+    moodEntries: Array.isArray(snapshot.moodEntries) ? snapshot.moodEntries.slice(0, 60).map((entry) => ({
+      date: entry?.date,
+      mood: entry?.mood,
+      intensity: entry?.intensity,
+      note: limitText(entry?.note, 300)
+    })) : [],
+    symptomEntries: Array.isArray(snapshot.symptomEntries) ? snapshot.symptomEntries.slice(0, 60).map((entry) => ({
+      date: entry?.date,
+      symptom: entry?.symptom,
+      severity: entry?.severity,
+      note: limitText(entry?.note, 300)
+    })) : [],
+    localTrendFlags: Array.isArray(snapshot.localTrendFlags) ? snapshot.localTrendFlags.slice(0, 30) : []
+  };
+}
+
+function limitText(value, maxLength) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  return text.length > maxLength ? `${text.slice(0, Math.max(0, maxLength - 1))}...` : text;
 }
