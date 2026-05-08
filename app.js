@@ -770,8 +770,7 @@ dictationReviewModal.addEventListener("click", (event) => {
 });
 dictationReviewSave.addEventListener("click", saveReviewedDictation);
 dictationReviewRetry.addEventListener("click", () => {
-  closeDictationReview();
-  startHealthDictation();
+  startHealthDictation({ appendToReview: true });
 });
 dictationReviewManual.addEventListener("click", () => {
   pendingDictationExtraction = null;
@@ -5801,41 +5800,43 @@ function sendAppNotification(title, body, tag = "") {
   }
 }
 
-function startHealthDictation() {
+function startHealthDictation(options = {}) {
   if (dictationActive) {
     stopHealthDictation();
     return;
   }
 
   if (isNativeDictationAvailable()) {
-    startNativeDictationFlow("Dictation was canceled or unavailable.");
+    startNativeDictationFlow("Dictation was canceled or unavailable.", options);
     return;
   }
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (SpeechRecognition) {
-    startLegacyHealthDictation();
+    startLegacyHealthDictation(options);
     return;
   }
-  startKeyboardVoiceTextFlow();
+  startKeyboardVoiceTextFlow(options);
 }
 
-function startKeyboardVoiceTextFlow() {
-  pendingDictationExtraction = null;
-  pendingDictationTranscript = "";
-  const typed = window.prompt("Use the keyboard microphone or type what you want to log. I will show a review before saving it.", "");
-  if (typed && typed.trim()) processHealthDictation(typed.trim());
+function startKeyboardVoiceTextFlow(options = {}) {
+  if (!options.appendToReview) {
+    pendingDictationExtraction = null;
+    pendingDictationTranscript = "";
+  }
+  const typed = window.prompt(options.appendToReview ? "Dictate or type more. I will add it to what is already in the review window." : "Use the keyboard microphone or type what you want to log. I will show a review before saving it.", "");
+  if (typed && typed.trim()) handleDictationTranscript(typed.trim(), options);
 }
 
-function startLegacyHealthDictation() {
+function startLegacyHealthDictation(options = {}) {
   if (isNativeDictationAvailable()) {
-    startNativeDictationFlow("Dictation was canceled or unavailable.");
+    startNativeDictationFlow("Dictation was canceled or unavailable.", options);
     return;
   }
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
     const typed = window.prompt("Live dictation is not available on this device. Type or paste the transcript document instead.", "");
-    if (typed && typed.trim()) processHealthDictation(typed.trim());
+    if (typed && typed.trim()) handleDictationTranscript(typed.trim(), options);
     return;
   }
   const recognition = new SpeechRecognition();
@@ -5879,7 +5880,7 @@ function startLegacyHealthDictation() {
     setDictateButtonLabel("Dictate");
     clearWebDictationCommitTimer();
     commitWebDictationPartial();
-    processReviewedHealthDictation(`${webDictationBuffer} ${webDictationPartial}`.trim());
+    handleDictationTranscript(`${webDictationBuffer} ${webDictationPartial}`.trim(), options);
     webDictationBuffer = "";
     webDictationPartial = "";
   };
@@ -5892,21 +5893,21 @@ function startLegacyHealthDictation() {
     setDictateButtonLabel("Dictate");
     clearWebDictationCommitTimer();
     const typed = window.prompt("Dictation could not start. Type what you want to log.", "");
-    if (typed && typed.trim()) processHealthDictation(typed.trim());
+    if (typed && typed.trim()) handleDictationTranscript(typed.trim(), options);
   }
 }
 
-function startNativeDictationFlow(fallbackMessage) {
+function startNativeDictationFlow(fallbackMessage, options = {}) {
   dictationActive = true;
   dictateButton.classList.add("is-listening");
   setDictateButtonLabel("Stop dictation");
   startNativeDictation()
     .then((transcript) => {
-      processReviewedHealthDictation(transcript);
+      handleDictationTranscript(transcript, options);
     })
     .catch(() => {
       const typed = window.prompt(`${fallbackMessage || "Dictation was canceled or unavailable."} Type what you want to log.`, "");
-      if (typed && typed.trim()) processHealthDictation(typed.trim());
+      if (typed && typed.trim()) handleDictationTranscript(typed.trim(), options);
     })
     .finally(() => {
       dictationActive = false;
@@ -6000,6 +6001,39 @@ function restartWebDictation() {
 
 function isNativeDictationAvailable() {
   return Boolean(window.HealthTaskDictation && typeof window.HealthTaskDictation.start === "function");
+}
+
+function handleDictationTranscript(transcript, options = {}) {
+  const text = String(transcript || "").trim();
+  if (!text) return;
+  if (options.appendToReview) {
+    appendDictationToReview(text);
+    return;
+  }
+  processReviewedHealthDictation(text);
+}
+
+function appendDictationToReview(text) {
+  const existing = dictationReviewText.value.trim();
+  const addition = String(text || "").trim();
+  if (!addition) return;
+  const combined = existing ? `${existing} ${addition}` : addition;
+  pendingDictationExtraction = null;
+  pendingDictationTranscript = combined;
+  pendingParsedDictationResult = null;
+  pendingParsedDictationDocument = null;
+  dictationReviewStepIndex = 0;
+  dictationReviewField.hidden = false;
+  dictationFieldReview.hidden = true;
+  dictationFieldReview.replaceChildren();
+  dictationReviewManual.hidden = false;
+  dictationReviewChange.hidden = true;
+  dictationReviewSave.textContent = "Confirm & Save";
+  dictationReviewSave.disabled = false;
+  dictationReviewText.value = combined;
+  dictationReviewMessage.textContent = "Added to the transcript. Review it, then Confirm & Save.";
+  dictationReviewModal.hidden = false;
+  focusDictationReviewText();
 }
 
 function startNativeDictation() {
