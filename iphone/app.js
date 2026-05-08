@@ -9,7 +9,8 @@
  * 5. Persistence, settings, security, import/export
  * 6. Notifications, AI, dictation parsing, and utility helpers
  *
- * Keep this file mirrored with ../app.js when changing shared web behavior.
+ * Keep iphone/app.js mirrored when changing shared web behavior, then sync
+ * root assets into www/ and android/app/src/main/assets/public before building.
  */
 
 const storeKey = "habit-tracker:v1";
@@ -25,6 +26,7 @@ const backupReminderStoreKey = "health-task-tracker:last-backup-reminder:v1";
 const affirmationShownStoreKey = "health-task-tracker:last-affirmation:v1";
 const affirmationDepressionShownStoreKey = "health-task-tracker:last-depression-affirmation:v1";
 const DEFAULT_AI_BACKEND_URL = "";
+const DICTATION_FEATURE_ENABLED = false;
 const AI_DICTATION_TIMEOUT_MS = 1800;
 const AI_COACH_TIMEOUT_MS = 2500;
 const AI_SAFETY_SCAN_TIMEOUT_MS = 6000;
@@ -66,12 +68,6 @@ const dailyAffirmations = [
   "I can make today healthier one choice at a time.",
   "I deserve encouragement from my own thoughts."
 ];
-const profileStoreKey = "habit-tracker:profile:v1";
-const facebookLoginStateStoreKey = "habit-tracker:facebook-login-state:v1";
-const facebookAuth = {
-  appId: "2422428068229609",
-  redirectUri: "fb2422428068229609://authorize"
-};
 const weekDays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const crisisMoodPatterns = [
   /\b(kill myself|kill my self|kill me|end my life|take my life|take myself out|off myself|delete myself|unalive myself|unalive me|suicide|suicidal)\b/i,
@@ -167,6 +163,7 @@ let aiCoachFailedKey = "";
 let aiSafetyScanRequestId = 0;
 let masterChartRangeDays = HISTORY_RETENTION_DAYS;
 let smartCoachRenderTimer = null;
+let activeOnboardingDictationButton = null;
 
 function updateDialogScrollLock() {
   const hasOpenDialog = Boolean(document.querySelector(".history-modal:not([hidden]), .affirmation-modal:not([hidden])"));
@@ -260,14 +257,6 @@ const habitList = document.querySelector("#habitList");
 const habitTemplate = document.querySelector("#habitTemplate");
 const emptyState = document.querySelector("#emptyState");
 const todayLabel = document.querySelector("#todayLabel");
-const usernameDisplay = document.querySelector("#usernameDisplay");
-const facebookLoginButton = document.querySelector("#facebookLoginButton");
-const facebookLogoutButton = document.querySelector("#facebookLogoutButton");
-const facebookLoginModal = document.querySelector("#facebookLoginModal");
-const facebookLoginClose = document.querySelector("#facebookLoginClose");
-const facebookLoginContinue = document.querySelector("#facebookLoginContinue");
-const openFacebookProfile = document.querySelector("#openFacebookProfile");
-const shareFacebookProgress = document.querySelector("#shareFacebookProgress");
 const weeklyTaskPercentBar = document.querySelector("#weeklyTaskPercentBar");
 const weeklyTaskPercentFill = document.querySelector("#weeklyTaskPercentFill");
 const weeklyTaskPercentMeta = document.querySelector("#weeklyTaskPercentMeta");
@@ -426,7 +415,13 @@ dashboardJumpButtons.forEach((button) => {
 });
 aiRefreshButton.addEventListener("click", renderSmartCoach);
 reviewTodayButton.addEventListener("click", reviewToday);
-dictateButton.addEventListener("click", startHealthDictation);
+if (DICTATION_FEATURE_ENABLED) {
+  dictateButton.hidden = false;
+  dictateButton.addEventListener("click", startHealthDictation);
+} else {
+  dictateButton.hidden = true;
+  dictationStatus.hidden = true;
+}
 getStartedButton.addEventListener("click", startGuidedDataEntry);
 quickActionButtons.forEach((button) => {
   button.addEventListener("click", () => {
@@ -490,30 +485,6 @@ wellbeingTabs.forEach((tab) => {
   tab.addEventListener("click", () => setWellbeingModule(tab.dataset.wellbeingModule));
 });
 [wellbeingSection, nutritionPanel, symptomPanel, moodPanel, chartsPanel].forEach(bindWellbeingSwipeTarget);
-renderUsername();
-facebookLoginButton.addEventListener("click", () => {
-  openFacebookLoginDialog();
-});
-facebookLogoutButton.addEventListener("click", () => {
-  logoutFacebookAccount();
-});
-facebookLoginClose.addEventListener("click", () => {
-  closeFacebookLoginDialog();
-});
-facebookLoginModal.addEventListener("click", (event) => {
-  if (event.target === facebookLoginModal) {
-    closeFacebookLoginDialog();
-  }
-});
-facebookLoginContinue.addEventListener("click", () => {
-  startFacebookLogin();
-});
-openFacebookProfile.addEventListener("click", () => {
-  openFacebookAccount();
-});
-shareFacebookProgress.addEventListener("click", () => {
-  shareProgressToFacebook();
-});
 
 habitForm.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -807,8 +778,8 @@ dictationReviewModal.addEventListener("click", (event) => {
 });
 dictationReviewSave.addEventListener("click", saveReviewedDictation);
 dictationReviewRetry.addEventListener("click", () => {
-  closeDictationReview();
-  startHealthDictation();
+  if (!DICTATION_FEATURE_ENABLED) return;
+  startHealthDictation({ appendToReview: true });
 });
 dictationReviewManual.addEventListener("click", () => {
   pendingDictationExtraction = null;
@@ -862,8 +833,12 @@ heightFeet.addEventListener("change", () => updateHeightSetting());
 heightInches.addEventListener("change", () => updateHeightSetting());
 aiExtractionToggle.addEventListener("change", () => updateSetting("aiExtractionEnabled", aiExtractionToggle.checked));
 hipaaCloudToggle?.addEventListener("change", () => updateCloudAiSharing(hipaaCloudToggle.checked));
-aiApiKey.addEventListener("change", () => updateSetting("aiApiKey", aiApiKey.value.trim()));
-aiBackendUrl.addEventListener("change", () => updateSetting("aiBackendUrl", aiBackendUrl.value.trim().replace(/\/+$/, "")));
+aiApiKey.addEventListener("change", () => {
+  aiApiKey.value = "";
+  updateSetting("aiApiKey", "");
+  showToast("OpenAI keys belong on the secure backend, not inside the app.");
+});
+aiBackendUrl.addEventListener("change", () => updateSetting("aiBackendUrl", normalizeAiBackendUrlInput(aiBackendUrl.value)));
 aiBackendToken.addEventListener("change", () => updateSetting("aiBackendToken", aiBackendToken.value.trim()));
 aiModel.addEventListener("change", () => updateSetting("aiModel", aiModel.value.trim()));
 setPasswordButton.addEventListener("click", () => setAppPassword());
@@ -908,9 +883,6 @@ document.addEventListener("keydown", (event) => {
   }
   if (event.key === "Escape" && !settingsModal.hidden) {
     settingsModal.hidden = true;
-  }
-  if (event.key === "Escape" && !facebookLoginModal.hidden) {
-    closeFacebookLoginDialog();
   }
 });
 
@@ -1494,51 +1466,21 @@ async function loadAiCoachInsight(cacheKey, localInsights) {
 async function fetchAiCoachInsight(localInsights) {
   const snapshot = buildAiCoachSnapshot(localInsights);
   if (!canUseCloudAi()) return null;
-  if (appSettings.aiBackendUrl) {
-    return normalizeAiCoachInsight(await fetchBackendAiCoachInsight(snapshot));
-  }
-  if (!appSettings.aiApiKey) return null;
-  return normalizeAiCoachInsight(await fetchDirectAiCoachInsight(snapshot));
+  return normalizeAiCoachInsight(await fetchBackendAiCoachInsight(snapshot));
 }
 
 async function fetchBackendAiCoachInsight(snapshot) {
   const headers = { "Content-Type": "application/json" };
   if (appSettings.aiBackendToken) headers["X-App-Token"] = appSettings.aiBackendToken;
-  const response = await fetchWithTimeout(`${appSettings.aiBackendUrl}/api/coach/analyze`, {
+  const backendUrl = getConfiguredAiBackendUrl();
+  if (!backendUrl) throw new Error("Enter an HTTPS AI backend URL in Settings.");
+  const response = await fetchWithTimeout(`${backendUrl}/api/coach/analyze`, {
     method: "POST",
     headers,
     body: JSON.stringify({ snapshot })
   }, AI_COACH_TIMEOUT_MS);
   if (!response.ok) throw new Error(await response.text());
   return response.json();
-}
-
-async function fetchDirectAiCoachInsight(snapshot) {
-  const response = await fetchWithTimeout("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${appSettings.aiApiKey}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: appSettings.aiModel || "gpt-4o-mini",
-      temperature: 0.2,
-      max_tokens: 180,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content: "Analyze the entire Health & Task Tracker snapshot across tasks, weekly progress, deadlines, nutrition, vitals, symptoms, mood, journal entries, and local trend flags. Search for cross-app trends, repeated patterns, and same-date links. Return only JSON with title, body, tone, destination, actionLabel, suggestedTask. Do not diagnose. Keep body under 45 words. Mention calling/texting 911 for immediate danger and 988 Suicide & Crisis Lifeline for suicide prevention support."
-        },
-        { role: "user", content: JSON.stringify(snapshot) }
-      ]
-    })
-  }, AI_COACH_TIMEOUT_MS);
-  if (!response.ok) throw new Error(await response.text());
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content || "";
-  if (!content) throw new Error("AI returned no coach insight.");
-  return JSON.parse(content);
 }
 
 async function fetchWithTimeout(url, options = {}, timeoutMs = 2500) {
@@ -1572,6 +1514,11 @@ function cleanAiCoachText(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
 }
 
+function truncateForAi(value, maxLength = 300) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  return text.length > maxLength ? `${text.slice(0, Math.max(0, maxLength - 1))}...` : text;
+}
+
 function getAiCoachActionLabel(destination) {
   return {
     tasks: "Go to tasks",
@@ -1586,12 +1533,12 @@ function getAiCoachActionLabel(destination) {
 
 function getAiCoachSnapshotKey() {
   return JSON.stringify({
-    tasks: habits.map((habit) => [habit.id, habit.name, getTaskDay(habit), habit.category, habit.time, habit.deadline, habit.priority, habit.note, habit.completions?.slice(-21)]),
-    nutrition: nutritionEntries.slice(0, 30),
-    symptoms: symptomEntries.slice(0, 30),
-    moods: moodEntries.slice(0, 30),
-    journal: journalEntries.slice(0, 20).map((entry) => [entry.date, entry.text]),
-    deadlines: taskDeadlineEvents.slice(0, 30),
+    tasks: habits.map((habit) => [habit.id, habit.name, getTaskDay(habit), habit.category, habit.time, habit.deadline, habit.priority, truncateForAi(habit.note, 160), habit.completions?.slice(-21)]),
+    nutrition: nutritionEntries.slice(0, 21),
+    symptoms: symptomEntries.slice(0, 21).map((entry) => ({ ...entry, note: truncateForAi(entry.note, 160) })),
+    moods: moodEntries.slice(0, 21).map((entry) => ({ ...entry, note: truncateForAi(entry.note, 160) })),
+    journal: journalEntries.slice(0, 12).map((entry) => [entry.date, truncateForAi(entry.text, 360)]),
+    deadlines: taskDeadlineEvents.slice(0, 21),
     settings: [appSettings.heightInches]
   });
 }
@@ -1630,12 +1577,12 @@ function buildAiCoachSnapshot(localInsights) {
       time: normalizeTaskTime(habit.time || ""),
       deadline: normalizeTaskTime(habit.deadline || ""),
       priority: habit.priority || "Normal",
-      note: habit.note || "",
-      completions: (habit.completions || []).slice(-60),
+      note: truncateForAi(habit.note, 180),
+      completions: (habit.completions || []).slice(-30),
       completedRecently: (habit.completions || []).filter((dateKey) => daysBetween(dateKey, today) <= 30)
     })),
-    missedDeadlines: taskDeadlineEvents.slice(0, 60),
-    nutritionAndVitals: nutritionEntries.slice(0, 60).map((entry) => ({
+    missedDeadlines: taskDeadlineEvents.slice(0, 30),
+    nutritionAndVitals: nutritionEntries.slice(0, 30).map((entry) => ({
       date: entry.date,
       calories: entry.calories,
       carbs: entry.carbs,
@@ -1646,21 +1593,21 @@ function buildAiCoachSnapshot(localInsights) {
       diastolic: entry.diastolic,
       water: entry.water
     })),
-    symptoms: symptomEntries.slice(0, 60).map((entry) => ({
+    symptoms: symptomEntries.slice(0, 30).map((entry) => ({
       date: entry.date,
       name: entry.name,
       severity: entry.severity,
-      note: entry.note
+      note: truncateForAi(entry.note, 180)
     })),
-    moods: moodEntries.slice(0, 60).map((entry) => ({
+    moods: moodEntries.slice(0, 30).map((entry) => ({
       date: entry.date,
       name: entry.name,
       intensity: entry.intensity,
-      note: entry.note
+      note: truncateForAi(entry.note, 180)
     })),
-    journal: journalEntries.slice(0, 30).map((entry) => ({
+    journal: journalEntries.slice(0, 12).map((entry) => ({
       date: entry.date,
-      text: String(entry.text || "").slice(0, 700)
+      text: truncateForAi(entry.text, 500)
     })),
     wholeAppTrendScan: buildWholeAppTrendScan()
   };
@@ -2356,76 +2303,42 @@ async function scanJournalAndAppWithAiForSafety(latestJournalText = "") {
 }
 
 function buildAiSafetyScanSnapshot(latestJournalText = "") {
-  const localInsights = getSmartCoachInsights();
   return {
     scanReason: "journal_saved",
-    latestJournalText,
-    fullAppSnapshot: buildAiCoachSnapshot(localInsights),
+    latestJournalText: truncateForAi(latestJournalText, 1200),
     journalEntries: journalEntries.map((entry) => ({
       date: entry.date,
-      text: entry.text
-    })),
+      text: truncateForAi(entry.text, 700)
+    })).slice(0, 40),
     moodEntries: moodEntries.map((entry) => ({
       date: entry.date,
       mood: entry.name,
       intensity: entry.intensity,
-      note: entry.note
-    })),
+      note: truncateForAi(entry.note, 300)
+    })).slice(0, 60),
     symptomEntries: symptomEntries.map((entry) => ({
       date: entry.date,
       symptom: entry.name,
       severity: entry.severity,
-      note: entry.note
-    }))
+      note: truncateForAi(entry.note, 300)
+    })).slice(0, 60),
+    localTrendFlags: buildWholeAppTrendScan()
   };
 }
 
 async function fetchAiSafetyScan(snapshot) {
   if (!canUseCloudAi()) return null;
-  if (appSettings.aiApiKey) {
-    return fetchDirectAiSafetyScan(snapshot);
-  }
-  if (appSettings.aiBackendUrl) {
-    const insight = normalizeAiCoachInsight(await fetchBackendAiCoachInsight({
-      ...snapshot.fullAppSnapshot,
-      safetyScan: {
-        latestJournalText: snapshot.latestJournalText,
-        journalEntries: snapshot.journalEntries,
-        moodEntries: snapshot.moodEntries,
-        symptomEntries: snapshot.symptomEntries
-      }
-    }));
-    return insight ? inferAiSafetyFromInsight(insight) : null;
-  }
-  return null;
-}
-
-async function fetchDirectAiSafetyScan(snapshot) {
-  const response = await fetchWithTimeout("https://api.openai.com/v1/chat/completions", {
+  const headers = { "Content-Type": "application/json" };
+  if (appSettings.aiBackendToken) headers["X-App-Token"] = appSettings.aiBackendToken;
+  const backendUrl = getConfiguredAiBackendUrl();
+  if (!backendUrl) return null;
+  const response = await fetchWithTimeout(`${backendUrl}/api/safety/scan`, {
     method: "POST",
-    headers: {
-      "Authorization": `Bearer ${appSettings.aiApiKey}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: appSettings.aiModel || "gpt-4o-mini",
-      temperature: 0,
-      max_tokens: 260,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content: "You are a safety scanner for a private health journal app. Scan ALL journal entries, mood notes, symptoms, and app context for self-harm, suicide risk, severe hopelessness, plans, means, goodbye/final-note language, or escalating distress. Interpret misspellings, slang, euphemisms, and indirect wording. Do not diagnose. Return only JSON: {\"level\":\"none|concern|crisis\",\"matchedText\":\"short excerpt or empty\",\"reason\":\"brief reason\",\"action\":\"brief next step\"}. Use crisis for direct self-harm/suicide intent, plan, means, or imminent danger. Use concern for severe hopelessness, burden language, not wanting to exist, or repeated escalating distress."
-        },
-        { role: "user", content: JSON.stringify(snapshot) }
-      ]
-    })
+    headers,
+    body: JSON.stringify({ snapshot })
   }, AI_SAFETY_SCAN_TIMEOUT_MS);
   if (!response.ok) throw new Error(await getFriendlyAiError(response, "AI safety scan"));
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content || "";
-  if (!content) return null;
-  return normalizeAiSafetyScanResult(JSON.parse(content));
+  return normalizeAiSafetyScanResult(await response.json());
 }
 
 function normalizeAiSafetyScanResult(data) {
@@ -2436,17 +2349,6 @@ function normalizeAiSafetyScanResult(data) {
     reason: cleanAiCoachText(data?.reason || "").slice(0, 220),
     action: cleanAiCoachText(data?.action || "").slice(0, 180)
   };
-}
-
-function inferAiSafetyFromInsight(insight) {
-  const text = `${insight.title} ${insight.body}`;
-  if (/\b(suicide|self-harm|self harm|kill myself|want to die|call 911|988|immediate danger|crisis)\b/i.test(text)) {
-    return { level: "crisis", matchedText: "", reason: insight.body, action: "Use crisis support now." };
-  }
-  if (insight.tone === "care" && /\b(journal|mood|hopeless|worthless|burden|depression|distress|support)\b/i.test(text)) {
-    return { level: "concern", matchedText: "", reason: insight.body, action: "Check in and open AI Coach." };
-  }
-  return { level: "none", matchedText: "", reason: "", action: "" };
 }
 
 function handleAiSafetyScanResult(result) {
@@ -3850,6 +3752,16 @@ function getLinePoints(movement, step, padding, graphHeight, height, getValue, m
   });
 }
 
+function createTableRow(cells) {
+  const row = document.createElement("tr");
+  cells.forEach((value) => {
+    const cell = document.createElement("td");
+    cell.textContent = value;
+    row.appendChild(cell);
+  });
+  return row;
+}
+
 function getLast24NutritionEntries() {
   const cutoff = Date.now() - 24 * 60 * 60 * 1000;
   return [...nutritionEntries]
@@ -3881,14 +3793,14 @@ function renderNutrition() {
   latestWater.textContent = waterValues.length ? `${formatWholeNumber(getSum(waterValues))} oz` : "0 oz";
   nutritionRows.textContent = "";
   nutritionEmpty.hidden = last24Entries.length > 0;
+  const fragment = document.createDocumentFragment();
 
   last24Entries.forEach((entry, index) => {
-    const row = document.createElement("tr");
     const previousWeight = findPreviousWeight(last24Entries, index);
     const delta = Number.isFinite(entry.weight) && Number.isFinite(previousWeight)
       ? entry.weight - previousWeight
       : null;
-    const cells = [
+    fragment.appendChild(createTableRow([
       formatEntryDateTime(entry.dateTime),
       Number.isFinite(entry.calories) ? formatWholeNumber(entry.calories) : "--",
       Number.isFinite(entry.carbs) ? `${formatWholeNumber(entry.carbs)}g` : "--",
@@ -3898,16 +3810,9 @@ function renderNutrition() {
       formatBloodPressure(entry.systolic, entry.diastolic),
       Number.isFinite(entry.water) ? `${formatWholeNumber(entry.water)} oz` : "--",
       formatWeightDelta(delta)
-    ];
-
-    cells.forEach((value) => {
-      const cell = document.createElement("td");
-      cell.textContent = value;
-      row.appendChild(cell);
-    });
-
-    nutritionRows.appendChild(row);
+    ]));
   });
+  nutritionRows.appendChild(fragment);
 
   if (!historyModal.hidden || vitalsHistoryDropdown?.open) {
     renderHistory();
@@ -3937,14 +3842,14 @@ function renderHistory() {
   updateHistoryLegendButtons();
   renderHistoryChart(historyEntries);
   if (!historyRows) return;
+  const fragment = document.createDocumentFragment();
 
   historyEntries.forEach((entry, index) => {
-    const row = document.createElement("tr");
     const previousWeight = findPreviousWeight(historyEntries, index);
     const delta = Number.isFinite(entry.weight) && Number.isFinite(previousWeight)
       ? entry.weight - previousWeight
       : null;
-    const cells = [
+    const row = createTableRow([
       formatEntryDate(entry.date),
       Number.isFinite(entry.calories) ? formatWholeNumber(entry.calories) : "--",
       Number.isFinite(entry.carbs) ? `${formatWholeNumber(entry.carbs)}g` : "--",
@@ -3954,18 +3859,12 @@ function renderHistory() {
       formatBloodPressure(entry.systolic, entry.diastolic),
       Number.isFinite(entry.water) ? `${formatWholeNumber(entry.water)} oz` : "--",
       formatWeightDelta(delta)
-    ];
-
-    cells.forEach((value) => {
-      const cell = document.createElement("td");
-      cell.textContent = value;
-      row.appendChild(cell);
-    });
-
+    ]);
     row.dataset.historyDate = entry.date;
     if (entry.date === historyFocusDateKey) row.classList.add("history-row-focused");
-    historyRows.appendChild(row);
+    fragment.appendChild(row);
   });
+  historyRows.appendChild(fragment);
 }
 
 function openMasterChart() {
@@ -3980,11 +3879,10 @@ function renderMasterChart() {
   masterChartRangeButtons.forEach((button) => {
     button.setAttribute("aria-pressed", String((Number(button.dataset.masterChartDays) || HISTORY_RETENTION_DAYS) === masterChartRangeDays));
   });
+  const fragment = document.createDocumentFragment();
 
   rows.forEach((entry) => {
-    const row = document.createElement("tr");
-    row.dataset.weekday = String(entry.dateTime.getDay());
-    const cells = [
+    const row = createTableRow([
       formatEntryDateTime(entry.dateTime),
       Number.isFinite(entry.calories) ? formatWholeNumber(entry.calories) : "--",
       Number.isFinite(entry.carbs) ? `${formatWholeNumber(entry.carbs)}g` : "--",
@@ -3997,14 +3895,11 @@ function renderMasterChart() {
       entry.severity || "--",
       entry.mood || "--",
       entry.intensity || "--"
-    ];
-    cells.forEach((value) => {
-      const cell = document.createElement("td");
-      cell.textContent = value;
-      row.appendChild(cell);
-    });
-    masterChartRows.appendChild(row);
+    ]);
+    row.dataset.weekday = String(entry.dateTime.getDay());
+    fragment.appendChild(row);
   });
+  masterChartRows.appendChild(fragment);
 }
 
 function getMasterChartRows() {
@@ -4872,8 +4767,11 @@ function loadAppSettings() {
       aiModel: "gpt-4o-mini",
       ...savedSettings
     };
+    settings.aiApiKey = "";
+    settings.aiBackendUrl = normalizeAiBackendUrlInput(settings.aiBackendUrl || "", { silent: true });
     localStorage.setItem(aiDefaultEnabledStoreKey, "done");
     if (!settings.hipaaCloudConfirmed) settings.aiExtractionEnabled = false;
+    if (!settings.aiBackendUrl) settings.aiExtractionEnabled = false;
     return settings;
   } catch {
     return {
@@ -4916,7 +4814,8 @@ function renderSettings() {
   if (hipaaCloudToggle) hipaaCloudToggle.checked = Boolean(appSettings.hipaaCloudConfirmed);
   aiExtractionToggle.disabled = !appSettings.hipaaCloudConfirmed;
   aiExtractionToggle.checked = Boolean(appSettings.aiExtractionEnabled);
-  aiApiKey.value = appSettings.aiApiKey || "";
+  aiApiKey.value = "";
+  aiApiKey.disabled = true;
   aiBackendUrl.value = hasOwnSetting("aiBackendUrl") ? appSettings.aiBackendUrl || "" : "";
   aiBackendToken.value = appSettings.aiBackendToken || "";
   aiModel.value = hasOwnSetting("aiModel") ? appSettings.aiModel || "" : "";
@@ -4949,13 +4848,16 @@ function setSettingsPasswordFieldTypes(type) {
 }
 
 function updateSetting(key, value) {
+  if (key === "aiApiKey") value = "";
+  if (key === "aiBackendUrl") value = normalizeAiBackendUrlInput(value);
   appSettings = { ...appSettings, [key]: value };
   if (key === "hipaaCloudConfirmed" && !value) {
     appSettings.aiExtractionEnabled = false;
   }
-  if (key === "aiExtractionEnabled" && value && !appSettings.hipaaCloudConfirmed) {
+  if ((key === "aiExtractionEnabled" && value && !appSettings.hipaaCloudConfirmed) || (key === "aiBackendUrl" && !value)) {
     appSettings.aiExtractionEnabled = false;
   }
+  appSettings.aiApiKey = "";
   saveAppSettings();
   applySettings();
   if (key === "remindersEnabled" && value) {
@@ -4968,10 +4870,31 @@ function updateCloudAiSharing(allowed) {
   appSettings = {
     ...appSettings,
     hipaaCloudConfirmed: allowed,
-    aiExtractionEnabled: allowed ? appSettings.aiExtractionEnabled : false
+    aiExtractionEnabled: allowed && getConfiguredAiBackendUrl() ? appSettings.aiExtractionEnabled : false,
+    aiApiKey: ""
   };
   saveAppSettings();
   applySettings();
+}
+
+function normalizeAiBackendUrlInput(value, options = {}) {
+  const trimmed = String(value || "").trim().replace(/\/+$/, "");
+  if (!trimmed) return "";
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== "https:") {
+      if (!options.silent) showToast("AI backend URL must start with https://");
+      return "";
+    }
+    return url.toString().replace(/\/+$/, "");
+  } catch {
+    if (!options.silent) showToast("Enter a valid HTTPS AI backend URL.");
+    return "";
+  }
+}
+
+function getConfiguredAiBackendUrl() {
+  return normalizeAiBackendUrlInput(appSettings.aiBackendUrl || "", { silent: true });
 }
 
 function updateHeightSetting() {
@@ -5236,6 +5159,24 @@ function renderInitialDataOnboarding() {
   onboardingForm.innerHTML = step.fields;
   onboardingActions.innerHTML = "";
 
+  if (DICTATION_FEATURE_ENABLED && step.fields && /<(input|textarea|select)\b/i.test(step.fields) && !/type="checkbox"/i.test(step.fields)) {
+    const dictateStepButton = document.createElement("button");
+    dictateStepButton.className = "text-button onboarding-dictate-button";
+    dictateStepButton.type = "button";
+    dictateStepButton.setAttribute("aria-label", "Dictate into setup field");
+    dictateStepButton.title = "Dictate";
+    dictateStepButton.innerHTML = `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3Z"></path>
+        <path d="M19 11a7 7 0 0 1-14 0"></path>
+        <path d="M12 18v4"></path>
+        <path d="M8 22h8"></path>
+      </svg>
+    `;
+    dictateStepButton.addEventListener("click", dictateIntoOnboardingField);
+    onboardingActions.appendChild(dictateStepButton);
+  }
+
   const skipButton = document.createElement("button");
   skipButton.className = "text-button";
   skipButton.type = "button";
@@ -5261,12 +5202,102 @@ function renderInitialDataOnboarding() {
   };
 }
 
+function dictateIntoOnboardingField(event) {
+  const button = event?.currentTarget;
+  if (activeOnboardingDictationButton && isNativeDictationAvailable() && typeof window.HealthTaskDictation.stop === "function") {
+    window.HealthTaskDictation.stop();
+    activeOnboardingDictationButton.classList.remove("is-listening");
+    activeOnboardingDictationButton = null;
+    return;
+  }
+  const field = getActiveOnboardingField();
+  if (!field) {
+    showToast("Tap a setup field first.");
+    return;
+  }
+  if (button) button.classList.add("is-listening");
+  activeOnboardingDictationButton = button || null;
+  startSimpleDictation()
+    .then((text) => applyDictatedTextToOnboardingField(field, text))
+    .catch(() => {
+      const typed = window.prompt("Dictation was unavailable. Type what to add to this field.", "");
+      if (typed && typed.trim()) applyDictatedTextToOnboardingField(field, typed.trim());
+    })
+    .finally(() => {
+      if (activeOnboardingDictationButton) activeOnboardingDictationButton.classList.remove("is-listening");
+      activeOnboardingDictationButton = null;
+    });
+}
+
+function getActiveOnboardingField() {
+  const active = document.activeElement;
+  if (active && onboardingForm.contains(active) && isOnboardingDictationField(active)) return active;
+  return onboardingForm.querySelector("textarea, input:not([type='checkbox']):not([type='hidden']), select");
+}
+
+function isOnboardingDictationField(field) {
+  return field && ["INPUT", "TEXTAREA", "SELECT"].includes(field.tagName) && field.type !== "checkbox" && field.type !== "hidden";
+}
+
+function startSimpleDictation() {
+  if (isNativeDictationAvailable()) return startNativeDictation();
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return Promise.reject(new Error("Dictation unavailable"));
+  return new Promise((resolve, reject) => {
+    const recognition = new SpeechRecognition();
+    let transcript = "";
+    recognition.lang = "en-US";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.onresult = (event) => {
+      transcript = Array.from(event.results || [])
+        .map((result) => result?.[0]?.transcript || "")
+        .join(" ")
+        .trim();
+    };
+    recognition.onerror = () => reject(new Error("Dictation failed"));
+    recognition.onend = () => transcript ? resolve(transcript) : reject(new Error("No speech"));
+    try {
+      recognition.start();
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+function applyDictatedTextToOnboardingField(field, text) {
+  const dictated = String(text || "").trim();
+  if (!dictated || !field) return;
+  if (field.tagName === "SELECT") {
+    const options = Array.from(field.options).filter((item) => item.textContent.trim());
+    const option = options.find((item) => item.textContent.toLowerCase() === dictated.toLowerCase())
+      || options.find((item) => dictated.toLowerCase().includes(item.textContent.toLowerCase()));
+    if (option) {
+      field.value = option.value;
+      field.dispatchEvent(new Event("change", { bubbles: true }));
+      return;
+    }
+  }
+  if (field.type === "number" || field.inputMode === "numeric" || field.inputMode === "decimal") {
+    const number = Number.parseFloat(replaceSpokenNumbers(dictated.toLowerCase()).match(/\d+(?:\.\d+)?/)?.[0] || "");
+    if (Number.isFinite(number)) {
+      field.value = String(number);
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+      return;
+    }
+  }
+  const separator = field.value && field.tagName === "TEXTAREA" ? " " : "";
+  field.value = `${field.value || ""}${separator}${dictated}`.trim();
+  field.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
 function getInitialDataSteps() {
   const dayOptions = ["<option value=\"\"></option>", ...weekDays.map((day) => `<option value="${day}">${day}</option>`)].join("");
   return [
     {
       title: "AI & Privacy",
-      copy: "Cloud AI can help with dictation and safety scanning, but it may send your health information over the internet to the AI service you configure.",
+      copy: "Cloud AI can help with safety scanning, but it may send your health information over the internet to the AI service you configure.",
       primaryText: "Save and continue",
       skipText: "Not now",
       fields: `
@@ -5274,7 +5305,7 @@ function getInitialDataSteps() {
           <span>I understand cloud AI can send my health info over the internet</span>
           <input name="cloudAiAcknowledgement" type="checkbox" ${appSettings.hipaaCloudConfirmed ? "checked" : ""}>
         </label>
-        <p class="settings-note onboarding-wide">AI features will not work unless this is checked, AI dictation extraction is enabled in Settings, and either an AI backend URL or OpenAI API key is saved. Voice recordings are not saved by the app.</p>
+        <p class="settings-note onboarding-wide">AI features will not work unless this is checked, Cloud AI features are enabled in Settings, and an HTTPS AI backend URL is saved. OpenAI API keys should stay on the backend.</p>
       `,
       save: (formData) => {
         const acknowledged = formData.get("cloudAiAcknowledgement") === "on";
@@ -5875,41 +5906,44 @@ function sendAppNotification(title, body, tag = "") {
   }
 }
 
-function startHealthDictation() {
+function startHealthDictation(options = {}) {
+  if (!DICTATION_FEATURE_ENABLED) return;
   if (dictationActive) {
     stopHealthDictation();
     return;
   }
 
   if (isNativeDictationAvailable()) {
-    startNativeDictationFlow("Dictation was canceled or unavailable.");
+    startNativeDictationFlow("Dictation was canceled or unavailable.", options);
     return;
   }
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (SpeechRecognition) {
-    startLegacyHealthDictation();
+    startLegacyHealthDictation(options);
     return;
   }
-  startKeyboardVoiceTextFlow();
+  startKeyboardVoiceTextFlow(options);
 }
 
-function startKeyboardVoiceTextFlow() {
-  pendingDictationExtraction = null;
-  pendingDictationTranscript = "";
-  const typed = window.prompt("Use the keyboard microphone or type what you want to log. I will show a review before saving it.", "");
-  if (typed && typed.trim()) processHealthDictation(typed.trim());
+function startKeyboardVoiceTextFlow(options = {}) {
+  if (!options.appendToReview) {
+    pendingDictationExtraction = null;
+    pendingDictationTranscript = "";
+  }
+  const typed = window.prompt(options.appendToReview ? "Dictate or type more. I will add it to what is already in the review window." : "Use the keyboard microphone or type what you want to log. I will show a review before saving it.", "");
+  if (typed && typed.trim()) handleDictationTranscript(typed.trim(), options);
 }
 
-function startLegacyHealthDictation() {
+function startLegacyHealthDictation(options = {}) {
   if (isNativeDictationAvailable()) {
-    startNativeDictationFlow("Dictation was canceled or unavailable.");
+    startNativeDictationFlow("Dictation was canceled or unavailable.", options);
     return;
   }
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
     const typed = window.prompt("Live dictation is not available on this device. Type or paste the transcript document instead.", "");
-    if (typed && typed.trim()) processHealthDictation(typed.trim());
+    if (typed && typed.trim()) handleDictationTranscript(typed.trim(), options);
     return;
   }
   const recognition = new SpeechRecognition();
@@ -5953,7 +5987,7 @@ function startLegacyHealthDictation() {
     setDictateButtonLabel("Dictate");
     clearWebDictationCommitTimer();
     commitWebDictationPartial();
-    processReviewedHealthDictation(`${webDictationBuffer} ${webDictationPartial}`.trim());
+    handleDictationTranscript(`${webDictationBuffer} ${webDictationPartial}`.trim(), options);
     webDictationBuffer = "";
     webDictationPartial = "";
   };
@@ -5966,21 +6000,21 @@ function startLegacyHealthDictation() {
     setDictateButtonLabel("Dictate");
     clearWebDictationCommitTimer();
     const typed = window.prompt("Dictation could not start. Type what you want to log.", "");
-    if (typed && typed.trim()) processHealthDictation(typed.trim());
+    if (typed && typed.trim()) handleDictationTranscript(typed.trim(), options);
   }
 }
 
-function startNativeDictationFlow(fallbackMessage) {
+function startNativeDictationFlow(fallbackMessage, options = {}) {
   dictationActive = true;
   dictateButton.classList.add("is-listening");
   setDictateButtonLabel("Stop dictation");
   startNativeDictation()
     .then((transcript) => {
-      processReviewedHealthDictation(transcript);
+      handleDictationTranscript(transcript, options);
     })
     .catch(() => {
       const typed = window.prompt(`${fallbackMessage || "Dictation was canceled or unavailable."} Type what you want to log.`, "");
-      if (typed && typed.trim()) processHealthDictation(typed.trim());
+      if (typed && typed.trim()) handleDictationTranscript(typed.trim(), options);
     })
     .finally(() => {
       dictationActive = false;
@@ -6020,6 +6054,7 @@ function clearWebDictationCommitTimer() {
 }
 
 function setDictateButtonLabel(label) {
+  if (!dictateButton) return;
   dictateButton.setAttribute("aria-label", label);
   dictateButton.title = label;
   if (dictationStatus) {
@@ -6074,6 +6109,39 @@ function restartWebDictation() {
 
 function isNativeDictationAvailable() {
   return Boolean(window.HealthTaskDictation && typeof window.HealthTaskDictation.start === "function");
+}
+
+function handleDictationTranscript(transcript, options = {}) {
+  const text = String(transcript || "").trim();
+  if (!text) return;
+  if (options.appendToReview) {
+    appendDictationToReview(text);
+    return;
+  }
+  processReviewedHealthDictation(text);
+}
+
+function appendDictationToReview(text) {
+  const existing = dictationReviewText.value.trim();
+  const addition = String(text || "").trim();
+  if (!addition) return;
+  const combined = existing ? `${existing} ${addition}` : addition;
+  pendingDictationExtraction = null;
+  pendingDictationTranscript = combined;
+  pendingParsedDictationResult = null;
+  pendingParsedDictationDocument = null;
+  dictationReviewStepIndex = 0;
+  dictationReviewField.hidden = false;
+  dictationFieldReview.hidden = true;
+  dictationFieldReview.replaceChildren();
+  dictationReviewManual.hidden = false;
+  dictationReviewChange.hidden = true;
+  dictationReviewSave.textContent = "Confirm & Save";
+  dictationReviewSave.disabled = false;
+  dictationReviewText.value = combined;
+  dictationReviewMessage.textContent = "Added to the transcript. Review it, then Confirm & Save.";
+  dictationReviewModal.hidden = false;
+  focusDictationReviewText();
 }
 
 function startNativeDictation() {
@@ -6140,6 +6208,7 @@ function closeDictationReview() {
   if (title) title.textContent = "Review what I heard";
   dictationReviewModal.hidden = true;
   dictationReviewMessage.textContent = "";
+  dictationReviewText.value = "";
   pendingDictationExtraction = null;
   pendingDictationTranscript = "";
   pendingParsedDictationResult = null;
@@ -6646,6 +6715,7 @@ async function parseHealthDictation(text) {
 }
 
 function mergeDictationResults(localResult, aiResult, text) {
+  const explicitJournal = hasExplicitJournalIntent(text);
   const merged = {
     nutrition: { ...(localResult.nutrition || {}), ...(aiResult.nutrition || {}) },
     symptom: aiResult.symptom || localResult.symptom || null,
@@ -6654,7 +6724,7 @@ function mergeDictationResults(localResult, aiResult, text) {
       ...(Array.isArray(aiResult.symptoms) ? aiResult.symptoms : [])
     ],
     mood: aiResult.mood || localResult.mood || null,
-    journal: aiResult.journal || localResult.journal || null,
+    journal: explicitJournal ? (aiResult.journal || localResult.journal || null) : null,
     task: aiResult.task || localResult.task || null,
     tasks: [
       ...(Array.isArray(localResult.tasks) ? localResult.tasks : []),
@@ -6684,52 +6754,24 @@ function isAiDictationEnabled() {
 }
 
 function canUseCloudAi() {
-  return Boolean(appSettings.hipaaCloudConfirmed && appSettings.aiExtractionEnabled && window.fetch && (appSettings.aiBackendUrl || appSettings.aiApiKey));
+  return Boolean(appSettings.hipaaCloudConfirmed && appSettings.aiExtractionEnabled && window.fetch && getConfiguredAiBackendUrl());
 }
 
 async function extractAiDictationData(text) {
-  if (appSettings.aiBackendUrl) {
-    return extractBackendAiDictationData(text);
+  if (!getConfiguredAiBackendUrl()) {
+    throw new Error("Enter an HTTPS AI backend URL in Settings.");
   }
-  if (!appSettings.aiApiKey) {
-    throw new Error("Enter an OpenAI API key or AI backend URL in Settings.");
-  }
-  const response = await fetchWithTimeout("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${appSettings.aiApiKey}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: appSettings.aiModel || "gpt-4o-mini",
-      temperature: 0,
-      max_tokens: 450,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content: "Search the saved speaker transcript document for health tracker fields. Interpret common misspellings, speech-to-text mistakes, abbreviations, and slang, such as bp=blood pressure, sugar=glucose, cals=calories, carbs/carbz=carbs, lbs/pounds=weight, h2o=water, meh=Okay mood, wiped/exhausted=fatigue, panicky=Anxious, and to-do/remind me=task. Return only JSON with keys nutrition, symptoms, mood, journal, tasks, missingDetails. Use null for unknown numeric fields. Do not invent values. Only put text in notes when the speaker explicitly says it is a note or gives extra note context; do not copy the whole transcript into symptom or mood notes. Preserve original user wording in journal text. nutrition has calories, carbs, weight, ketosisPhase, glucose, systolic, diastolic, water. symptoms is array of {name,severity,note}. mood is {name,intensity,note} or null. journal is {text} or null. tasks is array of {name,day,time,deadline,note}. missingDetails is array of {section,field,question}."
-        },
-        { role: "user", content: text }
-      ]
-    })
-  }, AI_DICTATION_TIMEOUT_MS);
-  if (!response.ok) {
-    throw new Error(await getFriendlyAiError(response, "AI request"));
-  }
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content || "";
-  if (!content) throw new Error("AI returned no extraction.");
-  return normalizeAiDictationResult(JSON.parse(content), text);
+  return extractBackendAiDictationData(text);
 }
 
 async function extractBackendAiDictationData(text) {
   const headers = { "Content-Type": "application/json" };
   if (appSettings.aiBackendToken) headers["X-App-Token"] = appSettings.aiBackendToken;
-  const response = await fetchWithTimeout(`${appSettings.aiBackendUrl}/api/dictation/extract`, {
+  const backendUrl = getConfiguredAiBackendUrl();
+  const response = await fetchWithTimeout(`${backendUrl}/api/dictation/extract`, {
     method: "POST",
     headers,
-    body: JSON.stringify({ transcript: text })
+    body: JSON.stringify({ transcript: truncateForAi(text, 6000) })
   }, AI_DICTATION_TIMEOUT_MS);
   if (!response.ok) {
     throw new Error(await getFriendlyAiError(response, "AI backend"));
@@ -6777,7 +6819,7 @@ function normalizeAiDictationResult(data, originalText) {
     intensity: normalizeAiChoice(data.mood.intensity, ["Mild", "Moderate", "Strong"], "Moderate"),
     note: String(data.mood.note || "")
   } : null;
-  const journal = data.journal && data.journal.text ? { text: String(data.journal.text).trim() } : null;
+  const journal = hasExplicitJournalIntent(originalText) && data.journal && data.journal.text ? { text: String(data.journal.text).trim() } : null;
   return {
     nutrition,
     symptom: symptoms[0] || null,
@@ -7010,10 +7052,6 @@ function parseDictatedSymptoms(original, normalized) {
     .filter((entry) => entry.name);
 }
 
-function parseDictatedSymptom(original, normalized) {
-  return parseDictatedSymptoms(original, normalized)[0] || null;
-}
-
 function getDictatedSeverity(normalized) {
   if (/\b(severe|bad|terrible|awful|extreme|intense)\b/i.test(normalized)) return "Severe";
   if (/\b(moderate|medium|noticeable)\b/i.test(normalized)) return "Moderate";
@@ -7046,15 +7084,16 @@ function normalizeDictatedMood(value) {
 }
 
 function parseDictatedJournal(original, normalized) {
-  const match = original.match(/\b(?:journal|journal entry|note to self|make a journal entry|write down|remember that)\s*[:,]?\s*(.*)$/i);
+  const match = original.match(/\b(?:journal|journal entry|make a journal entry|add a journal entry|new journal entry|note to self|write down in (?:my )?journal|put this in (?:my )?journal|remember this in (?:my )?journal)\s*[:,]?\s*(.*)$/i);
   if (match) {
     const text = cleanDictatedPhrase(match[1]);
     return text ? { text } : null;
   }
-  if (normalized.length > 180 && /\b(i feel|i felt|today|this morning|this evening|because|worried|stressed|pain|sick)\b/i.test(normalized)) {
-    return { text: original.trim() };
-  }
   return null;
+}
+
+function hasExplicitJournalIntent(text) {
+  return /\b(?:journal|journal entry|make a journal entry|add a journal entry|new journal entry|note to self|write down in (?:my )?journal|put this in (?:my )?journal|remember this in (?:my )?journal)\b/i.test(String(text || ""));
 }
 
 function parseDictatedTask(original, normalized) {
@@ -7168,245 +7207,8 @@ function getDictationSummary(result) {
   return parts.length ? `Dictation saved: ${parts.join(", ")}. AI Coach refreshed.` : "I heard the dictation, but could not identify health data or a task to save.";
 }
 
-function loadProfile() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(profileStoreKey));
-    return {
-      username: saved && typeof saved.username === "string" ? saved.username : "",
-      facebookUsername: saved && typeof saved.facebookUsername === "string" ? saved.facebookUsername : "",
-      facebookId: saved && typeof saved.facebookId === "string" ? saved.facebookId : ""
-    };
-  } catch {
-    return {
-      username: "",
-      facebookUsername: "",
-      facebookId: ""
-    };
-  }
-}
-
-function loadUsername() {
-  return loadProfile().username;
-}
-
-function saveProfile(updates) {
-  const current = loadProfile();
-  const next = {
-    ...current,
-    ...updates
-  };
-
-  next.username = String(next.username || "").slice(0, 24);
-  next.facebookUsername = String(next.facebookUsername || "").slice(0, 120);
-  next.facebookId = String(next.facebookId || "").slice(0, 64);
-  localStorage.setItem(profileStoreKey, JSON.stringify(next));
-}
-
-function getFacebookProfileUrl(value) {
-  const rawValue = normalizeFacebookProfileInput(value);
-  if (!rawValue) return "";
-
-  if (/^https?:\/\//i.test(rawValue)) {
-    try {
-      const url = new URL(rawValue);
-      const host = url.hostname.replace(/^www\./i, "").replace(/^m\./i, "");
-      if (host !== "facebook.com" && host !== "fb.com") return "";
-
-      const cleanUrl = new URL("https://www.facebook.com/");
-      cleanUrl.pathname = url.pathname.replace(/\/+/g, "/");
-      cleanUrl.search = url.search;
-      return cleanUrl.toString();
-    } catch {
-      return "";
-    }
-  }
-
-  const handle = rawValue
-    .replace(/^@/, "")
-    .replace(/^(www\.|m\.)?(facebook|fb)\.com\//i, "")
-    .split(/[/?#]/)[0]
-    .replace(/[^a-z0-9._-]/gi, "");
-  return handle ? `https://www.facebook.com/${encodeURIComponent(handle)}` : "";
-}
-
-function normalizeFacebookProfileInput(value) {
-  return String(value || "")
-    .trim()
-    .replace(/^https?:\/\/(m\.)facebook\.com/i, "https://www.facebook.com")
-    .replace(/^https?:\/\/fb\.com/i, "https://www.facebook.com")
-    .slice(0, 120);
-}
-
-function openFacebookAccount() {
-  const url = getFacebookProfileUrl(loadProfile().facebookUsername);
-  if (!url) {
-    openFacebookLoginDialog();
-    return;
-  }
-
-  window.open(url, "_blank", "noopener");
-}
-
-function openFacebookLoginDialog() {
-  facebookLoginModal.hidden = false;
-  facebookLoginContinue.focus();
-}
-
-function closeFacebookLoginDialog() {
-  facebookLoginModal.hidden = true;
-}
-
-function startFacebookLogin() {
-  const appId = facebookAuth.appId.trim();
-  if (!/^\d{6,}$/.test(appId)) {
-    window.alert("Facebook sign-in is not configured for this build.");
-    return;
-  }
-
-  const state = createHabitId();
-  localStorage.setItem(facebookLoginStateStoreKey, state);
-
-  const authUrl = new URL("https://www.facebook.com/v19.0/dialog/oauth");
-  authUrl.search = new URLSearchParams({
-    client_id: appId,
-    redirect_uri: getFacebookRedirectUri(),
-    response_type: "token",
-    scope: "public_profile",
-    display: "touch",
-    state
-  }).toString();
-
-  location.href = authUrl.toString();
-}
-
-async function handleFacebookLoginRedirect() {
-  const params = getFacebookLoginParams();
-  const error = params.get("error") || params.get("error_code");
-  if (error) {
-    const message = params.get("error_message") || params.get("error_description") || "Facebook sign-in was cancelled or rejected.";
-    window.alert(message);
-    clearFacebookLoginHash();
-    return;
-  }
-
-  const accessToken = params.get("access_token");
-  const state = params.get("state");
-  const expectedState = localStorage.getItem(facebookLoginStateStoreKey);
-  if (!accessToken) return;
-
-  localStorage.removeItem(facebookLoginStateStoreKey);
-  if (!state || state !== expectedState) {
-    window.alert("Facebook login could not be verified.");
-    clearFacebookLoginHash();
-    return;
-  }
-
-  try {
-    const graphUrl = new URL("https://graph.facebook.com/me");
-    graphUrl.search = new URLSearchParams({
-      fields: "id,name",
-      access_token: accessToken
-    }).toString();
-    const response = await fetch(graphUrl.toString());
-    if (!response.ok) throw new Error("Facebook profile request failed");
-    const profile = await response.json();
-    const displayName = String(profile.name || "").trim();
-    if (!displayName) throw new Error("Facebook profile did not include a display name");
-
-    saveProfile({
-      username: displayName,
-      facebookUsername: `https://www.facebook.com/${profile.id}`,
-      facebookId: profile.id || ""
-    });
-    renderUsername();
-  } catch {
-    window.alert("Facebook login did not return a display name.");
-  } finally {
-    clearFacebookLoginHash();
-  }
-}
-
-function getFacebookRedirectUri() {
-  return facebookAuth.redirectUri;
-}
-
-function getFacebookLoginParams() {
-  const rawHash = location.hash.replace(/^#/, "");
-  const rawSearch = location.search.replace(/^\?/, "");
-  return new URLSearchParams(rawHash || rawSearch);
-}
-
-function clearFacebookLoginHash() {
-  if (history.replaceState) {
-    history.replaceState(null, "", location.pathname || "/");
-  }
-}
-
-function logoutFacebookAccount() {
-  saveProfile({
-    username: "",
-    facebookUsername: "",
-    facebookId: ""
-  });
-  renderUsername();
-}
-
-function getFacebookDisplayName(value) {
-  const rawValue = String(value || "").trim();
-  if (!rawValue) return "Guest";
-
-  const withoutProtocol = rawValue.replace(/^https?:\/\/(www\.)?/i, "");
-  const pathName = withoutProtocol.replace(/^facebook\.com\//i, "").split(/[/?#]/)[0];
-  const candidate = pathName && pathName !== withoutProtocol
-    ? pathName
-    : rawValue;
-
-  return candidate
-    .replace(/^@/, "")
-    .replace(/[._-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 24) || "Guest";
-}
-
-async function shareProgressToFacebook() {
-  const stats = getWeeklyTotals();
-  const displayName = loadUsername() || "I";
-  const shareText = `${displayName} completed ${stats.totalComplete}/${stats.totalTasks} weekly tasks in Health & Task Tracker (${stats.average}%).`;
-  const profileUrl = getFacebookProfileUrl(loadProfile().facebookUsername);
-  const shareUrl = new URL("https://www.facebook.com/sharer/sharer.php");
-  shareUrl.searchParams.set("u", profileUrl || location.href);
-  shareUrl.searchParams.set("quote", shareText);
-
-  const popup = window.open(shareUrl.toString(), "_blank", "noopener");
-  if (popup) return;
-
-  if (navigator.share) {
-    try {
-      await navigator.share({
-        title: "Health & Task Tracker progress",
-        text: shareText,
-        url: profileUrl || location.href
-      });
-      return;
-    } catch {
-      // Fall through to copying when the share sheet is unavailable or dismissed.
-    }
-  }
-
-  const copied = await copyText(`${shareText} ${profileUrl || location.href}`);
-  window.alert(copied ? "Progress copied. Paste it into Facebook to share." : "Unable to open Facebook sharing.");
-}
-
 function getWeeklyTotals() {
   return getWeeklyCompletionTotals();
-}
-
-function renderUsername() {
-  const profile = loadProfile();
-  usernameDisplay.textContent = profile.username || "Guest";
-  facebookLoginButton.hidden = Boolean(profile.username);
-  facebookLogoutButton.hidden = !profile.username;
 }
 
 async function importBloodPressureFromWatch() {
@@ -7655,7 +7457,7 @@ function isValidBloodPressureReading(reading) {
 
 function applyTaskFromUrl() {
   const params = new URLSearchParams(location.search);
-  const name = (params.get("task") || params.get("addTask") || "").trim();
+  const name = (params.get("habit") || params.get("addHabit") || params.get("task") || params.get("addTask") || "").trim();
   if (!name) return;
 
   const day = params.get("day");
@@ -7707,7 +7509,6 @@ function formatBloodPressure(systolicValue, diastolicValue, includeUnits = false
 
 applyBloodPressureFromUrl();
 applyTaskFromUrl();
-handleFacebookLoginRedirect();
 render();
 scrollAppToTop();
 if (isAppLockEnabled()) {
