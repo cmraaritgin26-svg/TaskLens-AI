@@ -2914,6 +2914,7 @@ function bindWellbeingSwipeTarget(target) {
 }
 
 function renderSymptoms() {
+  if (!symptomList || !symptomEmpty) return;
   symptomList.textContent = "";
   symptomEmpty.hidden = symptomEntries.length > 0;
   symptomEntries.slice(0, 8).forEach((entry) => {
@@ -2961,6 +2962,7 @@ function deleteSymptom(id) {
 }
 
 function renderMoods() {
+  if (!moodList || !moodEmpty) return;
   moodList.textContent = "";
   moodEmpty.hidden = moodEntries.length > 0;
   moodEntries.slice(0, 8).forEach((entry) => {
