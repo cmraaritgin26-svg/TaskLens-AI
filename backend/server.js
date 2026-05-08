@@ -7,7 +7,7 @@ const APP_CLIENT_TOKEN = process.env.APP_CLIENT_TOKEN || "";
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
 const MAX_BODY_BYTES = 35_000_000;
 
-const extractionSchemaPrompt = `Extract Health & Task Tracker data from user dictation.
+const extractionSchemaPrompt = `Search the saved speaker transcript document for Health & Task Tracker data.
 Return only valid JSON with these keys:
 {
   "nutrition": {"calories": number|null, "carbs": number|null, "weight": number|null, "ketosisPhase": "Entering|Ketosis|Deep ketosis|Exiting|null", "glucose": number|null, "systolic": number|null, "diastolic": number|null, "water": number|null},
@@ -17,7 +17,28 @@ Return only valid JSON with these keys:
   "tasks": [{"name": string, "day": "Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday", "time": "HH:MM|string", "deadline": "HH:MM|string", "note": string}],
   "missingDetails": [{"section": "nutrition|symptoms|mood|journal|tasks", "field": string, "question": string}]
 }
-Do not invent numbers, symptoms, tasks, diagnoses, or journal text. If a category is mentioned without enough detail, add a missingDetails question.`;
+Interpret common misspellings, speech-to-text mistakes, abbreviations, and slang, such as bp=blood pressure, sugar=glucose, cals=calories, carbs/carbz=carbs, lbs/pounds=weight, h2o=water, meh=Okay mood, wiped/exhausted=fatigue, panicky=Anxious, and to-do/remind me=task.
+Use only information present in the transcript document. Do not invent numbers, symptoms, tasks, diagnoses, or journal text. Preserve original user wording in notes and journal text. If a category is mentioned without enough detail, add a missingDetails question.`;
+
+const coachSchemaPrompt = `You are the Health & Task Tracker AI Coach.
+Analyze the user's app data for practical patterns across tasks, deadlines, nutrition, water, weight, blood pressure, glucose, ketosis, symptoms, mood, and journal entries.
+Use full task details including names, notes, categories, priority, scheduled times, deadlines, completion history, missed deadlines, daily dashboard progress, and weekly progress. Cross-check task patterns against vitals, symptoms, mood, water, nutrition, ketosis, and journal text.
+Return only valid JSON with these keys:
+{
+  "title": string,
+  "body": string,
+  "tone": "steady|action|health|care|neutral",
+  "destination": "tasks|water|vitals|mood|symptoms|journal|settings|null",
+  "actionLabel": string|null,
+  "suggestedTask": string|null
+}
+Rules:
+- Do not diagnose disease.
+- Do not claim certainty.
+- Mention urgent care only for emergency warning patterns.
+- If journal or mood text suggests suicide or self-harm risk, tell the user to call/text 988 in the U.S. and call emergency services for immediate danger.
+- Prefer one specific, useful next step.
+- Keep body under 45 words.`;
 
 const coachSchemaPrompt = `You are the Health & Task Tracker AI Coach.
 Analyze the user's app data for practical patterns across tasks, deadlines, nutrition, water, weight, blood pressure, glucose, ketosis, symptoms, mood, and journal entries.
