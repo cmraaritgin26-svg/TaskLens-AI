@@ -825,8 +825,12 @@ heightFeet.addEventListener("change", () => updateHeightSetting());
 heightInches.addEventListener("change", () => updateHeightSetting());
 aiExtractionToggle.addEventListener("change", () => updateSetting("aiExtractionEnabled", aiExtractionToggle.checked));
 hipaaCloudToggle?.addEventListener("change", () => updateCloudAiSharing(hipaaCloudToggle.checked));
-aiApiKey.addEventListener("change", () => updateSetting("aiApiKey", aiApiKey.value.trim()));
-aiBackendUrl.addEventListener("change", () => updateSetting("aiBackendUrl", aiBackendUrl.value.trim().replace(/\/+$/, "")));
+aiApiKey.addEventListener("change", () => {
+  aiApiKey.value = "";
+  updateSetting("aiApiKey", "");
+  showToast("OpenAI keys belong on the secure backend, not inside the app.");
+});
+aiBackendUrl.addEventListener("change", () => updateSetting("aiBackendUrl", normalizeAiBackendUrlInput(aiBackendUrl.value)));
 aiBackendToken.addEventListener("change", () => updateSetting("aiBackendToken", aiBackendToken.value.trim()));
 aiModel.addEventListener("change", () => updateSetting("aiModel", aiModel.value.trim()));
 setPasswordButton.addEventListener("click", () => setAppPassword());
@@ -947,10 +951,6 @@ function render() {
   });
   habitList.appendChild(fragment);
 
-  const doneToday = habits.filter((habit) => habit.completions.includes(today)).length;
-  completeCount.textContent = doneToday;
-  activeCount.textContent = habits.length;
-  bestStreak.textContent = habits.reduce((best, habit) => Math.max(best, getStreak(habit)), 0);
   emptyState.hidden = habits.length > 0;
   renderTodayDashboard();
   scheduleSmartCoachRender();
@@ -1458,51 +1458,21 @@ async function loadAiCoachInsight(cacheKey, localInsights) {
 async function fetchAiCoachInsight(localInsights) {
   const snapshot = buildAiCoachSnapshot(localInsights);
   if (!canUseCloudAi()) return null;
-  if (appSettings.aiBackendUrl) {
-    return normalizeAiCoachInsight(await fetchBackendAiCoachInsight(snapshot));
-  }
-  if (!appSettings.aiApiKey) return null;
-  return normalizeAiCoachInsight(await fetchDirectAiCoachInsight(snapshot));
+  return normalizeAiCoachInsight(await fetchBackendAiCoachInsight(snapshot));
 }
 
 async function fetchBackendAiCoachInsight(snapshot) {
   const headers = { "Content-Type": "application/json" };
   if (appSettings.aiBackendToken) headers["X-App-Token"] = appSettings.aiBackendToken;
-  const response = await fetchWithTimeout(`${appSettings.aiBackendUrl}/api/coach/analyze`, {
+  const backendUrl = getConfiguredAiBackendUrl();
+  if (!backendUrl) throw new Error("Enter an HTTPS AI backend URL in Settings.");
+  const response = await fetchWithTimeout(`${backendUrl}/api/coach/analyze`, {
     method: "POST",
     headers,
     body: JSON.stringify({ snapshot })
   }, AI_COACH_TIMEOUT_MS);
   if (!response.ok) throw new Error(await response.text());
   return response.json();
-}
-
-async function fetchDirectAiCoachInsight(snapshot) {
-  const response = await fetchWithTimeout("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${appSettings.aiApiKey}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: appSettings.aiModel || "gpt-4o-mini",
-      temperature: 0.2,
-      max_tokens: 180,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content: "Analyze the entire Health & Task Tracker snapshot across tasks, weekly progress, deadlines, nutrition, vitals, symptoms, mood, journal entries, and local trend flags. Search for cross-app trends, repeated patterns, and same-date links. Return only JSON with title, body, tone, destination, actionLabel, suggestedTask. Do not diagnose. Keep body under 45 words. Mention calling/texting 911 for immediate danger and 988 Suicide & Crisis Lifeline for suicide prevention support."
-        },
-        { role: "user", content: JSON.stringify(snapshot) }
-      ]
-    })
-  }, AI_COACH_TIMEOUT_MS);
-  if (!response.ok) throw new Error(await response.text());
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content || "";
-  if (!content) throw new Error("AI returned no coach insight.");
-  return JSON.parse(content);
 }
 
 async function fetchWithTimeout(url, options = {}, timeoutMs = 2500) {
@@ -1536,6 +1506,11 @@ function cleanAiCoachText(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
 }
 
+function truncateForAi(value, maxLength = 300) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  return text.length > maxLength ? `${text.slice(0, Math.max(0, maxLength - 1))}...` : text;
+}
+
 function getAiCoachActionLabel(destination) {
   return {
     tasks: "Go to tasks",
@@ -1550,12 +1525,12 @@ function getAiCoachActionLabel(destination) {
 
 function getAiCoachSnapshotKey() {
   return JSON.stringify({
-    tasks: habits.map((habit) => [habit.id, habit.name, getTaskDay(habit), habit.category, habit.time, habit.deadline, habit.priority, habit.note, habit.completions?.slice(-21)]),
-    nutrition: nutritionEntries.slice(0, 30),
-    symptoms: symptomEntries.slice(0, 30),
-    moods: moodEntries.slice(0, 30),
-    journal: journalEntries.slice(0, 20).map((entry) => [entry.date, entry.text]),
-    deadlines: taskDeadlineEvents.slice(0, 30),
+    tasks: habits.map((habit) => [habit.id, habit.name, getTaskDay(habit), habit.category, habit.time, habit.deadline, habit.priority, truncateForAi(habit.note, 160), habit.completions?.slice(-21)]),
+    nutrition: nutritionEntries.slice(0, 21),
+    symptoms: symptomEntries.slice(0, 21).map((entry) => ({ ...entry, note: truncateForAi(entry.note, 160) })),
+    moods: moodEntries.slice(0, 21).map((entry) => ({ ...entry, note: truncateForAi(entry.note, 160) })),
+    journal: journalEntries.slice(0, 12).map((entry) => [entry.date, truncateForAi(entry.text, 360)]),
+    deadlines: taskDeadlineEvents.slice(0, 21),
     settings: [appSettings.heightInches]
   });
 }
@@ -1594,12 +1569,12 @@ function buildAiCoachSnapshot(localInsights) {
       time: normalizeTaskTime(habit.time || ""),
       deadline: normalizeTaskTime(habit.deadline || ""),
       priority: habit.priority || "Normal",
-      note: habit.note || "",
-      completions: (habit.completions || []).slice(-60),
+      note: truncateForAi(habit.note, 180),
+      completions: (habit.completions || []).slice(-30),
       completedRecently: (habit.completions || []).filter((dateKey) => daysBetween(dateKey, today) <= 30)
     })),
-    missedDeadlines: taskDeadlineEvents.slice(0, 60),
-    nutritionAndVitals: nutritionEntries.slice(0, 60).map((entry) => ({
+    missedDeadlines: taskDeadlineEvents.slice(0, 30),
+    nutritionAndVitals: nutritionEntries.slice(0, 30).map((entry) => ({
       date: entry.date,
       calories: entry.calories,
       carbs: entry.carbs,
@@ -1610,21 +1585,21 @@ function buildAiCoachSnapshot(localInsights) {
       diastolic: entry.diastolic,
       water: entry.water
     })),
-    symptoms: symptomEntries.slice(0, 60).map((entry) => ({
+    symptoms: symptomEntries.slice(0, 30).map((entry) => ({
       date: entry.date,
       name: entry.name,
       severity: entry.severity,
-      note: entry.note
+      note: truncateForAi(entry.note, 180)
     })),
-    moods: moodEntries.slice(0, 60).map((entry) => ({
+    moods: moodEntries.slice(0, 30).map((entry) => ({
       date: entry.date,
       name: entry.name,
       intensity: entry.intensity,
-      note: entry.note
+      note: truncateForAi(entry.note, 180)
     })),
-    journal: journalEntries.slice(0, 30).map((entry) => ({
+    journal: journalEntries.slice(0, 12).map((entry) => ({
       date: entry.date,
-      text: String(entry.text || "").slice(0, 700)
+      text: truncateForAi(entry.text, 500)
     })),
     wholeAppTrendScan: buildWholeAppTrendScan()
   };
@@ -2320,76 +2295,42 @@ async function scanJournalAndAppWithAiForSafety(latestJournalText = "") {
 }
 
 function buildAiSafetyScanSnapshot(latestJournalText = "") {
-  const localInsights = getSmartCoachInsights();
   return {
     scanReason: "journal_saved",
-    latestJournalText,
-    fullAppSnapshot: buildAiCoachSnapshot(localInsights),
+    latestJournalText: truncateForAi(latestJournalText, 1200),
     journalEntries: journalEntries.map((entry) => ({
       date: entry.date,
-      text: entry.text
-    })),
+      text: truncateForAi(entry.text, 700)
+    })).slice(0, 40),
     moodEntries: moodEntries.map((entry) => ({
       date: entry.date,
       mood: entry.name,
       intensity: entry.intensity,
-      note: entry.note
-    })),
+      note: truncateForAi(entry.note, 300)
+    })).slice(0, 60),
     symptomEntries: symptomEntries.map((entry) => ({
       date: entry.date,
       symptom: entry.name,
       severity: entry.severity,
-      note: entry.note
-    }))
+      note: truncateForAi(entry.note, 300)
+    })).slice(0, 60),
+    localTrendFlags: buildWholeAppTrendScan()
   };
 }
 
 async function fetchAiSafetyScan(snapshot) {
   if (!canUseCloudAi()) return null;
-  if (appSettings.aiApiKey) {
-    return fetchDirectAiSafetyScan(snapshot);
-  }
-  if (appSettings.aiBackendUrl) {
-    const insight = normalizeAiCoachInsight(await fetchBackendAiCoachInsight({
-      ...snapshot.fullAppSnapshot,
-      safetyScan: {
-        latestJournalText: snapshot.latestJournalText,
-        journalEntries: snapshot.journalEntries,
-        moodEntries: snapshot.moodEntries,
-        symptomEntries: snapshot.symptomEntries
-      }
-    }));
-    return insight ? inferAiSafetyFromInsight(insight) : null;
-  }
-  return null;
-}
-
-async function fetchDirectAiSafetyScan(snapshot) {
-  const response = await fetchWithTimeout("https://api.openai.com/v1/chat/completions", {
+  const headers = { "Content-Type": "application/json" };
+  if (appSettings.aiBackendToken) headers["X-App-Token"] = appSettings.aiBackendToken;
+  const backendUrl = getConfiguredAiBackendUrl();
+  if (!backendUrl) return null;
+  const response = await fetchWithTimeout(`${backendUrl}/api/safety/scan`, {
     method: "POST",
-    headers: {
-      "Authorization": `Bearer ${appSettings.aiApiKey}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: appSettings.aiModel || "gpt-4o-mini",
-      temperature: 0,
-      max_tokens: 260,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content: "You are a safety scanner for a private health journal app. Scan ALL journal entries, mood notes, symptoms, and app context for self-harm, suicide risk, severe hopelessness, plans, means, goodbye/final-note language, or escalating distress. Interpret misspellings, slang, euphemisms, and indirect wording. Do not diagnose. Return only JSON: {\"level\":\"none|concern|crisis\",\"matchedText\":\"short excerpt or empty\",\"reason\":\"brief reason\",\"action\":\"brief next step\"}. Use crisis for direct self-harm/suicide intent, plan, means, or imminent danger. Use concern for severe hopelessness, burden language, not wanting to exist, or repeated escalating distress."
-        },
-        { role: "user", content: JSON.stringify(snapshot) }
-      ]
-    })
+    headers,
+    body: JSON.stringify({ snapshot })
   }, AI_SAFETY_SCAN_TIMEOUT_MS);
   if (!response.ok) throw new Error(await getFriendlyAiError(response, "AI safety scan"));
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content || "";
-  if (!content) return null;
-  return normalizeAiSafetyScanResult(JSON.parse(content));
+  return normalizeAiSafetyScanResult(await response.json());
 }
 
 function normalizeAiSafetyScanResult(data) {
@@ -4829,8 +4770,11 @@ function loadAppSettings() {
       aiModel: "gpt-4o-mini",
       ...savedSettings
     };
+    settings.aiApiKey = "";
+    settings.aiBackendUrl = normalizeAiBackendUrlInput(settings.aiBackendUrl || "", { silent: true });
     localStorage.setItem(aiDefaultEnabledStoreKey, "done");
     if (!settings.hipaaCloudConfirmed) settings.aiExtractionEnabled = false;
+    if (!settings.aiBackendUrl) settings.aiExtractionEnabled = false;
     return settings;
   } catch {
     return {
@@ -4873,7 +4817,8 @@ function renderSettings() {
   if (hipaaCloudToggle) hipaaCloudToggle.checked = Boolean(appSettings.hipaaCloudConfirmed);
   aiExtractionToggle.disabled = !appSettings.hipaaCloudConfirmed;
   aiExtractionToggle.checked = Boolean(appSettings.aiExtractionEnabled);
-  aiApiKey.value = appSettings.aiApiKey || "";
+  aiApiKey.value = "";
+  aiApiKey.disabled = true;
   aiBackendUrl.value = hasOwnSetting("aiBackendUrl") ? appSettings.aiBackendUrl || "" : "";
   aiBackendToken.value = appSettings.aiBackendToken || "";
   aiModel.value = hasOwnSetting("aiModel") ? appSettings.aiModel || "" : "";
@@ -4906,13 +4851,16 @@ function setSettingsPasswordFieldTypes(type) {
 }
 
 function updateSetting(key, value) {
+  if (key === "aiApiKey") value = "";
+  if (key === "aiBackendUrl") value = normalizeAiBackendUrlInput(value);
   appSettings = { ...appSettings, [key]: value };
   if (key === "hipaaCloudConfirmed" && !value) {
     appSettings.aiExtractionEnabled = false;
   }
-  if (key === "aiExtractionEnabled" && value && !appSettings.hipaaCloudConfirmed) {
+  if ((key === "aiExtractionEnabled" && value && !appSettings.hipaaCloudConfirmed) || (key === "aiBackendUrl" && !value)) {
     appSettings.aiExtractionEnabled = false;
   }
+  appSettings.aiApiKey = "";
   saveAppSettings();
   applySettings();
   if (key === "remindersEnabled" && value) {
@@ -4925,10 +4873,31 @@ function updateCloudAiSharing(allowed) {
   appSettings = {
     ...appSettings,
     hipaaCloudConfirmed: allowed,
-    aiExtractionEnabled: allowed ? appSettings.aiExtractionEnabled : false
+    aiExtractionEnabled: allowed && getConfiguredAiBackendUrl() ? appSettings.aiExtractionEnabled : false,
+    aiApiKey: ""
   };
   saveAppSettings();
   applySettings();
+}
+
+function normalizeAiBackendUrlInput(value, options = {}) {
+  const trimmed = String(value || "").trim().replace(/\/+$/, "");
+  if (!trimmed) return "";
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== "https:") {
+      if (!options.silent) showToast("AI backend URL must start with https://");
+      return "";
+    }
+    return url.toString().replace(/\/+$/, "");
+  } catch {
+    if (!options.silent) showToast("Enter a valid HTTPS AI backend URL.");
+    return "";
+  }
+}
+
+function getConfiguredAiBackendUrl() {
+  return normalizeAiBackendUrlInput(appSettings.aiBackendUrl || "", { silent: true });
 }
 
 function updateHeightSetting() {
@@ -5231,7 +5200,7 @@ function getInitialDataSteps() {
           <span>I understand cloud AI can send my health info over the internet</span>
           <input name="cloudAiAcknowledgement" type="checkbox" ${appSettings.hipaaCloudConfirmed ? "checked" : ""}>
         </label>
-        <p class="settings-note onboarding-wide">AI features will not work unless this is checked, AI dictation extraction is enabled in Settings, and either an AI backend URL or OpenAI API key is saved. Voice recordings are not saved by the app.</p>
+        <p class="settings-note onboarding-wide">AI features will not work unless this is checked, AI dictation extraction is enabled in Settings, and an HTTPS AI backend URL is saved. Voice recordings are not saved by the app, and OpenAI API keys should stay on the backend.</p>
       `,
       save: (formData) => {
         const acknowledged = formData.get("cloudAiAcknowledgement") === "on";
@@ -6641,52 +6610,24 @@ function isAiDictationEnabled() {
 }
 
 function canUseCloudAi() {
-  return Boolean(appSettings.hipaaCloudConfirmed && appSettings.aiExtractionEnabled && window.fetch && (appSettings.aiBackendUrl || appSettings.aiApiKey));
+  return Boolean(appSettings.hipaaCloudConfirmed && appSettings.aiExtractionEnabled && window.fetch && getConfiguredAiBackendUrl());
 }
 
 async function extractAiDictationData(text) {
-  if (appSettings.aiBackendUrl) {
-    return extractBackendAiDictationData(text);
+  if (!getConfiguredAiBackendUrl()) {
+    throw new Error("Enter an HTTPS AI backend URL in Settings.");
   }
-  if (!appSettings.aiApiKey) {
-    throw new Error("Enter an OpenAI API key or AI backend URL in Settings.");
-  }
-  const response = await fetchWithTimeout("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${appSettings.aiApiKey}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: appSettings.aiModel || "gpt-4o-mini",
-      temperature: 0,
-      max_tokens: 450,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content: "Search the saved speaker transcript document for health tracker fields. Interpret common misspellings, speech-to-text mistakes, abbreviations, and slang, such as bp=blood pressure, sugar=glucose, cals=calories, carbs/carbz=carbs, lbs/pounds=weight, h2o=water, meh=Okay mood, wiped/exhausted=fatigue, panicky=Anxious, and to-do/remind me=task. Return only JSON with keys nutrition, symptoms, mood, journal, tasks, missingDetails. Use null for unknown numeric fields. Do not invent values. Only put text in notes when the speaker explicitly says it is a note or gives extra note context; do not copy the whole transcript into symptom or mood notes. Preserve original user wording in journal text. nutrition has calories, carbs, weight, ketosisPhase, glucose, systolic, diastolic, water. symptoms is array of {name,severity,note}. mood is {name,intensity,note} or null. journal is {text} or null. tasks is array of {name,day,time,deadline,note}. missingDetails is array of {section,field,question}."
-        },
-        { role: "user", content: text }
-      ]
-    })
-  }, AI_DICTATION_TIMEOUT_MS);
-  if (!response.ok) {
-    throw new Error(await getFriendlyAiError(response, "AI request"));
-  }
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content || "";
-  if (!content) throw new Error("AI returned no extraction.");
-  return normalizeAiDictationResult(JSON.parse(content), text);
+  return extractBackendAiDictationData(text);
 }
 
 async function extractBackendAiDictationData(text) {
   const headers = { "Content-Type": "application/json" };
   if (appSettings.aiBackendToken) headers["X-App-Token"] = appSettings.aiBackendToken;
-  const response = await fetchWithTimeout(`${appSettings.aiBackendUrl}/api/dictation/extract`, {
+  const backendUrl = getConfiguredAiBackendUrl();
+  const response = await fetchWithTimeout(`${backendUrl}/api/dictation/extract`, {
     method: "POST",
     headers,
-    body: JSON.stringify({ transcript: text })
+    body: JSON.stringify({ transcript: truncateForAi(text, 6000) })
   }, AI_DICTATION_TIMEOUT_MS);
   if (!response.ok) {
     throw new Error(await getFriendlyAiError(response, "AI backend"));
