@@ -39,6 +39,18 @@ omit API keys, backend tokens, password hashes, salts, and biometric credential
 IDs. Backup files may still contain health logs and journal entries, so store
 them carefully.
 
+## Account and Data Deletion
+
+Users can request deletion of any account linkage or associated data the
+developer can access at:
+
+https://cmraaritgin26-svg.github.io/Habit-Tracker/data-deletion.html
+
+Most app data is stored locally on the user's device. The developer cannot
+remotely delete data that only exists on the user's phone. Users can remove
+local data with in-app delete controls, Settings > Master reset, Android app
+storage clearing, or uninstalling the app.
+
 ## Security
 
 The Android app blocks screenshots and recent-app previews while open. The app
@@ -55,4 +67,4 @@ emergency services where available.
 
 ## Contact
 
-Contact: [add support email or website]
+Contact: cmraaritgin26@gmail.com
