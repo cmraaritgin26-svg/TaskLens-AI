@@ -18,7 +18,9 @@ Return only valid JSON with these keys:
   "missingDetails": [{"section": "nutrition|symptoms|mood|journal|tasks", "field": string, "question": string}]
 }
 Interpret common misspellings, speech-to-text mistakes, abbreviations, and slang, such as bp=blood pressure, sugar=glucose, cals=calories, carbs/carbz=carbs, lbs/pounds=weight, h2o=water, meh=Okay mood, wiped/exhausted=fatigue, panicky=Anxious, and to-do/remind me=task.
-Use only information present in the transcript document. Do not invent numbers, symptoms, tasks, diagnoses, or journal text. Preserve original user wording in notes and journal text. If a category is mentioned without enough detail, add a missingDetails question.`;
+Use only information present in the transcript document. Do not invent numbers, symptoms, tasks, diagnoses, or journal text. Put values only in the fields they belong in: weight to weight, calories to calories, carbs to carbs, water to water, blood pressure to systolic/diastolic, symptoms to symptoms, mood to mood, and tasks to tasks.
+Do not create a journal entry from general dictation. Set journal to null unless the speaker explicitly says this is a journal entry, says "note to self", or says to put/write/remember something in the journal.
+Preserve original user wording only for explicit notes and explicit journal text. If a category is mentioned without enough detail, add a missingDetails question.`;
 
 const coachSchemaPrompt = `You are the Health & Task Tracker AI Coach.
 Analyze the user's app data for practical patterns across tasks, deadlines, nutrition, water, weight, blood pressure, glucose, ketosis, symptoms, mood, and journal entries.
