@@ -99,6 +99,8 @@ checking, but it is not ready to upload to Play.
 - Store listing: screenshots, icon, short description, full description.
 - Privacy policy URL: required because the app handles health information and
   optional AI/cloud processing.
+- Account deletion URL: use
+  `https://cmraaritgin26-svg.github.io/Habit-Tracker/data-deletion.html`.
 - Data safety form: disclose health and fitness data, journal text, app
   activity/tasks, optional Facebook user ID for app unlock, diagnostics if any
   are added later, and whether data is shared with configured AI services.
