@@ -53,10 +53,10 @@ storage clearing, or uninstalling the app.
 
 ## Security
 
-The Android app blocks screenshots and recent-app previews while open. The app
-supports biometric/device locking, optional Facebook login, and password fallback
-where biometric unlock is unavailable. No security measure is perfect, so you
-should protect your phone and avoid sharing exported backups.
+The app supports biometric/device locking, optional Facebook login, and password
+fallback where biometric unlock is unavailable. Screenshots are allowed by the
+Android app. No security measure is perfect, so you should protect your phone
+and avoid sharing exported backups.
 
 ## Medical Disclaimer
 
