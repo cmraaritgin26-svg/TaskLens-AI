@@ -26,6 +26,8 @@ const backupReminderStoreKey = "health-task-tracker:last-backup-reminder:v1";
 const affirmationShownStoreKey = "health-task-tracker:last-affirmation:v1";
 const affirmationDepressionShownStoreKey = "health-task-tracker:last-depression-affirmation:v1";
 const DEFAULT_AI_BACKEND_URL = "";
+const FACEBOOK_APP_ID = "2422428068229609";
+const FACEBOOK_REDIRECT_URI = "fb2422428068229609://authorize";
 const DICTATION_FEATURE_ENABLED = false;
 const AI_DICTATION_TIMEOUT_MS = 1800;
 const AI_COACH_TIMEOUT_MS = 2500;
@@ -323,6 +325,7 @@ const biometricUnlockButton = document.querySelector("#biometricUnlockButton");
 const resetPasswordButton = document.querySelector("#resetPasswordButton");
 const setupPasswordButton = document.querySelector("#setupPasswordButton");
 const setupBiometricButton = document.querySelector("#setupBiometricButton");
+const facebookLoginButton = document.querySelector("#facebookLoginButton");
 const confirmPasswordModal = document.querySelector("#confirmPasswordModal");
 const confirmPasswordMessage = document.querySelector("#confirmPasswordMessage");
 const confirmPasswordInput = document.querySelector("#confirmPasswordInput");
@@ -853,7 +856,8 @@ lockPassword.addEventListener("keydown", (event) => {
 biometricUnlockButton.addEventListener("click", () => unlockWithBiometric());
 resetPasswordButton.addEventListener("click", () => resetAppSecurityFromLock());
 setupPasswordButton.addEventListener("click", () => completeSecuritySetup());
-setupBiometricButton.addEventListener("click", () => completeSecuritySetup());
+setupBiometricButton.addEventListener("click", () => completeBiometricSecuritySetup());
+facebookLoginButton?.addEventListener("click", () => startFacebookLogin());
 confirmPasswordCancel.addEventListener("click", () => closeConfirmPasswordDialog(false));
 confirmPasswordSubmit.addEventListener("click", () => submitConfirmPasswordDialog());
 confirmPasswordInput.addEventListener("keydown", (event) => {
@@ -946,4 +950,3 @@ if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
     navigator.serviceWorker.register("service-worker.js");
   });
 }
-
