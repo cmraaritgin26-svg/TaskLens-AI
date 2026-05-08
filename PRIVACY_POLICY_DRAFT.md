@@ -3,8 +3,7 @@
 Effective date: [add date]
 
 Health & Task Tracker is a personal tracking app for tasks, nutrition, water,
-vitals, symptoms, mood, journal entries, reminders, dictation, and wellness
-trends.
+vitals, symptoms, mood, journal entries, reminders, and wellness trends.
 
 ## Information You Enter
 
@@ -16,25 +15,21 @@ The app may store information you enter, including:
 - Symptoms and severity
 - Mood and notes
 - Journal entries
-- Dictation transcripts generated from speech
 - Settings, reminders, app lock preferences, and AI preferences
 
 ## Local Storage
 
-By default, app data is stored locally on your device. Voice recordings are not
-saved by the app. Dictation transcripts and extracted fields may be saved so the
-app can fill in the tracker.
+By default, app data is stored locally on your device.
 
 ## Optional Cloud AI
 
 Cloud AI features are optional. They do not work unless you allow internet
-sharing in setup or settings, enable AI dictation extraction, and configure an
-AI backend URL or OpenAI API key.
+sharing in setup or settings, enable Cloud AI features, and configure an AI
+backend URL.
 
 If enabled, the app may send health information, journal text, symptoms, mood,
-nutrition, vitals, tasks, and dictation transcripts over the internet to the AI
-service you configure. The app uses this information for dictation extraction,
-trend summaries, and safety/wellness prompts.
+nutrition, vitals, and tasks over the internet to the AI backend you configure.
+The app uses this information for trend summaries and safety/wellness prompts.
 
 ## Backups and Exports
 
@@ -59,4 +54,3 @@ emergency services where available.
 ## Contact
 
 Contact: [add support email or website]
-
