@@ -110,10 +110,6 @@ const server = http.createServer(async (request, response) => {
   }
 });
 
-async function handleTranscribeExtract(request, response) {
-  sendJson(response, 410, { error: "Raw audio upload is disabled. Send transcript text to /api/dictation/extract instead." });
-}
-
 async function handleSafetyScan(request, response) {
   if (!OPENAI_API_KEY) {
     sendJson(response, 500, { error: "OPENAI_API_KEY is not configured." });
