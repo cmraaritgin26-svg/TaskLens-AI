@@ -26,6 +26,7 @@ const backupReminderStoreKey = "health-task-tracker:last-backup-reminder:v1";
 const affirmationShownStoreKey = "health-task-tracker:last-affirmation:v1";
 const affirmationDepressionShownStoreKey = "health-task-tracker:last-depression-affirmation:v1";
 const DEFAULT_AI_BACKEND_URL = "";
+const DICTATION_FEATURE_ENABLED = false;
 const AI_DICTATION_TIMEOUT_MS = 1800;
 const AI_COACH_TIMEOUT_MS = 2500;
 const AI_SAFETY_SCAN_TIMEOUT_MS = 6000;
@@ -414,7 +415,13 @@ dashboardJumpButtons.forEach((button) => {
 });
 aiRefreshButton.addEventListener("click", renderSmartCoach);
 reviewTodayButton.addEventListener("click", reviewToday);
-dictateButton.addEventListener("click", startHealthDictation);
+if (DICTATION_FEATURE_ENABLED) {
+  dictateButton.hidden = false;
+  dictateButton.addEventListener("click", startHealthDictation);
+} else {
+  dictateButton.hidden = true;
+  dictationStatus.hidden = true;
+}
 getStartedButton.addEventListener("click", startGuidedDataEntry);
 quickActionButtons.forEach((button) => {
   button.addEventListener("click", () => {
@@ -771,6 +778,7 @@ dictationReviewModal.addEventListener("click", (event) => {
 });
 dictationReviewSave.addEventListener("click", saveReviewedDictation);
 dictationReviewRetry.addEventListener("click", () => {
+  if (!DICTATION_FEATURE_ENABLED) return;
   startHealthDictation({ appendToReview: true });
 });
 dictationReviewManual.addEventListener("click", () => {
@@ -5151,7 +5159,7 @@ function renderInitialDataOnboarding() {
   onboardingForm.innerHTML = step.fields;
   onboardingActions.innerHTML = "";
 
-  if (step.fields && /<(input|textarea|select)\b/i.test(step.fields) && !/type="checkbox"/i.test(step.fields)) {
+  if (DICTATION_FEATURE_ENABLED && step.fields && /<(input|textarea|select)\b/i.test(step.fields) && !/type="checkbox"/i.test(step.fields)) {
     const dictateStepButton = document.createElement("button");
     dictateStepButton.className = "text-button onboarding-dictate-button";
     dictateStepButton.type = "button";
@@ -5289,7 +5297,7 @@ function getInitialDataSteps() {
   return [
     {
       title: "AI & Privacy",
-      copy: "Cloud AI can help with dictation and safety scanning, but it may send your health information over the internet to the AI service you configure.",
+      copy: "Cloud AI can help with safety scanning, but it may send your health information over the internet to the AI service you configure.",
       primaryText: "Save and continue",
       skipText: "Not now",
       fields: `
@@ -5297,7 +5305,7 @@ function getInitialDataSteps() {
           <span>I understand cloud AI can send my health info over the internet</span>
           <input name="cloudAiAcknowledgement" type="checkbox" ${appSettings.hipaaCloudConfirmed ? "checked" : ""}>
         </label>
-        <p class="settings-note onboarding-wide">AI features will not work unless this is checked, AI dictation extraction is enabled in Settings, and an HTTPS AI backend URL is saved. Voice recordings are not saved by the app, and OpenAI API keys should stay on the backend.</p>
+        <p class="settings-note onboarding-wide">AI features will not work unless this is checked, Cloud AI features are enabled in Settings, and an HTTPS AI backend URL is saved. OpenAI API keys should stay on the backend.</p>
       `,
       save: (formData) => {
         const acknowledged = formData.get("cloudAiAcknowledgement") === "on";
@@ -5899,6 +5907,7 @@ function sendAppNotification(title, body, tag = "") {
 }
 
 function startHealthDictation(options = {}) {
+  if (!DICTATION_FEATURE_ENABLED) return;
   if (dictationActive) {
     stopHealthDictation();
     return;
@@ -6045,6 +6054,7 @@ function clearWebDictationCommitTimer() {
 }
 
 function setDictateButtonLabel(label) {
+  if (!dictateButton) return;
   dictateButton.setAttribute("aria-label", label);
   dictateButton.title = label;
   if (dictationStatus) {
