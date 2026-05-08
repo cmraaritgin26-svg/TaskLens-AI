@@ -137,28 +137,30 @@ function renderNutrition() {
     ? formatBloodPressure(latestBloodPressureEntry.systolic, latestBloodPressureEntry.diastolic, true)
     : "--";
   latestWater.textContent = waterValues.length ? `${formatWholeNumber(getSum(waterValues))} oz` : "0 oz";
-  nutritionRows.textContent = "";
-  nutritionEmpty.hidden = last24Entries.length > 0;
-  const fragment = document.createDocumentFragment();
+  if (nutritionRows && nutritionEmpty) {
+    nutritionRows.textContent = "";
+    nutritionEmpty.hidden = last24Entries.length > 0;
+    const fragment = document.createDocumentFragment();
 
-  last24Entries.forEach((entry, index) => {
-    const previousWeight = findPreviousWeight(last24Entries, index);
-    const delta = Number.isFinite(entry.weight) && Number.isFinite(previousWeight)
-      ? entry.weight - previousWeight
-      : null;
-    fragment.appendChild(createTableRow([
-      formatEntryDateTime(entry.dateTime),
-      Number.isFinite(entry.calories) ? formatWholeNumber(entry.calories) : "--",
-      Number.isFinite(entry.carbs) ? `${formatWholeNumber(entry.carbs)}g` : "--",
-      Number.isFinite(entry.weight) ? `${formatDecimal(entry.weight)} lb` : "--",
-      formatKetosisPhase(entry.ketosisPhase),
-      Number.isFinite(entry.glucose) ? `${formatWholeNumber(entry.glucose)} mg/dL` : "--",
-      formatBloodPressure(entry.systolic, entry.diastolic),
-      Number.isFinite(entry.water) ? `${formatWholeNumber(entry.water)} oz` : "--",
-      formatWeightDelta(delta)
-    ]));
-  });
-  nutritionRows.appendChild(fragment);
+    last24Entries.forEach((entry, index) => {
+      const previousWeight = findPreviousWeight(last24Entries, index);
+      const delta = Number.isFinite(entry.weight) && Number.isFinite(previousWeight)
+        ? entry.weight - previousWeight
+        : null;
+      fragment.appendChild(createTableRow([
+        formatEntryDateTime(entry.dateTime),
+        Number.isFinite(entry.calories) ? formatWholeNumber(entry.calories) : "--",
+        Number.isFinite(entry.carbs) ? `${formatWholeNumber(entry.carbs)}g` : "--",
+        Number.isFinite(entry.weight) ? `${formatDecimal(entry.weight)} lb` : "--",
+        formatKetosisPhase(entry.ketosisPhase),
+        Number.isFinite(entry.glucose) ? `${formatWholeNumber(entry.glucose)} mg/dL` : "--",
+        formatBloodPressure(entry.systolic, entry.diastolic),
+        Number.isFinite(entry.water) ? `${formatWholeNumber(entry.water)} oz` : "--",
+        formatWeightDelta(delta)
+      ]));
+    });
+    nutritionRows.appendChild(fragment);
+  }
 
   if (!historyModal.hidden || vitalsHistoryDropdown?.open) {
     renderHistory();
@@ -728,4 +730,3 @@ function createHabitId() {
 
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
-
