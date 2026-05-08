@@ -22,7 +22,7 @@ Health check:
 curl http://localhost:8787/health
 ```
 
-Dictation extraction:
+Text extraction endpoint retained for future use:
 
 ```sh
 curl -X POST http://localhost:8787/api/dictation/extract \
@@ -31,23 +31,23 @@ curl -X POST http://localhost:8787/api/dictation/extract \
   -d '{"transcript":"my blood pressure is 120 over 80 and add task walk at 6 pm"}'
 ```
 
-Long audio dictation uses:
+Raw audio upload is disabled:
 
 ```sh
 POST /api/dictation/transcribe-extract
 ```
 
-The app sends temporary base64 audio to that endpoint, receives a transcript, and then shows the transcript for review. The app does not save voice recordings.
+That endpoint returns `410 Gone`. Do not send voice recordings to the backend.
 
 ## App Settings
 
 In the app, set:
 
-- `AI dictation extraction`: on
+- `Cloud AI features`: on
 - `AI backend URL`: your deployed backend URL, for example `https://your-domain.com`
 - `AI backend token`: same value as `APP_CLIENT_TOKEN`, if you use one
 
-Leave the app's direct OpenAI API key blank when using the backend.
+OpenAI API keys stay on the backend. Do not put an OpenAI API key in the app.
 
 ## Public Deploy
 
