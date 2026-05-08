@@ -7,6 +7,8 @@ function loadHabits() {
         .map((habit) => ({
           id: habit.id || String(Date.now()),
           name: habit.name,
+          date: normalizeTaskDate(habit.date)
+            || (weekDays.includes(habit.day) ? getWeekdayDateKey(weekDays.indexOf(habit.day)) : today),
           day: weekDays.includes(habit.day)
             ? habit.day
             : weekDays[new Date().getDay()],
@@ -1428,7 +1430,7 @@ function checkTaskReminder() {
   const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
   const reminderKey = `${today}-${appSettings.reminderTime}`;
   if (currentTime !== (appSettings.reminderTime || "09:00") || lastReminderKey === reminderKey) return;
-  const remaining = habits.filter((habit) => getTaskDay(habit) === weekDays[now.getDay()] && !habit.completions.includes(today));
+  const remaining = habits.filter((habit) => isTaskScheduledForDate(habit, today) && !habit.completions.includes(today));
   if (!remaining.length) return;
   lastReminderKey = reminderKey;
   sendAppNotification(
@@ -1460,9 +1462,8 @@ function getDeadlineOccurrences(now) {
     const date = new Date(now);
     date.setDate(date.getDate() + offset);
     const dateKey = toDateKey(date);
-    const dayName = weekDays[date.getDay()];
     habits
-      .filter((habit) => getTaskDay(habit) === dayName && normalizeTaskTime(habit.deadline) && !habit.completions.includes(dateKey))
+      .filter((habit) => isTaskScheduledForDate(habit, dateKey) && normalizeTaskTime(habit.deadline) && !habit.completions.includes(dateKey))
       .forEach((habit) => {
         occurrences.push({
           habit,
