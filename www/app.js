@@ -6607,6 +6607,7 @@ async function parseHealthDictation(text) {
 }
 
 function mergeDictationResults(localResult, aiResult, text) {
+  const explicitJournal = hasExplicitJournalIntent(text);
   const merged = {
     nutrition: { ...(localResult.nutrition || {}), ...(aiResult.nutrition || {}) },
     symptom: aiResult.symptom || localResult.symptom || null,
@@ -6615,7 +6616,7 @@ function mergeDictationResults(localResult, aiResult, text) {
       ...(Array.isArray(aiResult.symptoms) ? aiResult.symptoms : [])
     ],
     mood: aiResult.mood || localResult.mood || null,
-    journal: aiResult.journal || localResult.journal || null,
+    journal: explicitJournal ? (aiResult.journal || localResult.journal || null) : null,
     task: aiResult.task || localResult.task || null,
     tasks: [
       ...(Array.isArray(localResult.tasks) ? localResult.tasks : []),
@@ -6710,7 +6711,7 @@ function normalizeAiDictationResult(data, originalText) {
     intensity: normalizeAiChoice(data.mood.intensity, ["Mild", "Moderate", "Strong"], "Moderate"),
     note: String(data.mood.note || "")
   } : null;
-  const journal = data.journal && data.journal.text ? { text: String(data.journal.text).trim() } : null;
+  const journal = hasExplicitJournalIntent(originalText) && data.journal && data.journal.text ? { text: String(data.journal.text).trim() } : null;
   return {
     nutrition,
     symptom: symptoms[0] || null,
@@ -6979,15 +6980,16 @@ function normalizeDictatedMood(value) {
 }
 
 function parseDictatedJournal(original, normalized) {
-  const match = original.match(/\b(?:journal|journal entry|note to self|make a journal entry|write down|remember that)\s*[:,]?\s*(.*)$/i);
+  const match = original.match(/\b(?:journal|journal entry|make a journal entry|add a journal entry|new journal entry|note to self|write down in (?:my )?journal|put this in (?:my )?journal|remember this in (?:my )?journal)\s*[:,]?\s*(.*)$/i);
   if (match) {
     const text = cleanDictatedPhrase(match[1]);
     return text ? { text } : null;
   }
-  if (normalized.length > 180 && /\b(i feel|i felt|today|this morning|this evening|because|worried|stressed|pain|sick)\b/i.test(normalized)) {
-    return { text: original.trim() };
-  }
   return null;
+}
+
+function hasExplicitJournalIntent(text) {
+  return /\b(?:journal|journal entry|make a journal entry|add a journal entry|new journal entry|note to self|write down in (?:my )?journal|put this in (?:my )?journal|remember this in (?:my )?journal)\b/i.test(String(text || ""));
 }
 
 function parseDictatedTask(original, normalized) {
