@@ -1,12 +1,10 @@
 function render() {
   habitList.textContent = "";
   const tasksByDay = groupTasksByDay();
-  const todayIndex = new Date().getDay();
   const fragment = document.createDocumentFragment();
-  weekDays.forEach((dayName, index) => {
-    const dayHabits = tasksByDay.get(dayName);
-    if (!dayHabits?.length) return;
-    fragment.appendChild(renderDaySection(dayName, index, dayHabits, todayIndex));
+  [...tasksByDay.entries()].forEach(([dateKey, dayHabits]) => {
+    const dayName = weekDays[parseDateKey(dateKey).getDay()];
+    fragment.appendChild(renderDaySection(dayName, dateKey, dayHabits));
   });
   habitList.appendChild(fragment);
 
@@ -34,27 +32,27 @@ function clearMoodAndSymptomForms() {
 }
 
 function groupTasksByDay() {
-  const tasksByDay = new Map(weekDays.map((dayName) => [dayName, []]));
+  const tasksByDay = new Map();
   habits.forEach((habit) => {
-    const dayName = getTaskDay(habit);
-    if (!tasksByDay.has(dayName)) tasksByDay.set(dayName, []);
-    tasksByDay.get(dayName).push(habit);
+    const dateKey = getTaskDateKey(habit);
+    if (!tasksByDay.has(dateKey)) tasksByDay.set(dateKey, []);
+    tasksByDay.get(dateKey).push(habit);
   });
-  return tasksByDay;
+  return new Map([...tasksByDay.entries()].sort(([firstDate], [secondDate]) => firstDate.localeCompare(secondDate)));
 }
 
-function renderDaySection(dayName, dayIndex, dayHabits, todayIndex) {
+function renderDaySection(dayName, dateKey, dayHabits) {
   const section = document.createElement("section");
   section.className = "day-section";
   section.dataset.day = dayName;
-  section.classList.toggle("today", dayIndex === todayIndex);
-  if (dayIndex === todayIndex) {
+  section.dataset.date = dateKey;
+  section.classList.toggle("today", dateKey === today);
+  if (dateKey === today) {
     section.id = "todayTasksSection";
   }
 
-  const currentDateKey = getWeekdayDateKey(dayIndex);
   const total = dayHabits.length;
-  const complete = dayHabits.filter((habit) => habit.completions.includes(currentDateKey)).length;
+  const complete = dayHabits.filter((habit) => habit.completions.includes(dateKey)).length;
   const percentComplete = total ? Math.round((complete / total) * 100) : 0;
 
   const header = document.createElement("div");
@@ -68,22 +66,22 @@ function renderDaySection(dayName, dayIndex, dayHabits, todayIndex) {
   const title = document.createElement("h2");
   title.textContent = dayName;
   const subtitle = document.createElement("p");
-  subtitle.textContent = total ? `${total} task${total === 1 ? "" : "s"}` : "No tasks yet";
+  subtitle.textContent = `${formatSymptomHistoryDate(dateKey)} - ${total} task${total === 1 ? "" : "s"}`;
   titleWrap.append(title, subtitle);
 
   const percent = document.createElement("span");
   percent.className = "day-section-percent";
   percent.textContent = `${percentComplete}%`;
   percent.title = total
-    ? `${complete} of ${total} tasks completed for ${dayName}`
-    : `No tasks scheduled for ${dayName}`;
+    ? `${complete} of ${total} tasks completed for ${formatSymptomHistoryDate(dateKey)}`
+    : `No tasks scheduled for ${formatSymptomHistoryDate(dateKey)}`;
 
   header.append(titleWrap, percent);
-  header.addEventListener("click", () => openDayTaskDialog(dayName, currentDateKey));
+  header.addEventListener("click", () => openDayTaskDialog(dayName, dateKey));
   header.addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      openDayTaskDialog(dayName, currentDateKey);
+      openDayTaskDialog(dayName, dateKey);
     }
   });
 
@@ -99,7 +97,7 @@ function renderDaySection(dayName, dayIndex, dayHabits, todayIndex) {
     const fragment = document.createDocumentFragment();
     const recentDays = getRecentDays();
     dayHabits.forEach((habit) => {
-      fragment.appendChild(renderTaskCard(habit, currentDateKey, dayName, recentDays));
+      fragment.appendChild(renderTaskCard(habit, dateKey, dayName, recentDays));
     });
     list.appendChild(fragment);
   }
@@ -207,7 +205,7 @@ function renderTodayDashboard() {
 
 function getTodaySummary() {
   const todayName = weekDays[new Date().getDay()];
-  const tasks = habits.filter((habit) => getTaskDay(habit) === todayName);
+  const tasks = habits.filter((habit) => isTaskScheduledForDate(habit, today));
   const completedTasks = tasks.filter((habit) => habit.completions.includes(today));
   const incompleteTasks = tasks.filter((habit) => !habit.completions.includes(today));
   return {
@@ -347,7 +345,7 @@ function getScaledValues(values) {
 
 function getSmartCoachInsights() {
   const todayName = weekDays[new Date().getDay()];
-  const todayTasks = habits.filter((habit) => getTaskDay(habit) === todayName);
+  const todayTasks = habits.filter((habit) => isTaskScheduledForDate(habit, today));
   const completedTasks = todayTasks.filter((habit) => habit.completions.includes(today)).length;
   const completionPercent = todayTasks.length ? Math.round((completedTasks / todayTasks.length) * 100) : 0;
   const latestEntry = nutritionEntries[0];
@@ -480,7 +478,7 @@ function getUpcomingTaskReminderCandidates(now = new Date(), horizonDays = 5) {
     const dateKey = toDateKey(date);
     const dayName = weekDays[date.getDay()];
     habits
-      .filter((habit) => getTaskDay(habit) === dayName && !habit.completions.includes(dateKey))
+      .filter((habit) => isTaskScheduledForDate(habit, dateKey) && !habit.completions.includes(dateKey))
       .forEach((habit) => {
         const missedBefore = taskDeadlineEvents.some((event) => event.taskId === habit.id);
         upcoming.push({ habit, dateKey, dayName, offset, missedBefore });
@@ -584,7 +582,7 @@ function getAiCoachActionLabel(destination) {
 
 function getAiCoachSnapshotKey() {
   return JSON.stringify({
-    tasks: habits.map((habit) => [habit.id, habit.name, getTaskDay(habit), habit.category, habit.time, habit.deadline, habit.priority, truncateForAi(habit.note, 160), habit.completions?.slice(-21)]),
+    tasks: habits.map((habit) => [habit.id, habit.name, getTaskDateKey(habit), getTaskDay(habit), habit.category, habit.time, habit.deadline, habit.priority, truncateForAi(habit.note, 160), habit.completions?.slice(-21)]),
     nutrition: nutritionEntries.slice(0, 21),
     symptoms: symptomEntries.slice(0, 21).map((entry) => ({ ...entry, note: truncateForAi(entry.note, 160) })),
     moods: moodEntries.slice(0, 21).map((entry) => ({ ...entry, note: truncateForAi(entry.note, 160) })),
@@ -597,8 +595,7 @@ function getAiCoachSnapshotKey() {
 function buildAiCoachSnapshot(localInsights) {
   const weekStats = getWeekStats();
   const weeklyTotals = getWeeklyCompletionTotals();
-  const todayName = weekDays[new Date().getDay()];
-  const todayTasks = habits.filter((habit) => getTaskDay(habit) === todayName);
+  const todayTasks = habits.filter((habit) => isTaskScheduledForDate(habit, today));
   const completedToday = todayTasks.filter((habit) => habit.completions.includes(today)).length;
   return {
     today,
@@ -623,6 +620,7 @@ function buildAiCoachSnapshot(localInsights) {
     tasks: habits.map((habit) => ({
       id: habit.id,
       name: habit.name,
+      date: getTaskDateKey(habit),
       day: getTaskDay(habit),
       category: habit.category || "",
       time: normalizeTaskTime(habit.time || ""),
@@ -683,7 +681,7 @@ function getDataTrendInsights() {
 function buildWholeAppTrendScan() {
   const dateKeys = getRecentDateKeys(30, 0);
   return dateKeys.map((dateKey) => {
-    const tasksForDay = habits.filter((habit) => getTaskDay(habit) === weekDays[parseDateKey(dateKey).getDay()]);
+    const tasksForDay = habits.filter((habit) => isTaskScheduledForDate(habit, dateKey));
     const completeTasks = tasksForDay.filter((habit) => habit.completions.includes(dateKey)).length;
     const nutrition = nutritionEntries.find((entry) => entry.date === dateKey) || null;
     const symptoms = symptomEntries.filter((entry) => entry.date === dateKey);
@@ -1599,11 +1597,12 @@ function getEntryCountInLastDays(entries, days, offsetDays) {
 
 function addSuggestedTask(name) {
   const dayName = weekDays[new Date().getDay()];
-  const duplicate = habits.some((habit) => habit.name.toLowerCase() === name.toLowerCase() && getTaskDay(habit) === dayName);
+  const duplicate = habits.some((habit) => habit.name.toLowerCase() === name.toLowerCase() && isTaskScheduledForDate(habit, today));
   if (duplicate) return;
   habits = [{
     id: createHabitId(),
     name,
+    date: today,
     day: dayName,
     category: "Health",
     time: "",
@@ -1680,4 +1679,3 @@ function jumpFromDashboard(target) {
     window.setTimeout(() => focusTarget.focus({ preventScroll: true }), 250);
   }
 }
-
