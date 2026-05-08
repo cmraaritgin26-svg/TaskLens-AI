@@ -5161,6 +5161,15 @@ function renderInitialDataOnboarding() {
   onboardingForm.innerHTML = step.fields;
   onboardingActions.innerHTML = "";
 
+  if (step.fields && /<(input|textarea|select)\b/i.test(step.fields) && !/type="checkbox"/i.test(step.fields)) {
+    const dictateStepButton = document.createElement("button");
+    dictateStepButton.className = "text-button";
+    dictateStepButton.type = "button";
+    dictateStepButton.textContent = "Dictate";
+    dictateStepButton.addEventListener("click", dictateIntoOnboardingField);
+    onboardingActions.appendChild(dictateStepButton);
+  }
+
   const skipButton = document.createElement("button");
   skipButton.className = "text-button";
   skipButton.type = "button";
@@ -5184,6 +5193,82 @@ function renderInitialDataOnboarding() {
     event.preventDefault();
     step.save(new FormData(onboardingForm));
   };
+}
+
+function dictateIntoOnboardingField() {
+  const field = getActiveOnboardingField();
+  if (!field) {
+    showToast("Tap a setup field first.");
+    return;
+  }
+  startSimpleDictation()
+    .then((text) => applyDictatedTextToOnboardingField(field, text))
+    .catch(() => {
+      const typed = window.prompt("Dictation was unavailable. Type what to add to this field.", "");
+      if (typed && typed.trim()) applyDictatedTextToOnboardingField(field, typed.trim());
+    });
+}
+
+function getActiveOnboardingField() {
+  const active = document.activeElement;
+  if (active && onboardingForm.contains(active) && isOnboardingDictationField(active)) return active;
+  return onboardingForm.querySelector("textarea, input:not([type='checkbox']):not([type='hidden']), select");
+}
+
+function isOnboardingDictationField(field) {
+  return field && ["INPUT", "TEXTAREA", "SELECT"].includes(field.tagName) && field.type !== "checkbox" && field.type !== "hidden";
+}
+
+function startSimpleDictation() {
+  if (isNativeDictationAvailable()) return startNativeDictation();
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return Promise.reject(new Error("Dictation unavailable"));
+  return new Promise((resolve, reject) => {
+    const recognition = new SpeechRecognition();
+    let transcript = "";
+    recognition.lang = "en-US";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.onresult = (event) => {
+      transcript = Array.from(event.results || [])
+        .map((result) => result?.[0]?.transcript || "")
+        .join(" ")
+        .trim();
+    };
+    recognition.onerror = () => reject(new Error("Dictation failed"));
+    recognition.onend = () => transcript ? resolve(transcript) : reject(new Error("No speech"));
+    try {
+      recognition.start();
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+function applyDictatedTextToOnboardingField(field, text) {
+  const dictated = String(text || "").trim();
+  if (!dictated || !field) return;
+  if (field.tagName === "SELECT") {
+    const option = Array.from(field.options).find((item) => item.textContent.toLowerCase() === dictated.toLowerCase())
+      || Array.from(field.options).find((item) => dictated.toLowerCase().includes(item.textContent.toLowerCase()));
+    if (option) {
+      field.value = option.value;
+      field.dispatchEvent(new Event("change", { bubbles: true }));
+      return;
+    }
+  }
+  if (field.type === "number" || field.inputMode === "numeric" || field.inputMode === "decimal") {
+    const number = Number.parseFloat(replaceSpokenNumbers(dictated.toLowerCase()).match(/\d+(?:\.\d+)?/)?.[0] || "");
+    if (Number.isFinite(number)) {
+      field.value = String(number);
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+      return;
+    }
+  }
+  const separator = field.value && field.tagName === "TEXTAREA" ? " " : "";
+  field.value = `${field.value || ""}${separator}${dictated}`.trim();
+  field.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
 function getInitialDataSteps() {
