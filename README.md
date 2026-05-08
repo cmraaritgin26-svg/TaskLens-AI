@@ -1,6 +1,6 @@
-# Habit Tracker
+# Health and Task Tracker
 
-An installable Android-friendly habit tracking Progressive Web App.
+An installable Android-friendly task tracking Progressive Web App.
 
 ## Run locally
 
@@ -14,9 +14,9 @@ Open `http://127.0.0.1:8080` in a browser. On Android Chrome, open the browser m
 
 ## Features
 
-- Add color-coded daily habits
-- Mark habits complete for today
-- See done-today count, active habits, and best streak
+- Add color-coded daily tasks
+- Mark tasks complete for today
+- See done-today count, active tasks, and best streak
 - View the last seven days for each habit
 - Works offline after the first load
 - Saves data on the device with `localStorage`

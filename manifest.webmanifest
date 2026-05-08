@@ -1,7 +1,7 @@
 {
-  "name": "Habit Tracker",
-  "short_name": "Habits",
-  "description": "Track daily habits, streaks, and weekly progress offline.",
+  "name": "Health & Task Tracker",
+  "short_name": "Health Tasks",
+  "description": "Track daily tasks, health metrics, nutrition, and weight offline.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

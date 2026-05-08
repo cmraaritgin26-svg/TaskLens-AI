@@ -6,6 +6,12 @@
   "type": "module",
   "scripts": {
     "start": "npm --prefix backend start",
+    "check": "node --check app.js && node --check iphone/app.js",
+    "sync:www": "cp index.html www/index.html && cp app.js www/app.js && cp styles.css www/styles.css && cp service-worker.js www/service-worker.js",
+    "sync:android-assets": "npm run sync:www && cp -R www/. android/app/src/main/assets/public/",
+    "build:apk": "npm run check && npm run sync:android-assets && cd android && ./gradlew -PlocalSdk34 -Pandroid.aapt2FromMavenOverride=/data/data/com.termux/files/usr/bin/aapt2 assembleDebug",
+    "bundle:release": "npm run check && npm run sync:android-assets && cd android && ./gradlew bundleRelease",
+    "play:bundle": "npm run bundle:release && mkdir -p dist/play && cp android/app/build/outputs/bundle/release/app-release.aab dist/play/HealthTaskTracker-release.aab",
     "pack:android": "npm pack",
     "native:sync": "npx cap sync android",
     "native:add:android": "npx cap add android",
