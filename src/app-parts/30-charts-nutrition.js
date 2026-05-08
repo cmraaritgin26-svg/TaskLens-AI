@@ -23,8 +23,8 @@ function renderWeeklyTaskPercentBar(totalComplete, totalTasks, average) {
 
 function getWeekStats() {
   return weekDays.map((dayName, index) => {
-    const dayHabits = habits.filter((habit) => getTaskDay(habit) === dayName);
     const dateKey = getWeekdayDateKey(index);
+    const dayHabits = habits.filter((habit) => isTaskScheduledForDate(habit, dateKey));
     const complete = dayHabits.filter((habit) => habit.completions.includes(dateKey)).length;
     const percent = dayHabits.length ? Math.round((complete / dayHabits.length) * 100) : 0;
     return {
@@ -50,8 +50,9 @@ function getCompletionDateKey(value) {
 
 function getWeeklyCompletionTotals() {
   const weekDateKeys = getCurrentWeekDateKeys();
-  const totalTasks = habits.length;
-  const totalComplete = habits.filter((habit) => (habit.completions || []).some((dateKey) => weekDateKeys.has(getCompletionDateKey(dateKey)))).length;
+  const weeklyTasks = habits.filter((habit) => weekDateKeys.has(getTaskDateKey(habit)));
+  const totalTasks = weeklyTasks.length;
+  const totalComplete = weeklyTasks.filter((habit) => (habit.completions || []).some((dateKey) => getCompletionDateKey(dateKey) === getTaskDateKey(habit))).length;
   const average = totalTasks ? Math.round((totalComplete / totalTasks) * 100) : 0;
   return { totalTasks, totalComplete, average };
 }
