@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Health & Task Tracker</title>
+  <meta name="description" content="Health & Task Tracker helps track daily tasks, nutrition, vitals, symptoms, mood, journal entries, hydration, and AI-supported patterns.">
+  <link rel="icon" href="../icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../icons/icon-192.png">
+  <meta property="og:title" content="Health & Task Tracker">
+  <meta property="og:description" content="Track tasks, hydration, nutrition, vitals, symptoms, mood, journaling, and AI-supported patterns.">
+  <meta property="og:image" content="../icons/icon-512.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:image" content="../icons/icon-512.png">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0c1017;
+      --surface: #171d27;
+      --surface-strong: #202837;
+      --surface-soft: #141a23;
+      --ink: #f8fafc;
+      --muted: #aeb6c2;
+      --line: rgba(156, 163, 175, 0.22);
+      --accent-mid: #2563eb;
+      --accent-soft: #60a5fa;
+      --teal: #14b8a6;
+      --amber: #f59e0b;
+      --danger: #fb7185;
+      --shadow: 0 18px 44px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      --font-body: "Quicksand", Arial, system-ui, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(180deg, rgba(96, 165, 250, 0.08), transparent 28%),
+        linear-gradient(135deg, #070a10 0%, #141a23 48%, #1d2632 100%),
+        var(--bg);
+      color: var(--ink);
+      font-family: var(--font-body);
+      font-weight: 700;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(148, 163, 184, 0.035) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(148, 163, 184, 0.035) 1px, transparent 1px);
+      background-size: 56px 56px;
+      mask-image: linear-gradient(180deg, black, transparent 82%);
+    }
+
+    .site-header,
+    main,
+    .site-footer {
+      width: min(1120px, calc(100% - 24px));
+      margin-inline: auto;
+    }
+
+    .site-header,
+    .brand,
+    .site-nav,
+    .hero,
+    .theme-strip,
+    .hero-actions,
+    .phone-top,
+    .preview-grid,
+    .feature-grid,
+    .privacy-grid,
+    .site-footer {
+      display: flex;
+    }
+
+    .site-header,
+    .site-footer {
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 14px 0;
+    }
+
+    .brand,
+    .site-nav a,
+    .primary-link,
+    .secondary-link {
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    .brand {
+      align-items: center;
+      gap: 10px;
+      font-size: 1.05rem;
+      font-weight: 900;
+    }
+
+    .brand img,
+    .app-title-icon,
+    .phone-top img {
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    .site-nav,
+    .theme-strip,
+    .hero-actions {
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .site-nav a,
+    .primary-link,
+    .secondary-link,
+    .text-button {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface-strong);
+      padding: 9px 13px;
+      font-weight: 900;
+    }
+
+    .hero {
+      min-height: 74vh;
+      align-items: center;
+      justify-content: space-between;
+      gap: 28px;
+      padding: 48px 0;
+    }
+
+    .hero-copy,
+    .phone-preview,
+    .feature-card,
+    .ai-panel,
+    .privacy-card,
+    .font-card,
+    .theme-card,
+    .swatch-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent),
+        rgba(17, 24, 39, 0.94);
+      box-shadow: var(--shadow);
+    }
+
+    .hero-copy,
+    .phone-preview,
+    .feature-card,
+    .ai-panel,
+    .privacy-card {
+      padding: 18px;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 8vw, 4.2rem);
+      line-height: 0.95;
+    }
+
+    .lead,
+    .section-heading p,
+    .feature-card p,
+    .ai-panel p,
+    .privacy-card p {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .eyebrow {
+      color: var(--accent-soft);
+      font-size: 0.76rem;
+      font-weight: 900;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    .phone-preview {
+      width: min(380px, 100%);
+      display: grid;
+      gap: 12px;
+    }
+
+    .preview-card,
+    .preview-grid div {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-soft);
+      padding: 12px;
+    }
+
+    .preview-grid,
+    .feature-grid,
+    .privacy-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .meter {
+      height: 10px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.22);
+    }
+
+    .meter i {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--teal), var(--accent-soft));
+    }
+
+    @media (max-width: 760px) {
+      .site-header,
+      .hero,
+      .site-footer {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .preview-grid,
+      .feature-grid,
+      .privacy-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header" aria-label="Health & Task Tracker">
+    <a class="brand" href="#top" aria-label="Health & Task Tracker home">
+      <img src="../icons/icon-192.png" alt="" width="44" height="44">
+      <span>Health & Task Tracker</span>
+    </a>
+    <nav class="site-nav" aria-label="Main navigation">
+      <a href="#features">Features</a>
+      <a href="#ai">AI Coach</a>
+      <a href="#privacy">Privacy</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="app-heading-copy">
+          <p class="eyebrow today-pill">Today</p>
+          <div class="app-title-row">
+            <img class="app-title-icon" src="../icons/icon-192.png" alt="" aria-hidden="true">
+            <h1>Health &amp; Task Tracker</h1>
+          </div>
+          <div class="topbar-actions" aria-label="App actions preview">
+            <button class="text-button settings-button dictate-button" type="button" aria-label="Dictate">
+              <svg class="dictate-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/>
+                <path d="M5 11a7 7 0 0 0 14 0"/>
+                <path d="M12 18v3"/>
+                <path d="M8 21h8"/>
+              </svg>
+            </button>
+            <button class="text-button settings-button" type="button">Get Started</button>
+            <button class="text-button settings-button" type="button">Settings</button>
+          </div>
+        </div>
+        <p class="lead">A focused tracker for tasks, hydration, nutrition, vitals, symptoms, mood, journaling, and AI-supported pattern review.</p>
+        <div class="theme-strip" aria-label="Theme preview">
+          <span class="swatch blue"></span>
+          <span class="swatch soft-blue"></span>
+          <span class="swatch teal"></span>
+          <span class="swatch amber"></span>
+          <strong>Quicksand theme</strong>
+        </div>
+        <div class="hero-actions">
+          <a class="primary-link" href="#features">Explore Features</a>
+          <a class="secondary-link" href="#privacy">How Data Is Handled</a>
+        </div>
+      </div>
+
+      <div class="phone-preview" aria-label="App preview">
+        <div class="phone-top">
+          <img src="../icons/icon-192.png" alt="" width="34" height="34">
+          <strong>Today</strong>
+        </div>
+        <div class="preview-card progress">
+          <span>Weekly Task Progress</span>
+          <strong>72%</strong>
+          <div class="meter"><i style="width: 72%"></i></div>
+        </div>
+        <div class="preview-grid">
+          <div><strong>5 / 7</strong><span>Tasks done</span></div>
+          <div><strong>64 oz</strong><span>Water</span></div>
+          <div><strong>118/76</strong><span>Blood pressure</span></div>
+          <div><strong>Good</strong><span>Mood</span></div>
+        </div>
+        <div class="preview-card coach">
+          <span>AI Coach</span>
+          <p>Logging today gives the coach better patterns to work with tomorrow.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section theme-showcase" id="theme">
+      <div class="section-heading">
+        <p class="eyebrow">Theme and fonts</p>
+        <h2>Same look as the app</h2>
+      </div>
+      <div class="theme-grid">
+        <article class="font-card">
+          <span>Display</span>
+          <strong>Quicksand Bold</strong>
+          <p>Rounded headings and strong dashboard labels.</p>
+        </article>
+        <article class="font-card sample-regular">
+          <span>Body</span>
+          <strong>Quicksand Regular</strong>
+          <p>Clean tracking text for health notes, journals, and task details.</p>
+        </article>
+        <article class="palette-card">
+          <span>Palette</span>
+          <div class="palette-row">
+            <i class="swatch blue"></i>
+            <i class="swatch soft-blue"></i>
+            <i class="swatch teal"></i>
+            <i class="swatch amber"></i>
+            <i class="swatch rose"></i>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="features">
+      <div class="section-heading">
+        <p class="eyebrow">What it tracks</p>
+        <h2>One place for the daily details</h2>
+      </div>
+      <div class="feature-grid">
+        <article>
+          <h3>Tasks</h3>
+          <p>Track daily tasks, completion history, notes, scheduled times, deadlines, and missed deadline trends.</p>
+        </article>
+        <article>
+          <h3>Nutrition & Vitals</h3>
+          <p>Log calories, carbs, weight, ketosis phase, glucose, blood pressure, and hydration.</p>
+        </article>
+        <article>
+          <h3>Wellbeing</h3>
+          <p>Use a single dropdown for symptoms, mood, and private journal entries while keeping history available.</p>
+        </article>
+        <article>
+          <h3>Hydration</h3>
+          <p>Record water with cup controls and a goal based on profile data instead of a manual setting.</p>
+        </article>
+        <article>
+          <h3>History</h3>
+          <p>Review long-term logs for vitals, symptoms, mood, task progress, and other trends.</p>
+        </article>
+        <article>
+          <h3>Security</h3>
+          <p>Protect the app with password and device biometric unlock where supported by the phone.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section split" id="ai">
+      <div>
+        <p class="eyebrow">AI-supported review</p>
+        <h2>Coach insights across the whole app</h2>
+        <p>The AI Coach can review task completions, deadlines, nutrition, vitals, water, symptoms, mood, ketosis, and journal patterns together to suggest practical next steps.</p>
+        <p class="note">The app does not diagnose medical conditions. It can flag patterns and suggest when urgent help may be appropriate.</p>
+      </div>
+      <div class="coach-stack">
+        <article>
+          <span>Task trend</span>
+          <strong>Late deadlines are checked against mood, symptoms, and journal notes.</strong>
+        </article>
+        <article>
+          <span>Health trend</span>
+          <strong>Vitals and nutrition are reviewed with recent symptoms and hydration.</strong>
+        </article>
+        <article>
+          <span>Journal safety</span>
+          <strong>Concerning language can trigger supportive guidance and crisis resources.</strong>
+        </article>
+      </div>
+    </section>
+
+    <section class="section privacy" id="privacy">
+      <div class="section-heading">
+        <p class="eyebrow">Privacy and safety</p>
+        <h2>Built for personal tracking</h2>
+      </div>
+      <div class="privacy-grid">
+        <p>Journal entries stay private inside the app unless the user opens them. AI review looks for patterns and shows concerns to the user only.</p>
+        <p>Cloud AI features are optional and only work after the user enables internet sharing and saves an HTTPS AI backend URL.</p>
+        <p>AI features require the configured backend service and an active OpenAI API key with available quota.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>Health & Task Tracker</span>
+    <span>Information only. Not a medical device or diagnosis tool.</span>
+  </footer>
+</body>
+</html>
