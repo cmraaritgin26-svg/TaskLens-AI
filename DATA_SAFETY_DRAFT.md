@@ -8,8 +8,6 @@ configuration you submit.
 - Health and fitness: nutrition, water, weight, glucose, blood pressure,
   symptoms, mood, notes, journal entries.
 - App activity: tasks, task completion history, reminders, settings.
-- Audio-derived data: dictation transcripts. Voice recordings are not saved by
-  the app.
 - User files: optional exported backup files created only when the user chooses
   export.
 
@@ -22,9 +20,9 @@ Default local-only use:
 
 Optional cloud AI use:
 
-- If the user allows internet sharing, enables AI extraction, and configures an
+- If the user allows internet sharing, enables Cloud AI features, and configures an
   AI service, the app may send health logs, journal text, mood/symptom notes,
-  nutrition/vitals, tasks, and dictation transcripts to that configured service.
+  nutrition/vitals, and tasks to that configured service.
 
 ## Security Practices
 
@@ -40,4 +38,3 @@ Optional cloud AI use:
 - Users can delete individual journal entries.
 - Users can delete all journal entries.
 - Users can export/import data.
-
