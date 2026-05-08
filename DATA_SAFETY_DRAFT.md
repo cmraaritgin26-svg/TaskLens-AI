@@ -29,7 +29,7 @@ Optional cloud AI use:
 ## Security Practices
 
 - Data is encrypted in transit when sent to HTTPS AI services.
-- Android screenshots and recent-app previews are blocked.
+- Screenshots are allowed by the Android app.
 - Local app lock can use password and biometric/device authentication.
 - Exported backups omit API keys, backend tokens, password hashes, salts, and
   biometric credential IDs.
