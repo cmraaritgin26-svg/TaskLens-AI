@@ -1,7 +1,7 @@
 {
-  "name": "habit-health-tracker-iphone",
+  "name": "health-task-tracker-iphone",
   "version": "1.0.0",
-  "description": "Installable iPhone PWA for tracking habits, health metrics, nutrition, and weight with Apple Calendar exports.",
+  "description": "iPhone copy of Health and Task Tracker that can run from local files or be bundled into a signed iOS app.",
   "private": false,
   "type": "module",
   "scripts": {
@@ -20,6 +20,7 @@
     "index.html",
     "app.js",
     "styles.css",
+    "fonts",
     "manifest.webmanifest",
     "service-worker.js",
     "capacitor.config.json",

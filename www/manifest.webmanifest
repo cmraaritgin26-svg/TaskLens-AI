@@ -1,7 +1,7 @@
 {
-  "name": "Health & Habit Tracker",
-  "short_name": "Health Habit",
-  "description": "Track habits, health metrics, nutrition, and weight offline.",
+  "name": "Health & Task Tracker",
+  "short_name": "Health Tasks",
+  "description": "Track daily tasks, health metrics, nutrition, and weight offline.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

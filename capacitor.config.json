@@ -1,6 +1,6 @@
 {
   "appId": "com.habithealth.tracker.android",
-  "appName": "Habit & Health Tracker",
+  "appName": "Health & Task Tracker",
   "webDir": "www",
   "server": {
     "androidScheme": "https"

@@ -1,7 +1,7 @@
 {
-  "name": "Health & Habit Tracker for iPhone",
-  "short_name": "Health Habit",
-  "description": "Track habits, health metrics, nutrition, and weight offline on iPhone.",
+  "name": "Health & Task Tracker for iPhone",
+  "short_name": "Health Task",
+  "description": "Track daily tasks, health metrics, nutrition, and weight offline on iPhone.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

@@ -1,5 +1,11 @@
 apply plugin: 'com.android.application'
 
+def releaseKeystore = System.getenv("ANDROID_UPLOAD_KEYSTORE") ?: project.findProperty("ANDROID_UPLOAD_KEYSTORE")
+def releaseKeystorePassword = System.getenv("ANDROID_UPLOAD_KEYSTORE_PASSWORD") ?: project.findProperty("ANDROID_UPLOAD_KEYSTORE_PASSWORD")
+def releaseKeyAlias = System.getenv("ANDROID_UPLOAD_KEY_ALIAS") ?: project.findProperty("ANDROID_UPLOAD_KEY_ALIAS")
+def releaseKeyPassword = System.getenv("ANDROID_UPLOAD_KEY_PASSWORD") ?: project.findProperty("ANDROID_UPLOAD_KEY_PASSWORD")
+def hasReleaseSigning = releaseKeystore && releaseKeystorePassword && releaseKeyAlias && releaseKeyPassword
+
 android {
     namespace "com.habithealth.tracker.android"
     compileSdk rootProject.ext.compileSdkVersion
@@ -16,9 +22,24 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    if (hasReleaseSigning) {
+        signingConfigs {
+            release {
+                storeFile file(releaseKeystore)
+                storePassword releaseKeystorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            } else {
+                logger.lifecycle("Release signing is not configured. Set ANDROID_UPLOAD_KEYSTORE, ANDROID_UPLOAD_KEYSTORE_PASSWORD, ANDROID_UPLOAD_KEY_ALIAS, and ANDROID_UPLOAD_KEY_PASSWORD to create a Play-uploadable signed bundle.")
+            }
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }

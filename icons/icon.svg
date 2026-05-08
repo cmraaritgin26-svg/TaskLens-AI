@@ -1,15 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Health &amp; Task Tracker icon">
   <defs>
-    <radialGradient id="tie" cx="50%" cy="50%" r="70%">
-      <stop offset="0%" stop-color="#fff7a3"/>
-      <stop offset="30%" stop-color="#facc15"/>
-      <stop offset="62%" stop-color="#f97316"/>
-      <stop offset="100%" stop-color="#e11d48"/>
-    </radialGradient>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#1e40af"/>
+      <stop offset="55%" stop-color="#0f2f68"/>
+      <stop offset="100%" stop-color="#071a3f"/>
+    </linearGradient>
+    <linearGradient id="arrow" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
   </defs>
-  <rect width="512" height="512" rx="88" fill="url(#tie)"/>
-  <path fill="#ffffff" d="M141 271.5 215.2 345 377 167.8l-36.9-33.7-126 138-37.9-37.5z"/>
-  <circle cx="155" cy="157" r="34" fill="#ffffff" opacity=".88"/>
-  <circle cx="257" cy="157" r="34" fill="#ffffff" opacity=".88"/>
-  <circle cx="359" cy="157" r="34" fill="#ffffff" opacity=".88"/>
+  <rect width="512" height="512" rx="88" fill="url(#bg)"/>
+  <path d="M129 122h75v111h104V122h75v268h-75V294H204v96h-75z" fill="#ef4444"/>
+  <path d="M395 256H206v47L97 256l109-47v47h189z" fill="url(#arrow)"/>
+  <path d="M129 122h75v268h-75zM308 122h75v268h-75z" fill="#ef4444" opacity=".94"/>
+  <path d="M395 256H206v47L97 256l109-47v47h189z" fill="url(#arrow)"/>
 </svg>

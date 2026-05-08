@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Habit &amp; Health Tracker</string>
-    <string name="title_activity_main">Habit &amp; Health Tracker</string>
+    <string name="app_name">Health &amp; Task Tracker</string>
+    <string name="title_activity_main">Health &amp; Task Tracker</string>
     <string name="package_name">com.habithealth.tracker.android</string>
     <string name="custom_url_scheme">com.habithealth.tracker.android</string>
 </resources>

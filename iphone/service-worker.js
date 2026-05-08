@@ -1,10 +1,12 @@
-const cacheName = "habit-health-iphone-v1";
+const cacheName = "habit-health-iphone-v159";
 const assets = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
   "./manifest.webmanifest",
+  "./fonts/Quicksand-Regular.ttf",
+  "./fonts/Quicksand-Bold.ttf",
   "./icons/icon.svg",
   "./icons/icon-192.png",
   "./icons/icon-512.png"

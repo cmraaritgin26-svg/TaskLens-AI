@@ -3,58 +3,232 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#0b4ea2">
-    <meta name="description" content="Track habits, health metrics, nutrition, and weight offline on iPhone.">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="Health Habit">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <title>Health &amp; Habit Tracker for iPhone</title>
-    <link rel="manifest" href="manifest.webmanifest?v=13">
-    <link rel="icon" href="icons/icon.svg?v=13" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="icons/icon-192.png?v=13">
-    <link rel="stylesheet" href="styles.css?v=18">
+    <meta name="theme-color" content="#0f2f68">
+    <meta name="description" content="Track daily tasks, health metrics, nutrition, and weight offline.">
+    <title>Health &amp; Task Tracker</title>
+    <link rel="manifest" href="manifest.webmanifest?v=35">
+    <link rel="icon" href="icons/icon.svg?v=35" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icons/icon.svg?v=35">
+    <link rel="stylesheet" href="styles.css?v=196">
   </head>
   <body>
+    <div class="app-illustration" aria-hidden="true">
+      <svg viewBox="0 0 1440 960" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <linearGradient id="bgWash" x1="0" x2="1" y1="0" y2="1">
+            <stop offset="0%" stop-color="#767676"/>
+            <stop offset="55%" stop-color="#767676"/>
+            <stop offset="100%" stop-color="#666666"/>
+          </linearGradient>
+          <linearGradient id="glassFill" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stop-color="#d8d8d8" stop-opacity=".92"/>
+            <stop offset="100%" stop-color="#60a5fa" stop-opacity=".55"/>
+          </linearGradient>
+          <linearGradient id="waterStroke" x1="0" x2="1" y1="0" y2="1">
+            <stop offset="0%" stop-color="#888888" stop-opacity=".38"/>
+            <stop offset="100%" stop-color="#707070" stop-opacity=".55"/>
+          </linearGradient>
+        </defs>
+        <rect width="1440" height="960" fill="url(#bgWash)"/>
+        <g fill="none" stroke="#707070" stroke-opacity=".24" stroke-width="1.4">
+          <path d="M1070 210c55-58 132-66 182-18 38 36 69 109 68 173"/>
+          <path d="M1020 246c69-34 142-27 188 20 44 45 56 117 31 179"/>
+          <path d="M905 590c94-62 168-72 243-25 49 31 86 86 103 150"/>
+          <path d="M128 106c58 12 111 58 146 110"/>
+          <path d="M175 792c58 14 126 58 158 106"/>
+        </g>
+        <g fill="#7a7a7a" fill-opacity=".18" stroke="#777777" stroke-opacity=".26">
+          <path d="M90 166c38-44 95-61 140-39 29 14 47 42 52 76-40 8-81 20-123 37-39-16-62-40-69-74z"/>
+          <path d="M1210 676c58-30 122-30 182-2 37 17 63 45 72 78-53 14-104 32-155 53-42-18-77-43-99-74z"/>
+        </g>
+        <g fill="none" stroke="#737373" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M842 313c49-24 91-28 126-9 30 16 48 44 53 84"/>
+          <path d="M872 340c32 16 61 43 84 80"/>
+          <path d="M944 262c27 6 54 21 80 45"/>
+        </g>
+        <g opacity=".92">
+          <path d="M208 720c0-14 10-24 24-24h94c14 0 24 10 24 24v140c0 22-18 40-40 40h-62c-22 0-40-18-40-40V720z" fill="url(#glassFill)" stroke="url(#waterStroke)" stroke-width="3"/>
+          <path d="M227 701c0-8 6-14 14-14h74c8 0 14 6 14 14v10c0 8-6 14-14 14h-74c-8 0-14-6-14-14v-10z" fill="#d8d8d8" fill-opacity=".52"/>
+          <path d="M232 796h102c8 0 14 6 14 14v46c0 17-13 30-30 30h-70c-17 0-30-13-30-30v-46c0-8 6-14 14-14z" fill="#9a9a9a" fill-opacity=".38"/>
+          <path d="M254 745c0-7 5-12 12-12h53c7 0 12 5 12 12v108c0 7-5 12-12 12h-53c-7 0-12-5-12-12V745z" fill="#767676" fill-opacity=".34"/>
+        </g>
+        <g fill="none" stroke="#6a6a6a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".52">
+          <path d="M474 128c50 35 88 90 102 144"/>
+          <path d="M445 171c33-13 72-11 112 8"/>
+          <path d="M127 838c33-11 68-10 106 5"/>
+          <path d="M125 879c14-24 28-42 47-53"/>
+          <path d="M1236 836c20-26 42-43 68-53"/>
+        </g>
+        <polyline points="842,351 886,327 924,340 971,302 1010,304 1046,319 1101,238 1140,265 1189,231 1242,262 1298,154 1331,176" fill="none" stroke="#1d4ed8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity=".72"/>
+        <g fill="#1d4ed8" opacity=".72">
+          <circle cx="842" cy="351" r="7"/>
+          <circle cx="886" cy="327" r="7"/>
+          <circle cx="924" cy="340" r="7"/>
+          <circle cx="971" cy="302" r="7"/>
+          <circle cx="1010" cy="304" r="7"/>
+          <circle cx="1046" cy="319" r="7"/>
+          <circle cx="1101" cy="238" r="7"/>
+          <circle cx="1140" cy="265" r="7"/>
+          <circle cx="1189" cy="231" r="7"/>
+          <circle cx="1242" cy="262" r="7"/>
+          <circle cx="1298" cy="154" r="7"/>
+          <circle cx="1331" cy="176" r="7"/>
+        </g>
+        <g fill="#777777" fill-opacity=".14">
+          <path d="M0 866c126-42 254-38 384 12s260 54 390 4 271-49 426 0v78H0z"/>
+          <path d="M0 802c128-21 251-18 370 10s239 26 359-6 250-39 411-10v164H0z"/>
+        </g>
+      </svg>
+    </div>
     <main class="app-shell">
       <header class="topbar">
         <div>
           <p class="eyebrow" id="todayLabel"></p>
-          <h1>Health &amp; Habit Tracker</h1>
-        </div>
-        <button class="icon-button" id="installButton" type="button" aria-label="Install app" hidden>
-          <span aria-hidden="true">+</span>
-        </button>
-      </header>
-
-      <section class="nutrition-panel" aria-labelledby="nutritionTitle">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Food & body</p>
-            <h2 id="nutritionTitle">Nutrition, Weight, Ketosis, and Vitals</h2>
+          <div class="app-title-row">
+            <img class="app-title-icon" src="icons/icon-192.png?v=2" alt="" aria-hidden="true">
+            <h1>Health &amp; Task Tracker</h1>
+          </div>
+          <div class="username-display">
+            <span>Facebook user</span>
+            <strong id="usernameDisplay">Guest</strong>
+          </div>
+          <div class="facebook-panel">
+            <div class="facebook-actions">
+              <button class="text-button" id="facebookLoginButton" type="button">Log in with Facebook</button>
+              <button class="text-button" id="facebookLogoutButton" type="button" hidden>Log out</button>
+              <button class="text-button" id="openFacebookProfile" type="button">Open Facebook</button>
+              <button class="text-button" id="shareFacebookProgress" type="button">Share progress</button>
+            </div>
           </div>
         </div>
+      </header>
 
+      <section class="overview-heading" aria-labelledby="overviewTitle">
+        <h2 id="overviewTitle">Overview</h2>
+      </section>
+
+      <div class="overview-actions" aria-label="App actions">
+        <button class="text-button settings-button dictate-button" id="dictateButton" type="button" aria-label="Dictate">
+          <svg class="dictate-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/>
+            <path d="M5 11a7 7 0 0 0 14 0"/>
+            <path d="M12 18v3"/>
+            <path d="M8 21h8"/>
+          </svg>
+        </button>
+        <button class="text-button settings-button get-started-button" id="getStartedButton" type="button">Get Started</button>
+        <button class="text-button ai-refresh-button" id="reviewTodayButton" type="button">Review</button>
+        <button class="text-button ai-refresh-button" id="aiRefreshButton" type="button">Refresh</button>
+        <button class="text-button settings-button" id="settingsButton" type="button">Settings</button>
+        <span class="dictation-status" id="dictationStatus" hidden>Recording</span>
+      </div>
+
+      <div class="overview-modules">
+      <section class="smart-coach overview-module" id="smartCoachSection" data-overview-panel="coach" aria-labelledby="smartCoachTitle">
+        <div class="section-heading">
+          <div>
+            <h2 id="smartCoachTitle">AI Coach</h2>
+          </div>
+        </div>
+        <div class="today-dashboard-grid coach-placards" aria-label="AI Coach placards">
+          <button class="dashboard-tile" type="button" data-dashboard-jump="mood">
+            <strong id="todayMoodSummary">--</strong>
+            <span>Mood</span>
+          </button>
+          <button class="dashboard-tile" type="button" data-dashboard-jump="symptoms">
+            <strong id="todaySymptomSummary">--</strong>
+            <span>Symptoms</span>
+          </button>
+          <button class="dashboard-tile" type="button" data-dashboard-jump="weekly">
+            <strong id="todayWeeklySummary">0%</strong>
+            <span>Weekly progress</span>
+            <div class="tile-progress weekly-tile-progress" aria-label="Weekly task progress">
+              <i id="todayWeeklyProgressFill"></i>
+            </div>
+          </button>
+        </div>
+        <div class="ai-insight-list" id="aiInsightList" aria-live="polite"></div>
+      </section>
+
+      <section class="today-dashboard overview-module" data-overview-panel="dashboard" aria-labelledby="todayDashboardTitle" hidden>
+        <div class="section-heading">
+          <div>
+            <h2 id="todayDashboardTitle">Daily dashboard</h2>
+          </div>
+        </div>
+        <div class="today-dashboard-grid">
+          <button class="dashboard-tile" type="button" data-dashboard-jump="tasks">
+            <strong id="todayCompletedCount">0/0</strong>
+            <span>Tasks done</span>
+          </button>
+          <button class="dashboard-tile" type="button" data-dashboard-jump="water">
+            <strong id="todayWaterTotal">0 oz</strong>
+            <span>Water today</span>
+          </button>
+          <button class="dashboard-tile" type="button" data-dashboard-jump="vitals">
+            <strong id="todayVitalsSummary">--</strong>
+            <span>Latest vitals</span>
+          </button>
+        </div>
+        <div class="today-task-list" id="todayTaskList"></div>
+      </section>
+      </div>
+
+      <section class="history-modal" id="facebookLoginModal" aria-labelledby="facebookLoginTitle" aria-modal="true" role="dialog" hidden>
+        <div class="history-panel facebook-login-dialog">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Facebook</p>
+              <h2 id="facebookLoginTitle">Log in</h2>
+            </div>
+            <button class="delete-button" id="facebookLoginClose" type="button" aria-label="Close Facebook login">x</button>
+          </div>
+          <div class="facebook-actions">
+            <button class="primary-button" id="facebookLoginContinue" type="button">Continue with Facebook</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="wellbeing-heading" id="wellbeingSection" aria-labelledby="wellbeingTitle">
+        <h2 id="wellbeingTitle">Wellbeing</h2>
+        <div class="wellbeing-swipe-menu" id="wellbeingModuleMenu" role="tablist" aria-label="Wellbeing modules">
+          <button class="wellbeing-tab" type="button" role="tab" data-wellbeing-module="vitals" aria-selected="true">Nutrition & Vitals</button>
+          <button class="wellbeing-tab" type="button" role="tab" data-wellbeing-module="symptoms" aria-selected="false">Symptom Tracker</button>
+          <button class="wellbeing-tab" type="button" role="tab" data-wellbeing-module="mood" aria-selected="false">Mood Tracker</button>
+          <button class="wellbeing-tab" type="button" role="tab" data-wellbeing-module="charts" aria-selected="false">Charts</button>
+        </div>
+      </section>
+
+      <section class="nutrition-panel" id="nutritionPanel" aria-labelledby="nutritionTitle">
+        <div class="section-heading">
+          <div>
+            <h2 id="nutritionTitle">Nutrition & Vitals</h2>
+          </div>
+        </div>
         <form class="nutrition-form" id="nutritionForm">
           <label class="field">
             <span>Date</span>
-            <input id="nutritionDate" name="nutritionDate" type="date" required>
+            <input id="nutritionDate" name="nutritionDate" type="date">
           </label>
           <label class="field">
-            <span>Calories</span>
-            <input id="calories" name="calories" type="number" min="0" step="1" inputmode="numeric" placeholder="1800">
+            <span>Calories (cal)</span>
+            <input id="calories" name="calories" type="number" min="0" step="1" inputmode="numeric">
           </label>
           <label class="field">
-            <span>Carbs</span>
-            <input id="carbs" name="carbs" type="number" min="0" step="1" inputmode="numeric" placeholder="180">
+            <span>Carbs (g)</span>
+            <input id="carbs" name="carbs" type="number" min="0" step="1" inputmode="numeric">
           </label>
           <label class="field">
-            <span>Weight</span>
-            <input id="weight" name="weight" type="number" min="0" step="0.1" inputmode="decimal" placeholder="150.0">
+            <span id="weightUnitLabel">Weight (lbs)</span>
+            <div class="weight-inputs">
+              <input id="weight" name="weight" type="number" min="0" step="0.1" inputmode="decimal">
+              <button class="text-button unit-convert-button" id="convertWeight" type="button">lbs to kgs</button>
+            </div>
           </label>
           <label class="field">
             <span>Ketosis phase</span>
             <select id="ketosisPhase" name="ketosisPhase">
-              <option value="">None</option>
+              <option value=""></option>
               <option value="Entering">Entering</option>
               <option value="Ketosis">Ketosis</option>
               <option value="Deep ketosis">Deep ketosis</option>
@@ -62,94 +236,643 @@
             </select>
           </label>
           <label class="field">
-            <span>Glucose</span>
-            <input id="glucose" name="glucose" type="number" min="0" step="1" inputmode="numeric" placeholder="95">
+            <span>Glucose (mg/dL)</span>
+            <input id="glucose" name="glucose" type="number" min="0" step="1" inputmode="numeric">
           </label>
           <label class="field">
-            <span>Blood pressure</span>
+            <span>Blood pressure (mmHg)</span>
             <div class="bp-inputs">
-              <input id="systolic" name="systolic" type="number" min="0" step="1" inputmode="numeric" placeholder="120" aria-label="Systolic blood pressure">
+              <input id="systolic" name="systolic" type="number" min="0" step="1" inputmode="numeric" aria-label="Systolic blood pressure">
               <span aria-hidden="true">/</span>
-              <input id="diastolic" name="diastolic" type="number" min="0" step="1" inputmode="numeric" placeholder="80" aria-label="Diastolic blood pressure">
+              <input id="diastolic" name="diastolic" type="number" min="0" step="1" inputmode="numeric" aria-label="Diastolic blood pressure">
             </div>
+            <button class="text-button bp-import" id="importBloodPressure" type="button">Import BP</button>
           </label>
           <label class="field">
-            <span>Water</span>
-            <div class="water-control">
+            <span>Water (oz)</span>
+            <div class="water-control" id="waterControl">
               <div class="water-summary">
                 <button class="water-toggle" id="waterToggle" type="button">
                   <strong id="waterCount">0</strong>
-                  <span>Water consumption</span>
+                  <span>10 water cups</span>
                 </button>
                 <button class="text-button water-clear" id="waterClear" type="button">Clear</button>
               </div>
-              <div class="water-glasses collapsed" id="waterGlasses" role="group" aria-label="Tap glasses to record water intake"></div>
+              <div class="water-glasses collapsed" id="waterGlasses" role="group" aria-label="Tap cups to record water intake">
+                <button class="water-glass" type="button" data-glass-index="1" aria-label="1 cup, 8 ounces"><span>1</span></button>
+                <button class="water-glass" type="button" data-glass-index="2" aria-label="2 cups, 16 ounces"><span>2</span></button>
+                <button class="water-glass" type="button" data-glass-index="3" aria-label="3 cups, 24 ounces"><span>3</span></button>
+                <button class="water-glass" type="button" data-glass-index="4" aria-label="4 cups, 32 ounces"><span>4</span></button>
+                <button class="water-glass" type="button" data-glass-index="5" aria-label="5 cups, 40 ounces"><span>5</span></button>
+                <button class="water-glass" type="button" data-glass-index="6" aria-label="6 cups, 48 ounces"><span>6</span></button>
+                <button class="water-glass" type="button" data-glass-index="7" aria-label="7 cups, 56 ounces"><span>7</span></button>
+                <button class="water-glass" type="button" data-glass-index="8" aria-label="8 cups, 64 ounces"><span>8</span></button>
+                <button class="water-glass" type="button" data-glass-index="9" aria-label="9 cups, 72 ounces"><span>9</span></button>
+                <button class="water-glass" type="button" data-glass-index="10" aria-label="10 cups, 80 ounces"><span>10</span></button>
+              </div>
               <input id="water" name="water" type="hidden">
+              <button class="primary-button" type="submit">Save</button>
             </div>
           </label>
-          <button class="primary-button" type="submit">Save</button>
         </form>
 
-        <div class="nutrition-summary" aria-label="Nutrition summary">
-          <article class="metric compact">
-            <span id="avgCalories">0</span>
-            <p>7-day avg calories</p>
-          </article>
-          <article class="metric compact">
-            <span id="avgCarbs">0g</span>
-            <p>7-day avg carbs</p>
-          </article>
-          <article class="metric compact">
-            <span id="latestWeight">--</span>
-            <p>Latest weight</p>
-          </article>
-          <article class="metric compact">
-            <span id="latestKetosis">--</span>
-            <p>Latest ketosis phase</p>
-          </article>
-          <article class="metric compact">
-            <span id="latestGlucose">--</span>
-            <p>Latest glucose</p>
-          </article>
-          <article class="metric compact">
-            <span id="latestBloodPressure">--</span>
-            <p>Latest blood pressure</p>
-          </article>
-          <article class="metric compact">
-            <span id="latestWater">--</span>
-            <p>Latest water</p>
-          </article>
-        </div>
+        <button class="vitals-history-link" id="vitals24Button" type="button">Last 24 hours</button>
+      </section>
 
-        <div class="nutrition-table-wrap">
-          <table class="nutrition-table">
-            <thead>
-              <tr>
-                <th scope="col">Date</th>
-                <th scope="col">Calories</th>
-                <th scope="col">Carbs</th>
-                <th scope="col">Weight</th>
-                <th scope="col">Ketosis</th>
-                <th scope="col">Glucose</th>
-                <th scope="col">Blood Pressure</th>
-                <th scope="col">Water</th>
-                <th scope="col">Change</th>
-              </tr>
-            </thead>
-            <tbody id="nutritionRows"></tbody>
-          </table>
-          <p class="nutrition-empty" id="nutritionEmpty">Record calories, carbs, weight, ketosis phase, glucose, blood pressure, and water to compare intake with health movement.</p>
+      <section class="history-modal" id="vitals24Modal" aria-labelledby="vitals24Title" aria-modal="true" role="dialog" hidden>
+        <div class="history-panel last24-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Vitals and nutrition</p>
+              <h2 id="vitals24Title">Last 24 hours</h2>
+            </div>
+            <button class="delete-button" id="vitals24Close" type="button" aria-label="Close last 24 hours">x</button>
+          </div>
+          <div class="nutrition-summary" aria-label="Nutrition summary">
+            <article class="metric compact">
+              <span id="avgCalories">0</span>
+              <p>24-hour calories</p>
+            </article>
+            <article class="metric compact">
+              <span id="avgCarbs">0g</span>
+              <p>24-hour carbs</p>
+            </article>
+            <article class="metric compact">
+              <span id="latestWeight">--</span>
+              <p>Latest weight</p>
+            </article>
+            <article class="metric compact">
+              <span id="latestKetosis">--</span>
+              <p>Latest ketosis phase</p>
+            </article>
+            <article class="metric compact">
+              <span id="latestGlucose">--</span>
+              <p>Latest glucose</p>
+            </article>
+            <article class="metric compact">
+              <span id="latestBloodPressure">--</span>
+              <p>Latest blood pressure</p>
+            </article>
+            <article class="metric compact">
+              <span id="latestWater">--</span>
+              <p>24-hour water</p>
+            </article>
+          </div>
+
+          <div class="nutrition-table-wrap">
+            <table class="nutrition-table">
+              <thead>
+                <tr>
+                  <th scope="col">Date</th>
+                  <th scope="col">Calories</th>
+                  <th scope="col">Carbs</th>
+                  <th scope="col">Weight</th>
+                  <th scope="col">Ketosis</th>
+                  <th scope="col">Glucose</th>
+                  <th scope="col">Blood Pressure</th>
+                  <th scope="col">Water</th>
+                  <th scope="col">Change</th>
+                </tr>
+              </thead>
+              <tbody id="nutritionRows"></tbody>
+            </table>
+            <p class="nutrition-empty" id="nutritionEmpty">Record calories, carbs, weight, ketosis phase, glucose, blood pressure, and water to compare intake with health movement.</p>
+          </div>
         </div>
       </section>
 
-      <form class="composer" id="habitForm">
+      <section class="symptom-panel" id="symptomPanel" aria-labelledby="symptomTitle">
+        <h2 class="sr-only" id="symptomTitle">Symptom Tracker</h2>
+        <form class="symptom-form" id="symptomForm">
+          <label class="field">
+            <span>Date</span>
+            <input id="symptomDate" type="date" autocomplete="off">
+          </label>
+          <label class="field">
+            <span>Symptom</span>
+            <input id="symptomName" type="text" maxlength="48" autocomplete="off">
+          </label>
+          <div class="preset-row" aria-label="Common symptoms">
+            <button class="preset-chip" type="button" data-symptom-preset="Headache">Headache</button>
+            <button class="preset-chip" type="button" data-symptom-preset="Fatigue">Fatigue</button>
+            <button class="preset-chip" type="button" data-symptom-preset="Nausea">Nausea</button>
+            <button class="preset-chip" type="button" data-symptom-preset="Dizziness">Dizziness</button>
+          </div>
+          <label class="field">
+            <span>Severity</span>
+            <select id="symptomSeverity">
+              <option value=""></option>
+              <option value="Mild">Mild</option>
+              <option value="Moderate">Moderate</option>
+              <option value="Severe">Severe</option>
+            </select>
+          </label>
+          <label class="field note-field">
+            <span>Note</span>
+            <input id="symptomNote" type="text" maxlength="96" autocomplete="off">
+          </label>
+          <div class="wellbeing-form-actions">
+            <button class="text-button symptom-history-button" id="symptomHistoryButton" type="button">History</button>
+            <button class="primary-button" type="submit">Log</button>
+          </div>
+        </form>
+        <div class="symptom-list" id="symptomList"></div>
+        <p class="nutrition-empty" id="symptomEmpty">No symptoms logged yet.</p>
+      </section>
+
+      <section class="symptom-panel mood-panel" id="moodPanel" aria-labelledby="moodTitle">
+        <h2 class="sr-only" id="moodTitle">Mood Tracker</h2>
+        <form class="symptom-form mood-form" id="moodForm">
+          <label class="field">
+            <span>Date</span>
+            <input id="moodDate" type="date" autocomplete="off">
+          </label>
+          <label class="field">
+            <span>Mood</span>
+            <select id="moodName">
+              <option value=""></option>
+              <option value="Great">Great</option>
+              <option value="Good">Good</option>
+              <option value="Okay">Okay</option>
+              <option value="Low">Low</option>
+              <option value="Stressed">Stressed</option>
+              <option value="Anxious">Anxious</option>
+            </select>
+          </label>
+          <div class="preset-row" aria-label="Common moods">
+            <button class="preset-chip" type="button" data-mood-preset="Good">Good</button>
+            <button class="preset-chip" type="button" data-mood-preset="Okay">Okay</button>
+            <button class="preset-chip" type="button" data-mood-preset="Low">Low</button>
+            <button class="preset-chip" type="button" data-mood-preset="Stressed">Stressed</button>
+          </div>
+          <label class="field">
+            <span>Intensity</span>
+            <select id="moodIntensity">
+              <option value=""></option>
+              <option value="Light">Light</option>
+              <option value="Moderate">Moderate</option>
+              <option value="Strong">Strong</option>
+            </select>
+          </label>
+          <label class="field note-field">
+            <span>Notes</span>
+            <input id="moodNote" type="text" maxlength="96" autocomplete="off">
+          </label>
+          <div class="wellbeing-form-actions">
+            <button class="text-button symptom-history-button" id="moodHistoryButton" type="button">History</button>
+            <button class="primary-button" type="submit">Log</button>
+          </div>
+        </form>
+        <div class="symptom-list" id="moodList"></div>
+        <p class="nutrition-empty" id="moodEmpty">No moods logged yet.</p>
+      </section>
+
+      <section class="symptom-panel charting-panel" id="chartsPanel" aria-labelledby="chartsTitle" hidden>
+        <div class="section-heading">
+          <div>
+            <h2 id="chartsTitle">Charts</h2>
+          </div>
+        </div>
+        <details class="vitals-history-dropdown" id="vitalsHistoryDropdown" open>
+          <summary class="sr-only">History charting</summary>
+          <div class="history-dropdown-actions">
+            <button class="text-button history-range-button" id="masterChartButton" type="button">Master Chart</button>
+          </div>
+          <div class="vitals-history-mount" id="vitalsHistoryMount"></div>
+        </details>
+      </section>
+
+      <section class="symptom-panel journal-panel" id="journalPanel" aria-labelledby="journalTitle">
+        <div class="section-heading">
+          <div>
+            <h2 id="journalTitle">Journal</h2>
+          </div>
+        </div>
+        <form class="symptom-form journal-form" id="journalForm">
+          <label class="field">
+            <span>Date</span>
+            <input id="journalDate" type="date">
+          </label>
+          <label class="field journal-entry-field">
+            <span>Journal entry</span>
+            <span class="journal-paper-date" id="journalPaperDate"></span>
+            <textarea id="journalEntry" maxlength="900" rows="4" autocomplete="off"></textarea>
+          </label>
+          <button class="primary-button" type="submit">Log</button>
+        </form>
+        <button class="journal-log-heading" id="journalLogLink" type="button">Journal Log</button>
+      </section>
+
+      <section class="history-modal" id="symptomHistoryModal" aria-labelledby="symptomHistoryTitle" aria-modal="true" role="dialog" hidden>
+        <div class="history-panel symptom-history-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">10-year history</p>
+              <h2 id="symptomHistoryTitle">Symptom History</h2>
+            </div>
+            <button class="delete-button" id="symptomHistoryClose" type="button" aria-label="Close symptom history">x</button>
+          </div>
+          <div class="nutrition-table-wrap history-table-wrap">
+            <table class="nutrition-table history-table symptom-history-table">
+              <thead>
+                <tr>
+                  <th scope="col">Date</th>
+                  <th scope="col">Symptom</th>
+                  <th scope="col">Severity</th>
+                  <th scope="col">Note</th>
+                </tr>
+              </thead>
+              <tbody id="symptomHistoryRows"></tbody>
+            </table>
+            <p class="nutrition-empty" id="symptomHistoryEmpty">No symptoms logged in the last 10 years.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="history-modal" id="moodHistoryModal" aria-labelledby="moodHistoryTitle" aria-modal="true" role="dialog" hidden>
+        <div class="history-panel symptom-history-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">10-year history</p>
+              <h2 id="moodHistoryTitle">Mood History</h2>
+            </div>
+            <button class="delete-button" id="moodHistoryClose" type="button" aria-label="Close mood history">x</button>
+          </div>
+          <div class="nutrition-table-wrap history-table-wrap">
+            <table class="nutrition-table history-table symptom-history-table">
+              <thead>
+                <tr>
+                  <th scope="col">Date</th>
+                  <th scope="col">Mood</th>
+                  <th scope="col">Intensity</th>
+                  <th scope="col">Note</th>
+                </tr>
+              </thead>
+              <tbody id="moodHistoryRows"></tbody>
+            </table>
+            <p class="nutrition-empty" id="moodHistoryEmpty">No moods logged in the last 10 years.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="affirmation-modal" id="affirmationModal" aria-labelledby="affirmationTitle" aria-modal="true" role="dialog" tabindex="-1" hidden>
+        <div class="affirmation-panel">
+          <h2 id="affirmationTitle">Thought for the day</h2>
+          <p class="affirmation-text" id="affirmationText"></p>
+        </div>
+      </section>
+
+      <section class="history-modal dictation-review-modal" id="dictationReviewModal" aria-labelledby="dictationReviewTitle" aria-modal="true" role="dialog" hidden>
+        <div class="history-panel dictation-review-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Dictation</p>
+              <h2 id="dictationReviewTitle">Review what I heard</h2>
+            </div>
+            <button class="delete-button" id="dictationReviewClose" type="button" aria-label="Close dictation review">x</button>
+          </div>
+          <label class="field dictation-review-field">
+            <span>Correct anything wrong, then save</span>
+            <textarea id="dictationReviewText" rows="8" placeholder="Tap here, then use the keyboard microphone"></textarea>
+          </label>
+          <div class="dictation-field-review" id="dictationFieldReview" hidden></div>
+          <p class="lock-error" id="dictationReviewMessage" aria-live="polite"></p>
+          <div class="settings-actions dictation-review-actions">
+            <button class="text-button" id="dictationReviewSave" type="button">Confirm & Save</button>
+            <button class="text-button" id="dictationReviewChange" type="button" hidden>Change</button>
+            <button class="text-button" id="dictationReviewRetry" type="button">Re-dictate</button>
+            <button class="text-button" id="dictationReviewManual" type="button">Type manually</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="history-modal" id="reviewTodayModal" aria-labelledby="reviewTodayTitle" aria-modal="true" role="dialog" hidden>
+        <div class="history-panel review-today-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Daily check</p>
+              <h2 id="reviewTodayTitle">Review Today</h2>
+            </div>
+            <button class="delete-button" id="reviewTodayClose" type="button" aria-label="Close review today">x</button>
+          </div>
+          <div class="review-today-list" id="reviewTodayList"></div>
+        </div>
+      </section>
+
+      <section class="history-modal" id="reminderCenterModal" aria-labelledby="reminderCenterTitle" aria-modal="true" role="dialog" hidden>
+        <div class="history-panel reminder-center-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Tasks and deadlines</p>
+              <h2 id="reminderCenterTitle">Reminder Center</h2>
+            </div>
+            <button class="delete-button" id="reminderCenterClose" type="button" aria-label="Close reminder center">x</button>
+          </div>
+          <div class="review-today-list" id="reminderCenterList"></div>
+        </div>
+      </section>
+
+      <section class="history-modal" id="settingsModal" aria-labelledby="settingsTitle" aria-modal="true" role="dialog" hidden>
+        <div class="history-panel settings-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Preferences</p>
+              <h2 id="settingsTitle">Settings</h2>
+            </div>
+            <button class="delete-button" id="settingsClose" type="button" aria-label="Close settings">x</button>
+          </div>
+          <label class="field settings-search-field">
+            <span>Search settings</span>
+            <input id="settingsSearch" type="search" autocomplete="off" placeholder="Theme, reminders, security">
+          </label>
+          <div class="settings-grid">
+            <div class="settings-group-title">Theme</div>
+            <label class="setting-row">
+              <span>Dark mode</span>
+              <input id="themeToggle" type="checkbox">
+            </label>
+            <div class="settings-group-title">Reminders</div>
+            <label class="setting-row">
+              <span>Daily task reminder</span>
+              <input id="reminderToggle" type="checkbox">
+            </label>
+            <label class="field">
+              <span>Reminder time</span>
+              <input id="reminderTime" type="time">
+            </label>
+            <label class="field">
+              <span>Height</span>
+              <div class="height-inputs">
+                <input id="heightFeet" type="number" min="3" max="8" step="1" inputmode="numeric" placeholder="ft">
+                <input id="heightInches" type="number" min="0" max="11" step="1" inputmode="numeric" placeholder="in">
+              </div>
+            </label>
+            <div class="settings-group-title">Security</div>
+            <label class="setting-row">
+              <span>Biometric unlock</span>
+              <input id="biometricToggle" type="checkbox">
+            </label>
+            <label class="field">
+              <span>Current password</span>
+              <input id="securityPasswordCurrent" type="password" autocomplete="current-password" placeholder="Current password">
+            </label>
+            <label class="field">
+              <span>New password</span>
+              <input id="securityPasswordNew" type="password" autocomplete="new-password" placeholder="4+ characters">
+            </label>
+            <div class="settings-group-title">AI</div>
+            <label class="setting-row">
+              <span>Allow cloud AI to send health info over the internet</span>
+              <input id="hipaaCloudToggle" type="checkbox">
+            </label>
+            <label class="setting-row">
+              <span>AI dictation extraction</span>
+              <input id="aiExtractionToggle" type="checkbox">
+            </label>
+            <label class="field">
+              <span>OpenAI API key</span>
+              <input id="aiApiKey" type="password" autocomplete="off" placeholder="sk-...">
+            </label>
+            <label class="field">
+              <span>AI backend URL</span>
+              <input id="aiBackendUrl" type="url" autocomplete="off" placeholder="https://your-domain.com">
+            </label>
+            <label class="field">
+              <span>AI backend token</span>
+              <input id="aiBackendToken" type="password" autocomplete="off" placeholder="Optional app token">
+            </label>
+            <label class="field">
+              <span>AI model</span>
+              <input id="aiModel" type="text" autocomplete="off" placeholder="gpt-4o-mini">
+            </label>
+            <p class="settings-note onboarding-wide">AI features will not work unless internet sharing is allowed, AI dictation extraction is enabled, and either an AI backend URL or OpenAI API key is saved.</p>
+            <div class="settings-group-title">Data</div>
+            <p class="settings-note">Export a backup regularly so your personal logs are not only stored on this phone.</p>
+          </div>
+          <div class="settings-privacy-panel">
+            <h3>Privacy & safety</h3>
+            <p>Medical data stays on this device unless you check the internet sharing acknowledgement and enable cloud AI. Voice recordings are not saved by the app.</p>
+            <p>Cloud AI can transmit journal, mood, symptom, nutrition, vitals, and task details to the configured AI service over the internet.</p>
+            <p>AI Coach is guidance only. It does not diagnose disease and should not replace professional medical advice.</p>
+          </div>
+          <div class="settings-actions">
+            <button class="text-button" id="setPasswordButton" type="button">Change password</button>
+            <button class="text-button" id="clearPasswordButton" type="button">Clear password</button>
+            <button class="text-button" id="exportDataButton" type="button">Export data</button>
+            <button class="text-button" id="importDataButton" type="button">Import data</button>
+            <button class="text-button danger-action" id="masterResetButton" type="button">Master reset</button>
+            <input id="importDataFile" type="file" accept="application/json,.json" hidden>
+          </div>
+        </div>
+      </section>
+
+      <section class="history-modal lock-modal" id="lockModal" aria-labelledby="lockTitle" aria-modal="true" role="dialog" hidden>
+        <div class="history-panel lock-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Security</p>
+              <h2 id="lockTitle">Unlock app</h2>
+            </div>
+          </div>
+          <label class="field" id="lockPasswordField">
+            <span>Password</span>
+            <input id="lockPassword" type="password" autocomplete="current-password" placeholder="Password">
+          </label>
+          <p class="lock-error" id="lockError" aria-live="polite"></p>
+          <div class="settings-actions">
+            <button class="text-button" id="unlockButton" type="button">Unlock</button>
+            <button class="text-button" id="biometricUnlockButton" type="button">Use biometric</button>
+            <button class="text-button danger-action" id="resetPasswordButton" type="button">Reset password</button>
+            <button class="text-button" id="setupPasswordButton" type="button" hidden>Continue</button>
+            <button class="text-button" id="setupBiometricButton" type="button" hidden>Set up biometric</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="history-modal lock-modal" id="confirmPasswordModal" aria-labelledby="confirmPasswordTitle" aria-modal="true" role="dialog" hidden>
+        <div class="history-panel lock-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Security</p>
+              <h2 id="confirmPasswordTitle">Confirm password</h2>
+            </div>
+          </div>
+          <p class="lock-error" id="confirmPasswordMessage">Enter your app password to continue.</p>
+          <label class="field">
+            <span>Password</span>
+            <input id="confirmPasswordInput" type="password" autocomplete="current-password" placeholder="Password">
+          </label>
+          <p class="lock-error" id="confirmPasswordError" aria-live="polite"></p>
+          <div class="settings-actions">
+            <button class="text-button" id="confirmPasswordCancel" type="button">Cancel</button>
+            <button class="text-button" id="confirmPasswordSubmit" type="button">Continue</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="history-modal onboarding-modal" id="onboardingModal" aria-labelledby="onboardingTitle" aria-modal="true" role="dialog" hidden>
+        <div class="history-panel onboarding-panel">
+          <button class="delete-button" id="onboardingClose" type="button" aria-label="Close get started">x</button>
+          <p class="eyebrow" id="onboardingStepLabel">Initial setup</p>
+          <h2 id="onboardingTitle">Starting information</h2>
+          <p class="onboarding-copy" id="onboardingCopy"></p>
+          <form class="onboarding-form" id="onboardingForm"></form>
+          <div class="settings-actions onboarding-actions" id="onboardingActions"></div>
+        </div>
+      </section>
+
+      <section class="history-modal" id="historyModal" aria-labelledby="historyTitle" aria-modal="true" role="dialog" hidden>
+        <div class="history-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">10-year history</p>
+              <h2 id="historyTitle">Nutrition & Vitals</h2>
+            </div>
+            <button class="delete-button" id="historyClose" type="button" aria-label="Close history">x</button>
+          </div>
+          <div class="history-chart-wrap">
+            <div class="chart-legend history-legend" aria-label="History chart lines">
+              <button class="legend-item weight" type="button" data-history-metric="weight">Weight</button>
+              <button class="legend-item calories" type="button" data-history-metric="calories">Calories</button>
+              <button class="legend-item carbs" type="button" data-history-metric="carbs">Carbs</button>
+              <button class="legend-item glucose" type="button" data-history-metric="glucose">Glucose</button>
+              <button class="legend-item blood-pressure" type="button" data-history-metric="pressure">Blood Pressure</button>
+              <button class="legend-item water" type="button" data-history-metric="water">Water</button>
+            </div>
+            <div class="history-chart-controls">
+              <label>
+                <span>Filter</span>
+                <select id="historyMetricFilter">
+                  <option value="all">All</option>
+                  <option value="nutrition">Nutrition</option>
+                  <option value="vitals">Vitals</option>
+                  <option value="calories">Calories</option>
+                  <option value="carbs">Carbs</option>
+                  <option value="weight">Weight</option>
+                  <option value="glucose">Glucose</option>
+                  <option value="pressure">Blood Pressure</option>
+                  <option value="water">Water</option>
+                </select>
+              </label>
+              <label>
+                <span>Focus date</span>
+                <input id="historyFocusDate" type="date">
+              </label>
+              <label>
+                <span>Zoom</span>
+                <input id="historyZoomRange" type="range" min="1" max="3650" value="3650">
+              </label>
+              <output id="historyZoomLabel">10 years</output>
+            </div>
+            <div class="history-quick-filters" aria-label="Quick history ranges">
+              <button class="text-button history-range-button" type="button" data-history-days="7">7 days</button>
+              <button class="text-button history-range-button" type="button" data-history-days="30">30 days</button>
+              <button class="text-button history-range-button" type="button" data-history-days="90">90 days</button>
+              <button class="text-button history-range-button" type="button" data-history-days="365">1 year</button>
+              <button class="text-button history-range-button" type="button" data-history-days="3650">10 years</button>
+            </div>
+            <svg class="history-chart" id="historyChart" viewBox="0 0 640 240" role="img" aria-label="10-year nutrition, vitals, and water trends">
+              <g id="historyGrid"></g>
+              <path class="history-line history-weight-line" d=""></path>
+              <path class="history-line history-calories-line" d=""></path>
+              <path class="history-line history-carbs-line" d=""></path>
+              <path class="history-line history-glucose-line" d=""></path>
+              <path class="history-line history-pressure-line" d=""></path>
+              <path class="history-line history-water-line" d=""></path>
+            </svg>
+            <p class="nutrition-empty" id="historyChartEmpty">Add nutrition, vitals, or water entries to see date and time trends.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="history-modal" id="masterChartModal" aria-labelledby="masterChartTitle" aria-modal="true" role="dialog" hidden>
+        <div class="history-panel master-chart-panel">
+          <div class="section-heading">
+            <div>
+              <h2 id="masterChartTitle">Master Chart</h2>
+            </div>
+            <button class="delete-button" id="masterChartClose" type="button" aria-label="Close master chart">x</button>
+          </div>
+          <div class="master-chart-tools">
+            <div class="master-chart-ranges" aria-label="Master chart ranges">
+              <button class="text-button history-range-button" type="button" data-master-chart-days="1">Today</button>
+              <button class="text-button history-range-button" type="button" data-master-chart-days="7">This Week</button>
+              <button class="text-button history-range-button" type="button" data-master-chart-days="3650">10 Years</button>
+            </div>
+            <div class="master-chart-legend" aria-label="Weekday color legend">
+              <span><i data-weekday="0"></i>Sun</span>
+              <span><i data-weekday="1"></i>Mon</span>
+              <span><i data-weekday="2"></i>Tue</span>
+              <span><i data-weekday="3"></i>Wed</span>
+              <span><i data-weekday="4"></i>Thu</span>
+              <span><i data-weekday="5"></i>Fri</span>
+              <span><i data-weekday="6"></i>Sat</span>
+            </div>
+          </div>
+          <div class="nutrition-table-wrap history-table-wrap">
+            <table class="nutrition-table history-table master-chart-table">
+              <thead>
+                <tr>
+                  <th scope="col">Date / Time</th>
+                  <th scope="col">Calories</th>
+                  <th scope="col">Carbs</th>
+                  <th scope="col">Weight</th>
+                  <th scope="col">Ketosis</th>
+                  <th scope="col">Glucose</th>
+                  <th scope="col">Blood Pressure</th>
+                  <th scope="col">Water</th>
+                  <th scope="col">Symptom</th>
+                  <th scope="col">Severity</th>
+                  <th scope="col">Mood</th>
+                  <th scope="col">Intensity</th>
+                </tr>
+              </thead>
+              <tbody id="masterChartRows"></tbody>
+            </table>
+            <p class="nutrition-empty" id="masterChartEmpty">No nutrition, vitals, water, symptoms, or mood history recorded in the last 10 years.</p>
+          </div>
+        </div>
+      </section>
+
+
+      <section class="graph-panel" aria-labelledby="graphTitle">
+        <div class="section-heading">
+          <div>
+            <h2 id="graphTitle">Weekly Task Progress</h2>
+          </div>
+          <span class="graph-score" id="graphAverage">0%</span>
+        </div>
+        <div class="weekly-task-percent-bar" id="weeklyTaskPercentBar" aria-label="Weekly task progress 0%">
+          <span id="weeklyTaskPercentFill">0%</span>
+        </div>
+        <p class="weekly-task-percent-meta" id="weeklyTaskPercentMeta">0 of 0 tasks completed</p>
+      </section>
+
+      <form class="composer" id="habitForm" aria-labelledby="taskEntryTitle">
+        <div class="composer-heading">
+          <h2 id="taskEntryTitle">Tasks</h2>
+        </div>
         <label class="field">
-          <span>Habit</span>
-          <input id="habitName" name="habitName" type="text" maxlength="32" autocomplete="off" placeholder="Drink water" required>
+          <span>Title</span>
+          <input id="habitName" name="habitName" type="text" maxlength="32" autocomplete="off" required>
+        </label>
+        <label class="field">
+          <span>Day</span>
+          <select id="taskDay" name="taskDay">
+            <option value=""></option>
+            <option value="Sunday">Sunday</option>
+            <option value="Monday">Monday</option>
+            <option value="Tuesday">Tuesday</option>
+            <option value="Wednesday">Wednesday</option>
+            <option value="Thursday">Thursday</option>
+            <option value="Friday">Friday</option>
+            <option value="Saturday">Saturday</option>
+          </select>
         </label>
         <label class="field">
           <span>Category</span>
           <select id="habitCategory" name="habitCategory">
+            <option value=""></option>
             <option value="Health">Health</option>
             <option value="Fitness">Fitness</option>
             <option value="Mind">Mind</option>
@@ -158,90 +881,51 @@
           </select>
         </label>
         <label class="field">
-          <span>Time</span>
-          <select id="habitTime" name="habitTime">
-            <option value="Anytime">Anytime</option>
-            <option value="Morning">Morning</option>
-            <option value="Afternoon">Afternoon</option>
-            <option value="Evening">Evening</option>
-            <option value="Night">Night</option>
-          </select>
+          <span>Deadline</span>
+          <input id="habitDeadline" name="habitDeadline" type="time">
         </label>
         <label class="field">
           <span>Priority</span>
           <select id="habitPriority" name="habitPriority">
+            <option value=""></option>
             <option value="Normal">Normal</option>
             <option value="High">High</option>
             <option value="Low">Low</option>
           </select>
         </label>
-        <label class="field color-field">
-          <span>Color</span>
-          <input id="habitColor" name="habitColor" type="color" value="#f97316" aria-label="Habit color">
-        </label>
         <label class="field note-field">
-          <span>Note</span>
-          <input id="habitNote" name="habitNote" type="text" maxlength="72" autocomplete="off" placeholder="Optional reminder">
+          <span>Notes</span>
+          <input id="habitNote" name="habitNote" type="text" maxlength="72" autocomplete="off" placeholder="Notes">
         </label>
+        <div class="preset-row task-preset-row" aria-label="Common tasks">
+          <button class="preset-chip" type="button" data-task-preset="Walk for 10 minutes">Walk</button>
+          <button class="preset-chip" type="button" data-task-preset="Take medication">Medication</button>
+          <button class="preset-chip" type="button" data-task-preset="Stretch">Stretch</button>
+          <button class="preset-chip" type="button" data-task-preset="Plan the day">Plan</button>
+        </div>
         <button class="primary-button" type="submit">Add</button>
       </form>
-
-      <section class="toolbar" aria-label="Habit filters">
-        <div class="segmented" role="tablist" aria-label="Filter habits">
-          <button type="button" class="segment active" data-filter="all">All</button>
-          <button type="button" class="segment" data-filter="today">Today</button>
-          <button type="button" class="segment" data-filter="missed">Missed</button>
-        </div>
-        <button class="text-button" id="clearDoneButton" type="button">Reset Today</button>
-      </section>
-
-      <section class="graph-panel" aria-labelledby="graphTitle">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Movement</p>
-            <h2 id="graphTitle">14-day habit and health progress</h2>
-          </div>
-          <span class="graph-score" id="graphAverage">0%</span>
-        </div>
-        <div class="chart-legend" aria-label="Chart lines">
-          <span class="legend-item habit">Habits</span>
-          <span class="legend-item calories">Calories</span>
-          <span class="legend-item carbs">Carbs</span>
-          <span class="legend-item weight">Weight</span>
-          <span class="legend-item ketosis">Ketosis</span>
-          <span class="legend-item glucose">Glucose</span>
-          <span class="legend-item blood-pressure">Blood Pressure</span>
-          <span class="legend-item water">Water</span>
-        </div>
-        <div class="trend-wrap">
-          <svg id="trendGraph" class="trend-graph" viewBox="0 0 640 220" role="img" aria-labelledby="trendLabel">
-            <title id="trendLabel">Habit completion, calories, carbs, weight, ketosis phase, glucose, blood pressure, and water movement for the last fourteen days</title>
-            <g class="grid-lines"></g>
-            <path class="trend-area" d=""></path>
-            <path class="trend-line" d=""></path>
-            <path class="health-line calories-line" d=""></path>
-            <path class="health-line carbs-line" d=""></path>
-            <path class="health-line weight-line" d=""></path>
-            <path class="health-line ketosis-line" d=""></path>
-            <path class="health-line glucose-line" d=""></path>
-            <path class="health-line systolic-line" d=""></path>
-            <path class="health-line diastolic-line" d=""></path>
-            <path class="health-line water-line" d=""></path>
-            <g class="trend-points"></g>
-          </svg>
-        </div>
-        <div class="bar-graph" id="barGraph" aria-label="Daily completion bars"></div>
-      </section>
-
       <section class="habit-list" id="habitList" aria-live="polite"></section>
+
+      <div class="floating-add" id="floatingAddMenu">
+        <button class="floating-add-main" id="floatingAddButton" type="button" aria-label="Open quick add menu">+</button>
+        <div class="floating-add-actions" aria-label="Quick add menu">
+          <button type="button" data-quick-action="tasks">Task</button>
+          <button type="button" data-quick-action="vitals">Vitals</button>
+          <button type="button" data-quick-action="water">Water</button>
+          <button type="button" data-quick-action="mood">Mood</button>
+          <button type="button" data-quick-action="symptoms">Symptom</button>
+          <button type="button" data-quick-action="journal">Journal</button>
+        </div>
+      </div>
 
       <template id="habitTemplate">
         <article class="habit-card">
-          <button class="check-button" type="button" aria-label="Toggle habit"></button>
+          <button class="check-button" type="button" aria-label="Toggle task"></button>
           <div class="habit-main">
             <div class="habit-row">
               <h2></h2>
-              <button class="delete-button" type="button" aria-label="Delete habit">x</button>
+              <button class="delete-button" type="button" aria-label="Delete task">x</button>
             </div>
             <div class="habit-stats">
               <span class="streak"></span>
@@ -250,19 +934,20 @@
             <div class="habit-attributes"></div>
             <p class="habit-note"></p>
             <div class="habit-actions">
-              <a class="calendar-link" rel="noopener">Add to Apple Calendar</a>
+              <a class="calendar-link" target="_blank" rel="noopener">Add to Google Calendar</a>
             </div>
-            <div class="week-strip" aria-label="Last seven days"></div>
           </div>
         </article>
       </template>
 
       <section class="empty-state" id="emptyState" hidden>
-        <h2>No habits yet</h2>
-        <p>Add one daily habit to start tracking your streak.</p>
+        <h2>No tasks yet</h2>
+        <p>Add one daily task to start tracking your progress.</p>
       </section>
-    </main>
 
-    <script src="app.js?v=7" defer></script>
+    </main>
+    <div class="app-toast" id="appToast" role="status" aria-live="polite" hidden></div>
+
+    <script src="app.js?v=196" defer></script>
   </body>
 </html>
