@@ -163,7 +163,6 @@ let aiSafetyScanRequestId = 0;
 let masterChartRangeDays = HISTORY_RETENTION_DAYS;
 let smartCoachRenderTimer = null;
 let activeOnboardingDictationButton = null;
-let activeOnboardingDictationField = null;
 
 function updateDialogScrollLock() {
   const hasOpenDialog = Boolean(document.querySelector(".history-modal:not([hidden]), .affirmation-modal:not([hidden])"));
@@ -2342,17 +2341,6 @@ function normalizeAiSafetyScanResult(data) {
     reason: cleanAiCoachText(data?.reason || "").slice(0, 220),
     action: cleanAiCoachText(data?.action || "").slice(0, 180)
   };
-}
-
-function inferAiSafetyFromInsight(insight) {
-  const text = `${insight.title} ${insight.body}`;
-  if (/\b(suicide|self-harm|self harm|kill myself|want to die|call 911|988|immediate danger|crisis)\b/i.test(text)) {
-    return { level: "crisis", matchedText: "", reason: insight.body, action: "Use crisis support now." };
-  }
-  if (insight.tone === "care" && /\b(journal|mood|hopeless|worthless|burden|depression|distress|support)\b/i.test(text)) {
-    return { level: "concern", matchedText: "", reason: insight.body, action: "Check in and open AI Coach." };
-  }
-  return { level: "none", matchedText: "", reason: "", action: "" };
 }
 
 function handleAiSafetyScanResult(result) {
@@ -5219,7 +5207,6 @@ function dictateIntoOnboardingField(event) {
     showToast("Tap a setup field first.");
     return;
   }
-  activeOnboardingDictationField = field;
   if (button) button.classList.add("is-listening");
   activeOnboardingDictationButton = button || null;
   startSimpleDictation()
@@ -5231,7 +5218,6 @@ function dictateIntoOnboardingField(event) {
     .finally(() => {
       if (activeOnboardingDictationButton) activeOnboardingDictationButton.classList.remove("is-listening");
       activeOnboardingDictationButton = null;
-      activeOnboardingDictationField = null;
     });
 }
 
@@ -7054,10 +7040,6 @@ function parseDictatedSymptoms(original, normalized) {
   return [...new Set(found)]
     .map((name) => ({ name: cleanDictatedPhrase(name), severity: getDictatedSeverity(normalized), note: "" }))
     .filter((entry) => entry.name);
-}
-
-function parseDictatedSymptom(original, normalized) {
-  return parseDictatedSymptoms(original, normalized)[0] || null;
 }
 
 function getDictatedSeverity(normalized) {
