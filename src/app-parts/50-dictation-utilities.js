@@ -1608,3 +1608,4 @@ if (isAppLockEnabled()) {
 } else {
   showSecuritySetup();
 }
+handleFacebookLoginRedirect();
