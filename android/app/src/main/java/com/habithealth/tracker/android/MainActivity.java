@@ -23,7 +23,6 @@ import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.view.View;
-import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 
 import com.getcapacitor.BridgeActivity;
@@ -40,7 +39,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        hardenMedicalDataPrivacy();
+        configureWebViewPrivacy();
         registerPrintBridge();
         registerSecurityBridge();
         registerKeyboardBridge();
@@ -48,8 +47,7 @@ public class MainActivity extends BridgeActivity {
         handleFacebookRedirect(getIntent());
     }
 
-    private void hardenMedicalDataPrivacy() {
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
+    private void configureWebViewPrivacy() {
         WebView.setWebContentsDebuggingEnabled(false);
         if (this.bridge == null || this.bridge.getWebView() == null) {
             return;
