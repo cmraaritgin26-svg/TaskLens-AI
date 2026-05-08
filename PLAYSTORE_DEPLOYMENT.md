@@ -100,8 +100,8 @@ checking, but it is not ready to upload to Play.
 - Privacy policy URL: required because the app handles health information and
   optional AI/cloud processing.
 - Data safety form: disclose health and fitness data, journal text, app
-  activity/tasks, diagnostics if any are added later, and whether data is shared
-  with configured AI services.
+  activity/tasks, optional Facebook user ID for app unlock, diagnostics if any
+  are added later, and whether data is shared with configured AI services.
 - Health apps declaration: complete any health/medical related Play Console
   declarations that apply to tracking vitals, symptoms, mood, journal entries,
   nutrition, and wellness guidance.
