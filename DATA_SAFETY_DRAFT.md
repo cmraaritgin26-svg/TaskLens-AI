@@ -40,4 +40,6 @@ Optional cloud AI use:
 - Users can delete individual journal entries.
 - Users can delete all journal entries.
 - Users can clear app lock settings, including Facebook login linkage.
+- Users can request deletion of account linkage and associated data at
+  `https://cmraaritgin26-svg.github.io/Habit-Tracker/data-deletion.html`.
 - Users can export/import data.
