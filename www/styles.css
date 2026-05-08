@@ -1708,6 +1708,32 @@ input[type="color"] {
   justify-content: flex-end;
 }
 
+.onboarding-dictate-button {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  padding: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.onboarding-dictate-button svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.onboarding-dictate-button.is-listening {
+  background: var(--accent);
+  color: #fff;
+}
+
 .lock-error {
   min-height: 20px;
   color: var(--critical);
