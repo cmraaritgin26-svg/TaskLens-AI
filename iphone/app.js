@@ -5153,7 +5153,7 @@ function startGuidedDataEntry() {
 function renderInitialDataOnboarding() {
   const steps = getInitialDataSteps();
   const step = steps[onboardingStepIndex];
-  onboardingStepLabel.textContent = `Getting Started ${onboardingStepIndex + 1} of ${steps.length}`;
+  onboardingStepLabel.textContent = `${onboardingStepIndex + 1} of ${steps.length}`;
   onboardingTitle.textContent = step.title;
   onboardingCopy.textContent = step.copy;
   onboardingForm.innerHTML = step.fields;
