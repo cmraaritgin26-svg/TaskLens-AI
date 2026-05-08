@@ -9,7 +9,7 @@
     "build:app": "node scripts/build-app.js",
     "check": "npm run build:app && node --check app.js && node --check iphone/app.js",
     "sync:www": "npm run build:app && cp index.html www/index.html && cp app.js www/app.js && cp styles.css www/styles.css && cp service-worker.js www/service-worker.js",
-    "sync:android-assets": "npm run sync:www && cp -R www/. android/app/src/main/assets/public/",
+    "sync:android-assets": "npm run sync:www && mkdir -p android/app/src/main/assets/public && cp -R www/. android/app/src/main/assets/public/",
     "build:apk": "npm run check && npm run sync:android-assets && cd android && ./gradlew -PlocalSdk34 -Pandroid.aapt2FromMavenOverride=/data/data/com.termux/files/usr/bin/aapt2 assembleDebug",
     "bundle:release": "npm run check && npm run sync:android-assets && cd android && ./gradlew bundleRelease",
     "play:bundle": "npm run bundle:release && mkdir -p dist/play && cp android/app/build/outputs/bundle/release/app-release.aab dist/play/HealthTaskTracker-release.aab",
