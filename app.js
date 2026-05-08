@@ -6100,6 +6100,7 @@ function closeDictationReview() {
   if (title) title.textContent = "Review what I heard";
   dictationReviewModal.hidden = true;
   dictationReviewMessage.textContent = "";
+  dictationReviewText.value = "";
   pendingDictationExtraction = null;
   pendingDictationTranscript = "";
   pendingParsedDictationResult = null;
