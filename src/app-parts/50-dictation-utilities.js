@@ -577,7 +577,7 @@ function buildTasksReviewFields(tasks) {
     <div class="dictation-review-section">
       <h3>Task ${index + 1}</h3>
       ${reviewInput(`taskName${index}`, "Task", task.name)}
-      ${reviewSelect(`taskDay${index}`, "Day", task.day, ["", ...weekDays])}
+      ${reviewInput(`taskDate${index}`, "Date", task.date || today, "date")}
       ${reviewInput(`taskDeadline${index}`, "Deadline", task.deadline, "time")}
       ${reviewTextarea(`taskNote${index}`, "Notes", task.note)}
     </div>
@@ -616,9 +616,11 @@ function setDictationTasks(result, tasks) {
 function readTasksReviewFields(data, count) {
   return Array.from({ length: count }, (_, index) => {
     const name = String(data.get(`taskName${index}`) || "").trim();
+    const date = normalizeTaskDate(data.get(`taskDate${index}`)) || today;
     return name ? {
       name,
-      day: String(data.get(`taskDay${index}`) || weekDays[new Date().getDay()]),
+      date,
+      day: weekDays[parseDateKey(date).getDay()],
       deadline: normalizeTaskTime(String(data.get(`taskDeadline${index}`) || "")),
       note: String(data.get(`taskNote${index}`) || "").trim()
     } : null;
@@ -757,7 +759,7 @@ function populateFieldsFromDictationResult(result) {
   const task = result.task || (Array.isArray(result.tasks) ? result.tasks[0] : null);
   if (task) {
     habitName.value = task.name || "";
-    if (taskDay) taskDay.value = task.day || weekDays[new Date().getDay()];
+    if (taskDate) taskDate.value = normalizeTaskDate(task.date) || today;
     habitDeadline.value = normalizeTaskTime(task.deadline);
     habitNote.value = task.note || "";
   }
