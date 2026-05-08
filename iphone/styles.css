@@ -335,6 +335,37 @@ h1 {
   line-height: 1;
 }
 
+.preset-chip {
+  flex: 0 0 auto;
+  width: fit-content;
+  min-height: 30px;
+  border-color: rgba(147, 197, 253, 0.38);
+  border-radius: 999px;
+  background: rgba(15, 47, 104, 0.72);
+  color: var(--ink);
+  box-shadow: 0 8px 18px rgba(2, 6, 23, 0.16);
+}
+
+.preset-row {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: -4px;
+}
+
+.preset-chip {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 900;
+  padding: 6px 11px;
+  cursor: pointer;
+}
+
+.task-preset-row {
+  justify-content: center;
+}
+
 h2 {
   font-family: var(--font-heading);
   color: var(--heading);
@@ -909,6 +940,12 @@ h2 {
 
 .journal-date-group .journal-item {
   margin-top: 8px;
+}
+
+.journal-empty-log {
+  border-style: dashed;
+  color: var(--muted);
+  opacity: 0.78;
 }
 
 .journal-item:focus-visible {
@@ -1518,9 +1555,20 @@ input[type="color"] {
 }
 
 .last24-panel {
+  display: flex;
+  flex-direction: column;
   max-height: calc(100dvh - 32px);
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+.last24-scroll {
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 2px;
+  touch-action: pan-y;
 }
 
 .last24-panel .nutrition-summary {
@@ -1669,6 +1717,32 @@ input[type="color"] {
 
 .onboarding-actions {
   justify-content: flex-end;
+}
+
+.onboarding-dictate-button {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  padding: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.onboarding-dictate-button svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.onboarding-dictate-button.is-listening {
+  background: var(--accent);
+  color: #fff;
 }
 
 .lock-error {
@@ -1855,10 +1929,22 @@ input[type="color"] {
   font-weight: 900;
 }
 
+.reminder-center-panel {
+  width: min(620px, 100%);
+}
+
+.reminder-center-row small {
+  text-align: right;
+}
+
 .settings-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.settings-search-field {
+  margin-bottom: 10px;
 }
 
 .settings-group-title,
@@ -1947,6 +2033,117 @@ input[type="color"] {
   border-color: rgba(251, 113, 133, 0.42);
   background: rgba(127, 29, 29, 0.52);
   color: var(--danger);
+}
+
+.floating-add {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(18px, env(safe-area-inset-bottom));
+  z-index: 15;
+  width: 220px;
+  height: 220px;
+  pointer-events: none;
+}
+
+.floating-add-main {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 52px;
+  height: 52px;
+  border: 1px solid rgba(147, 197, 253, 0.46);
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent), #0f2f68);
+  color: #f8fbff;
+  font-family: var(--font-body);
+  font-size: 1.7rem;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 18px 36px rgba(2, 6, 23, 0.32);
+  pointer-events: auto;
+}
+
+.floating-add-actions {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+.floating-add-actions button {
+  position: absolute;
+  right: 6px;
+  bottom: 8px;
+  width: fit-content;
+  min-height: 36px;
+  border: 1px solid rgba(147, 197, 253, 0.5);
+  border-radius: 999px;
+  background: rgba(15, 47, 104, 0.96);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 900;
+  padding: 8px 12px;
+  box-shadow: 0 14px 28px rgba(2, 6, 23, 0.34);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(0, 0) scale(0.75);
+  transform-origin: center;
+  transition: opacity 150ms ease, transform 180ms ease;
+}
+
+.floating-add.open .floating-add-actions button {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.floating-add.open .floating-add-actions button:nth-child(1) {
+  transform: translate(-82px, -8px) scale(1);
+}
+
+.floating-add.open .floating-add-actions button:nth-child(2) {
+  transform: translate(-76px, -62px) scale(1);
+}
+
+.floating-add.open .floating-add-actions button:nth-child(3) {
+  transform: translate(-28px, -104px) scale(1);
+}
+
+.floating-add.open .floating-add-actions button:nth-child(4) {
+  transform: translate(-114px, -112px) scale(1);
+}
+
+.floating-add.open .floating-add-actions button:nth-child(5) {
+  transform: translate(-156px, -58px) scale(1);
+}
+
+.floating-add.open .floating-add-actions button:nth-child(6) {
+  transform: translate(-148px, 0) scale(1);
+}
+
+.app-toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  z-index: 30;
+  transform: translateX(-50%);
+  max-width: min(92vw, 360px);
+  border: 1px solid rgba(147, 197, 253, 0.45);
+  border-radius: 999px;
+  background: rgba(15, 47, 104, 0.96);
+  color: var(--ink);
+  box-shadow: 0 18px 36px rgba(2, 6, 23, 0.35);
+  font-size: 0.86rem;
+  font-weight: 900;
+  padding: 9px 14px;
+  text-align: center;
 }
 
 .history-panel {
@@ -2114,7 +2311,8 @@ button.legend-item.is-active {
 
 .legend-item.carbs,
 .legend-item.glucose,
-.legend-item.water {
+.legend-item.water,
+.legend-item.symptoms {
   --legend-color: var(--accent-soft);
 }
 
@@ -2127,7 +2325,7 @@ button.legend-item.is-active {
   --legend-color: var(--amber);
 }
 
-.legend-item.tasks {
+.legend-item.mood {
   --legend-color: var(--amber);
 }
 
@@ -2184,11 +2382,12 @@ button.legend-item.is-active {
 
 .history-carbs-point,
 .history-glucose-point,
-.history-water-point {
+.history-water-point,
+.history-symptoms-point {
   fill: var(--accent-soft);
 }
 
-.history-tasks-point {
+.history-mood-point {
   fill: var(--amber);
 }
 
@@ -2207,11 +2406,12 @@ button.legend-item.is-active {
 .history-calories-line,
 .history-carbs-line,
 .history-glucose-line,
-.history-water-line {
+.history-water-line,
+.history-symptoms-line {
   stroke: var(--accent-soft);
 }
 
-.history-task-line {
+.history-mood-line {
   stroke: var(--amber);
 }
 
