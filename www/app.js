@@ -186,7 +186,7 @@ updateDialogScrollLock();
 
 const habitForm = document.querySelector("#habitForm");
 const habitName = document.querySelector("#habitName");
-const taskDay = document.querySelector("#taskDay");
+const taskDate = document.querySelector("#taskDate");
 const habitCategory = document.querySelector("#habitCategory");
 const habitDeadline = document.querySelector("#habitDeadline");
 const habitPriority = document.querySelector("#habitPriority");
@@ -493,13 +493,15 @@ habitForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const name = habitName.value.trim();
   const wasEditing = Boolean(editingHabitId);
+  const date = normalizeTaskDate(taskDate?.value) || today;
 
   if (!name) return;
 
   const task = {
     id: editingHabitId || createHabitId(),
     name,
-    day: taskDay?.value || weekDays[new Date().getDay()],
+    date,
+    day: weekDays[parseDateKey(date).getDay()],
     category: habitCategory.value || "General",
     time: "",
     deadline: normalizeTaskTime(habitDeadline.value),
@@ -518,7 +520,7 @@ habitForm.addEventListener("submit", (event) => {
   habitName.value = "";
   habitNote.value = "";
   habitDeadline.value = "";
-  if (taskDay) taskDay.value = "";
+  if (taskDate) taskDate.value = "";
   habitCategory.value = "";
   habitPriority.value = "";
   habitForm.querySelector(".primary-button").textContent = "Add";
@@ -954,12 +956,10 @@ if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
 function render() {
   habitList.textContent = "";
   const tasksByDay = groupTasksByDay();
-  const todayIndex = new Date().getDay();
   const fragment = document.createDocumentFragment();
-  weekDays.forEach((dayName, index) => {
-    const dayHabits = tasksByDay.get(dayName);
-    if (!dayHabits?.length) return;
-    fragment.appendChild(renderDaySection(dayName, index, dayHabits, todayIndex));
+  [...tasksByDay.entries()].forEach(([dateKey, dayHabits]) => {
+    const dayName = weekDays[parseDateKey(dateKey).getDay()];
+    fragment.appendChild(renderDaySection(dayName, dateKey, dayHabits));
   });
   habitList.appendChild(fragment);
 
@@ -987,27 +987,27 @@ function clearMoodAndSymptomForms() {
 }
 
 function groupTasksByDay() {
-  const tasksByDay = new Map(weekDays.map((dayName) => [dayName, []]));
+  const tasksByDay = new Map();
   habits.forEach((habit) => {
-    const dayName = getTaskDay(habit);
-    if (!tasksByDay.has(dayName)) tasksByDay.set(dayName, []);
-    tasksByDay.get(dayName).push(habit);
+    const dateKey = getTaskDateKey(habit);
+    if (!tasksByDay.has(dateKey)) tasksByDay.set(dateKey, []);
+    tasksByDay.get(dateKey).push(habit);
   });
-  return tasksByDay;
+  return new Map([...tasksByDay.entries()].sort(([firstDate], [secondDate]) => firstDate.localeCompare(secondDate)));
 }
 
-function renderDaySection(dayName, dayIndex, dayHabits, todayIndex) {
+function renderDaySection(dayName, dateKey, dayHabits) {
   const section = document.createElement("section");
   section.className = "day-section";
   section.dataset.day = dayName;
-  section.classList.toggle("today", dayIndex === todayIndex);
-  if (dayIndex === todayIndex) {
+  section.dataset.date = dateKey;
+  section.classList.toggle("today", dateKey === today);
+  if (dateKey === today) {
     section.id = "todayTasksSection";
   }
 
-  const currentDateKey = getWeekdayDateKey(dayIndex);
   const total = dayHabits.length;
-  const complete = dayHabits.filter((habit) => habit.completions.includes(currentDateKey)).length;
+  const complete = dayHabits.filter((habit) => habit.completions.includes(dateKey)).length;
   const percentComplete = total ? Math.round((complete / total) * 100) : 0;
 
   const header = document.createElement("div");
@@ -1021,22 +1021,22 @@ function renderDaySection(dayName, dayIndex, dayHabits, todayIndex) {
   const title = document.createElement("h2");
   title.textContent = dayName;
   const subtitle = document.createElement("p");
-  subtitle.textContent = total ? `${total} task${total === 1 ? "" : "s"}` : "No tasks yet";
+  subtitle.textContent = `${formatSymptomHistoryDate(dateKey)} - ${total} task${total === 1 ? "" : "s"}`;
   titleWrap.append(title, subtitle);
 
   const percent = document.createElement("span");
   percent.className = "day-section-percent";
   percent.textContent = `${percentComplete}%`;
   percent.title = total
-    ? `${complete} of ${total} tasks completed for ${dayName}`
-    : `No tasks scheduled for ${dayName}`;
+    ? `${complete} of ${total} tasks completed for ${formatSymptomHistoryDate(dateKey)}`
+    : `No tasks scheduled for ${formatSymptomHistoryDate(dateKey)}`;
 
   header.append(titleWrap, percent);
-  header.addEventListener("click", () => openDayTaskDialog(dayName, currentDateKey));
+  header.addEventListener("click", () => openDayTaskDialog(dayName, dateKey));
   header.addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      openDayTaskDialog(dayName, currentDateKey);
+      openDayTaskDialog(dayName, dateKey);
     }
   });
 
@@ -1052,7 +1052,7 @@ function renderDaySection(dayName, dayIndex, dayHabits, todayIndex) {
     const fragment = document.createDocumentFragment();
     const recentDays = getRecentDays();
     dayHabits.forEach((habit) => {
-      fragment.appendChild(renderTaskCard(habit, currentDateKey, dayName, recentDays));
+      fragment.appendChild(renderTaskCard(habit, dateKey, dayName, recentDays));
     });
     list.appendChild(fragment);
   }
@@ -1160,7 +1160,7 @@ function renderTodayDashboard() {
 
 function getTodaySummary() {
   const todayName = weekDays[new Date().getDay()];
-  const tasks = habits.filter((habit) => getTaskDay(habit) === todayName);
+  const tasks = habits.filter((habit) => isTaskScheduledForDate(habit, today));
   const completedTasks = tasks.filter((habit) => habit.completions.includes(today));
   const incompleteTasks = tasks.filter((habit) => !habit.completions.includes(today));
   return {
@@ -1300,7 +1300,7 @@ function getScaledValues(values) {
 
 function getSmartCoachInsights() {
   const todayName = weekDays[new Date().getDay()];
-  const todayTasks = habits.filter((habit) => getTaskDay(habit) === todayName);
+  const todayTasks = habits.filter((habit) => isTaskScheduledForDate(habit, today));
   const completedTasks = todayTasks.filter((habit) => habit.completions.includes(today)).length;
   const completionPercent = todayTasks.length ? Math.round((completedTasks / todayTasks.length) * 100) : 0;
   const latestEntry = nutritionEntries[0];
@@ -1433,7 +1433,7 @@ function getUpcomingTaskReminderCandidates(now = new Date(), horizonDays = 5) {
     const dateKey = toDateKey(date);
     const dayName = weekDays[date.getDay()];
     habits
-      .filter((habit) => getTaskDay(habit) === dayName && !habit.completions.includes(dateKey))
+      .filter((habit) => isTaskScheduledForDate(habit, dateKey) && !habit.completions.includes(dateKey))
       .forEach((habit) => {
         const missedBefore = taskDeadlineEvents.some((event) => event.taskId === habit.id);
         upcoming.push({ habit, dateKey, dayName, offset, missedBefore });
@@ -1537,7 +1537,7 @@ function getAiCoachActionLabel(destination) {
 
 function getAiCoachSnapshotKey() {
   return JSON.stringify({
-    tasks: habits.map((habit) => [habit.id, habit.name, getTaskDay(habit), habit.category, habit.time, habit.deadline, habit.priority, truncateForAi(habit.note, 160), habit.completions?.slice(-21)]),
+    tasks: habits.map((habit) => [habit.id, habit.name, getTaskDateKey(habit), getTaskDay(habit), habit.category, habit.time, habit.deadline, habit.priority, truncateForAi(habit.note, 160), habit.completions?.slice(-21)]),
     nutrition: nutritionEntries.slice(0, 21),
     symptoms: symptomEntries.slice(0, 21).map((entry) => ({ ...entry, note: truncateForAi(entry.note, 160) })),
     moods: moodEntries.slice(0, 21).map((entry) => ({ ...entry, note: truncateForAi(entry.note, 160) })),
@@ -1550,8 +1550,7 @@ function getAiCoachSnapshotKey() {
 function buildAiCoachSnapshot(localInsights) {
   const weekStats = getWeekStats();
   const weeklyTotals = getWeeklyCompletionTotals();
-  const todayName = weekDays[new Date().getDay()];
-  const todayTasks = habits.filter((habit) => getTaskDay(habit) === todayName);
+  const todayTasks = habits.filter((habit) => isTaskScheduledForDate(habit, today));
   const completedToday = todayTasks.filter((habit) => habit.completions.includes(today)).length;
   return {
     today,
@@ -1576,6 +1575,7 @@ function buildAiCoachSnapshot(localInsights) {
     tasks: habits.map((habit) => ({
       id: habit.id,
       name: habit.name,
+      date: getTaskDateKey(habit),
       day: getTaskDay(habit),
       category: habit.category || "",
       time: normalizeTaskTime(habit.time || ""),
@@ -1636,7 +1636,7 @@ function getDataTrendInsights() {
 function buildWholeAppTrendScan() {
   const dateKeys = getRecentDateKeys(30, 0);
   return dateKeys.map((dateKey) => {
-    const tasksForDay = habits.filter((habit) => getTaskDay(habit) === weekDays[parseDateKey(dateKey).getDay()]);
+    const tasksForDay = habits.filter((habit) => isTaskScheduledForDate(habit, dateKey));
     const completeTasks = tasksForDay.filter((habit) => habit.completions.includes(dateKey)).length;
     const nutrition = nutritionEntries.find((entry) => entry.date === dateKey) || null;
     const symptoms = symptomEntries.filter((entry) => entry.date === dateKey);
@@ -2552,11 +2552,12 @@ function getEntryCountInLastDays(entries, days, offsetDays) {
 
 function addSuggestedTask(name) {
   const dayName = weekDays[new Date().getDay()];
-  const duplicate = habits.some((habit) => habit.name.toLowerCase() === name.toLowerCase() && getTaskDay(habit) === dayName);
+  const duplicate = habits.some((habit) => habit.name.toLowerCase() === name.toLowerCase() && isTaskScheduledForDate(habit, today));
   if (duplicate) return;
   habits = [{
     id: createHabitId(),
     name,
+    date: today,
     day: dayName,
     category: "Health",
     time: "",
@@ -2691,8 +2692,7 @@ function openReminderCenter() {
 
 function getReminderCenterItems() {
   const now = new Date();
-  const todayName = weekDays[now.getDay()];
-  const todayTasks = habits.filter((habit) => getTaskDay(habit) === todayName);
+  const todayTasks = habits.filter((habit) => isTaskScheduledForDate(habit, today));
   const openTodayTasks = todayTasks.filter((habit) => !habit.completions.includes(today));
   const overdue = getCurrentOverdueTasks(now);
   const upcomingDeadlines = getUpcomingDeadlineTasks(now);
@@ -3259,7 +3259,7 @@ function editHabit(id) {
   if (!habit) return;
   editingHabitId = id;
   habitName.value = habit.name;
-  if (taskDay) taskDay.value = getTaskDay(habit);
+  if (taskDate) taskDate.value = getTaskDateKey(habit);
   habitCategory.value = habit.category || "Health";
   habitDeadline.value = normalizeTaskTime(habit.deadline);
   habitPriority.value = habit.priority || "Normal";
@@ -3269,7 +3269,7 @@ function editHabit(id) {
 }
 
 function openDayTaskDialog(dayName, dateKey) {
-  const dayTasks = habits.filter((habit) => getTaskDay(habit) === dayName);
+  const dayTasks = habits.filter((habit) => isTaskScheduledForDate(habit, dateKey));
   const modal = document.createElement("section");
   const panel = document.createElement("div");
   const heading = document.createElement("div");
@@ -3396,18 +3396,12 @@ function getAffirmationIndex(dateKey) {
 
 function getGoogleCalendarUrl(habit) {
   const start = getCalendarStart(habit.time || "Anytime");
+  const taskDate = parseDateKey(getTaskDateKey(habit));
+  start.setFullYear(taskDate.getFullYear(), taskDate.getMonth(), taskDate.getDate());
   const end = new Date(start.getTime() + 30 * 60 * 1000);
-  const dayCodes = {
-    Sunday: "SU",
-    Monday: "MO",
-    Tuesday: "TU",
-    Wednesday: "WE",
-    Thursday: "TH",
-    Friday: "FR",
-    Saturday: "SA"
-  };
   const details = [
     habit.note,
+    `Date: ${formatSymptomHistoryDate(getTaskDateKey(habit))}`,
     `Category: ${habit.category || "General"}`,
     `Priority: ${habit.priority || "Normal"}`,
     "Created from Health & Task Tracker."
@@ -3416,8 +3410,7 @@ function getGoogleCalendarUrl(habit) {
     action: "TEMPLATE",
     text: `Task: ${habit.name}`,
     details,
-    dates: `${toCalendarDateTime(start)}/${toCalendarDateTime(end)}`,
-    recur: `RRULE:FREQ=WEEKLY;BYDAY=${dayCodes[getTaskDay(habit)] || "MO"}`
+    dates: `${toCalendarDateTime(start)}/${toCalendarDateTime(end)}`
   });
 
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
@@ -3579,7 +3572,22 @@ function formatTaskTime(value) {
 }
 
 function getTaskDay(habit) {
-  return weekDays.includes(habit.day) ? habit.day : weekDays[new Date().getDay()];
+  return weekDays[parseDateKey(getTaskDateKey(habit)).getDay()];
+}
+
+function normalizeTaskDate(value) {
+  const text = String(value || "").trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : "";
+}
+
+function getTaskDateKey(habit) {
+  if (normalizeTaskDate(habit?.date)) return habit.date;
+  if (weekDays.includes(habit?.day)) return getWeekdayDateKey(weekDays.indexOf(habit.day));
+  return today;
+}
+
+function isTaskScheduledForDate(habit, dateKey) {
+  return getTaskDateKey(habit) === dateKey;
 }
 
 function getWeekdayDateKey(dayIndex, referenceDate = new Date()) {
@@ -3683,8 +3691,8 @@ function renderWeeklyTaskPercentBar(totalComplete, totalTasks, average) {
 
 function getWeekStats() {
   return weekDays.map((dayName, index) => {
-    const dayHabits = habits.filter((habit) => getTaskDay(habit) === dayName);
     const dateKey = getWeekdayDateKey(index);
+    const dayHabits = habits.filter((habit) => isTaskScheduledForDate(habit, dateKey));
     const complete = dayHabits.filter((habit) => habit.completions.includes(dateKey)).length;
     const percent = dayHabits.length ? Math.round((complete / dayHabits.length) * 100) : 0;
     return {
@@ -3710,8 +3718,9 @@ function getCompletionDateKey(value) {
 
 function getWeeklyCompletionTotals() {
   const weekDateKeys = getCurrentWeekDateKeys();
-  const totalTasks = habits.length;
-  const totalComplete = habits.filter((habit) => (habit.completions || []).some((dateKey) => weekDateKeys.has(getCompletionDateKey(dateKey)))).length;
+  const weeklyTasks = habits.filter((habit) => weekDateKeys.has(getTaskDateKey(habit)));
+  const totalTasks = weeklyTasks.length;
+  const totalComplete = weeklyTasks.filter((habit) => (habit.completions || []).some((dateKey) => getCompletionDateKey(dateKey) === getTaskDateKey(habit))).length;
   const average = totalTasks ? Math.round((totalComplete / totalTasks) * 100) : 0;
   return { totalTasks, totalComplete, average };
 }
@@ -4400,6 +4409,8 @@ function loadHabits() {
         .map((habit) => ({
           id: habit.id || String(Date.now()),
           name: habit.name,
+          date: normalizeTaskDate(habit.date)
+            || (weekDays.includes(habit.day) ? getWeekdayDateKey(weekDays.indexOf(habit.day)) : today),
           day: weekDays.includes(habit.day)
             ? habit.day
             : weekDays[new Date().getDay()],
@@ -5821,7 +5832,7 @@ function checkTaskReminder() {
   const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
   const reminderKey = `${today}-${appSettings.reminderTime}`;
   if (currentTime !== (appSettings.reminderTime || "09:00") || lastReminderKey === reminderKey) return;
-  const remaining = habits.filter((habit) => getTaskDay(habit) === weekDays[now.getDay()] && !habit.completions.includes(today));
+  const remaining = habits.filter((habit) => isTaskScheduledForDate(habit, today) && !habit.completions.includes(today));
   if (!remaining.length) return;
   lastReminderKey = reminderKey;
   sendAppNotification(
@@ -5853,9 +5864,8 @@ function getDeadlineOccurrences(now) {
     const date = new Date(now);
     date.setDate(date.getDate() + offset);
     const dateKey = toDateKey(date);
-    const dayName = weekDays[date.getDay()];
     habits
-      .filter((habit) => getTaskDay(habit) === dayName && normalizeTaskTime(habit.deadline) && !habit.completions.includes(dateKey))
+      .filter((habit) => isTaskScheduledForDate(habit, dateKey) && normalizeTaskTime(habit.deadline) && !habit.completions.includes(dateKey))
       .forEach((habit) => {
         occurrences.push({
           habit,
@@ -6579,7 +6589,7 @@ function buildTasksReviewFields(tasks) {
     <div class="dictation-review-section">
       <h3>Task ${index + 1}</h3>
       ${reviewInput(`taskName${index}`, "Task", task.name)}
-      ${reviewSelect(`taskDay${index}`, "Day", task.day, ["", ...weekDays])}
+      ${reviewInput(`taskDate${index}`, "Date", task.date || today, "date")}
       ${reviewInput(`taskDeadline${index}`, "Deadline", task.deadline, "time")}
       ${reviewTextarea(`taskNote${index}`, "Notes", task.note)}
     </div>
@@ -6618,9 +6628,11 @@ function setDictationTasks(result, tasks) {
 function readTasksReviewFields(data, count) {
   return Array.from({ length: count }, (_, index) => {
     const name = String(data.get(`taskName${index}`) || "").trim();
+    const date = normalizeTaskDate(data.get(`taskDate${index}`)) || today;
     return name ? {
       name,
-      day: String(data.get(`taskDay${index}`) || weekDays[new Date().getDay()]),
+      date,
+      day: weekDays[parseDateKey(date).getDay()],
       deadline: normalizeTaskTime(String(data.get(`taskDeadline${index}`) || "")),
       note: String(data.get(`taskNote${index}`) || "").trim()
     } : null;
@@ -6759,7 +6771,7 @@ function populateFieldsFromDictationResult(result) {
   const task = result.task || (Array.isArray(result.tasks) ? result.tasks[0] : null);
   if (task) {
     habitName.value = task.name || "";
-    if (taskDay) taskDay.value = task.day || weekDays[new Date().getDay()];
+    if (taskDate) taskDate.value = normalizeTaskDate(task.date) || today;
     habitDeadline.value = normalizeTaskTime(task.deadline);
     habitNote.value = task.note || "";
   }
