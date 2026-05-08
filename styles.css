@@ -1555,9 +1555,20 @@ input[type="color"] {
 }
 
 .last24-panel {
+  display: flex;
+  flex-direction: column;
   max-height: calc(100dvh - 32px);
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+.last24-scroll {
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 2px;
+  touch-action: pan-y;
 }
 
 .last24-panel .nutrition-summary {
