@@ -88,18 +88,6 @@
             <img class="app-title-icon" src="icons/icon-192.png?v=2" alt="" aria-hidden="true">
             <h1>Health &amp; Task Tracker</h1>
           </div>
-          <div class="username-display">
-            <span>Facebook user</span>
-            <strong id="usernameDisplay">Guest</strong>
-          </div>
-          <div class="facebook-panel">
-            <div class="facebook-actions">
-              <button class="text-button" id="facebookLoginButton" type="button">Log in with Facebook</button>
-              <button class="text-button" id="facebookLogoutButton" type="button" hidden>Log out</button>
-              <button class="text-button" id="openFacebookProfile" type="button">Open Facebook</button>
-              <button class="text-button" id="shareFacebookProgress" type="button">Share progress</button>
-            </div>
-          </div>
         </div>
       </header>
 
@@ -108,7 +96,7 @@
       </section>
 
       <div class="overview-actions" aria-label="App actions">
-        <button class="text-button settings-button dictate-button" id="dictateButton" type="button" aria-label="Dictate">
+        <button class="text-button settings-button dictate-button" id="dictateButton" type="button" aria-label="Dictate" hidden>
           <svg class="dictate-icon" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/>
             <path d="M5 11a7 7 0 0 0 14 0"/>
@@ -173,21 +161,6 @@
         <div class="today-task-list" id="todayTaskList"></div>
       </section>
       </div>
-
-      <section class="history-modal" id="facebookLoginModal" aria-labelledby="facebookLoginTitle" aria-modal="true" role="dialog" hidden>
-        <div class="history-panel facebook-login-dialog">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">Facebook</p>
-              <h2 id="facebookLoginTitle">Log in</h2>
-            </div>
-            <button class="delete-button" id="facebookLoginClose" type="button" aria-label="Close Facebook login">x</button>
-          </div>
-          <div class="facebook-actions">
-            <button class="primary-button" id="facebookLoginContinue" type="button">Continue with Facebook</button>
-          </div>
-        </div>
-      </section>
 
       <section class="wellbeing-heading" id="wellbeingSection" aria-labelledby="wellbeingTitle">
         <h2 id="wellbeingTitle">Wellbeing</h2>
@@ -626,12 +599,12 @@
               <input id="hipaaCloudToggle" type="checkbox">
             </label>
             <label class="setting-row">
-              <span>AI dictation extraction</span>
+              <span>Cloud AI features</span>
               <input id="aiExtractionToggle" type="checkbox">
             </label>
-            <label class="field">
+            <label class="field" hidden>
               <span>OpenAI API key</span>
-              <input id="aiApiKey" type="password" autocomplete="off" placeholder="sk-...">
+              <input id="aiApiKey" type="password" autocomplete="off" placeholder="Use backend only">
             </label>
             <label class="field">
               <span>AI backend URL</span>
@@ -645,13 +618,13 @@
               <span>AI model</span>
               <input id="aiModel" type="text" autocomplete="off" placeholder="gpt-4o-mini">
             </label>
-            <p class="settings-note onboarding-wide">AI features will not work unless internet sharing is allowed, AI dictation extraction is enabled, and either an AI backend URL or OpenAI API key is saved.</p>
+            <p class="settings-note onboarding-wide">AI features will not work unless internet sharing is allowed, Cloud AI features are enabled, and an HTTPS AI backend URL is saved. OpenAI API keys should stay on the backend, not in the app.</p>
             <div class="settings-group-title">Data</div>
             <p class="settings-note">Export a backup regularly so your personal logs are not only stored on this phone.</p>
           </div>
           <div class="settings-privacy-panel">
             <h3>Privacy & safety</h3>
-            <p>Medical data stays on this device unless you check the internet sharing acknowledgement and enable cloud AI. Voice recordings are not saved by the app.</p>
+            <p>Medical data stays on this device unless you check the internet sharing acknowledgement and enable cloud AI.</p>
             <p>Cloud AI can transmit journal, mood, symptom, nutrition, vitals, and task details to the configured AI service over the internet.</p>
             <p>AI Coach is guidance only. It does not diagnose disease and should not replace professional medical advice.</p>
           </div>
