@@ -16,6 +16,7 @@ The app may store information you enter, including:
 - Mood and notes
 - Journal entries
 - Settings, reminders, app lock preferences, and AI preferences
+- Optional Facebook user ID if you choose Facebook login for app unlock
 
 ## Local Storage
 
@@ -41,8 +42,9 @@ them carefully.
 ## Security
 
 The Android app blocks screenshots and recent-app previews while open. The app
-supports local password/biometric locking. No security measure is perfect, so
-you should protect your phone and avoid sharing exported backups.
+supports biometric/device locking, optional Facebook login, and password fallback
+where biometric unlock is unavailable. No security measure is perfect, so you
+should protect your phone and avoid sharing exported backups.
 
 ## Medical Disclaimer
 
