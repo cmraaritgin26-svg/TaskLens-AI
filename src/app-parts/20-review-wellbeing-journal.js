@@ -55,8 +55,7 @@ function openReminderCenter() {
 
 function getReminderCenterItems() {
   const now = new Date();
-  const todayName = weekDays[now.getDay()];
-  const todayTasks = habits.filter((habit) => getTaskDay(habit) === todayName);
+  const todayTasks = habits.filter((habit) => isTaskScheduledForDate(habit, today));
   const openTodayTasks = todayTasks.filter((habit) => !habit.completions.includes(today));
   const overdue = getCurrentOverdueTasks(now);
   const upcomingDeadlines = getUpcomingDeadlineTasks(now);
@@ -623,7 +622,7 @@ function editHabit(id) {
   if (!habit) return;
   editingHabitId = id;
   habitName.value = habit.name;
-  if (taskDay) taskDay.value = getTaskDay(habit);
+  if (taskDate) taskDate.value = getTaskDateKey(habit);
   habitCategory.value = habit.category || "Health";
   habitDeadline.value = normalizeTaskTime(habit.deadline);
   habitPriority.value = habit.priority || "Normal";
@@ -633,7 +632,7 @@ function editHabit(id) {
 }
 
 function openDayTaskDialog(dayName, dateKey) {
-  const dayTasks = habits.filter((habit) => getTaskDay(habit) === dayName);
+  const dayTasks = habits.filter((habit) => isTaskScheduledForDate(habit, dateKey));
   const modal = document.createElement("section");
   const panel = document.createElement("div");
   const heading = document.createElement("div");
@@ -760,18 +759,12 @@ function getAffirmationIndex(dateKey) {
 
 function getGoogleCalendarUrl(habit) {
   const start = getCalendarStart(habit.time || "Anytime");
+  const taskDate = parseDateKey(getTaskDateKey(habit));
+  start.setFullYear(taskDate.getFullYear(), taskDate.getMonth(), taskDate.getDate());
   const end = new Date(start.getTime() + 30 * 60 * 1000);
-  const dayCodes = {
-    Sunday: "SU",
-    Monday: "MO",
-    Tuesday: "TU",
-    Wednesday: "WE",
-    Thursday: "TH",
-    Friday: "FR",
-    Saturday: "SA"
-  };
   const details = [
     habit.note,
+    `Date: ${formatSymptomHistoryDate(getTaskDateKey(habit))}`,
     `Category: ${habit.category || "General"}`,
     `Priority: ${habit.priority || "Normal"}`,
     "Created from Health & Task Tracker."
@@ -780,8 +773,7 @@ function getGoogleCalendarUrl(habit) {
     action: "TEMPLATE",
     text: `Task: ${habit.name}`,
     details,
-    dates: `${toCalendarDateTime(start)}/${toCalendarDateTime(end)}`,
-    recur: `RRULE:FREQ=WEEKLY;BYDAY=${dayCodes[getTaskDay(habit)] || "MO"}`
+    dates: `${toCalendarDateTime(start)}/${toCalendarDateTime(end)}`
   });
 
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
@@ -943,7 +935,22 @@ function formatTaskTime(value) {
 }
 
 function getTaskDay(habit) {
-  return weekDays.includes(habit.day) ? habit.day : weekDays[new Date().getDay()];
+  return weekDays[parseDateKey(getTaskDateKey(habit)).getDay()];
+}
+
+function normalizeTaskDate(value) {
+  const text = String(value || "").trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : "";
+}
+
+function getTaskDateKey(habit) {
+  if (normalizeTaskDate(habit?.date)) return habit.date;
+  if (weekDays.includes(habit?.day)) return getWeekdayDateKey(weekDays.indexOf(habit.day));
+  return today;
+}
+
+function isTaskScheduledForDate(habit, dateKey) {
+  return getTaskDateKey(habit) === dateKey;
 }
 
 function getWeekdayDateKey(dayIndex, referenceDate = new Date()) {
