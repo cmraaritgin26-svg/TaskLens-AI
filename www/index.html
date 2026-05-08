@@ -602,9 +602,9 @@
               <span>AI dictation extraction</span>
               <input id="aiExtractionToggle" type="checkbox">
             </label>
-            <label class="field">
+            <label class="field" hidden>
               <span>OpenAI API key</span>
-              <input id="aiApiKey" type="password" autocomplete="off" placeholder="sk-...">
+              <input id="aiApiKey" type="password" autocomplete="off" placeholder="Use backend only">
             </label>
             <label class="field">
               <span>AI backend URL</span>
@@ -618,7 +618,7 @@
               <span>AI model</span>
               <input id="aiModel" type="text" autocomplete="off" placeholder="gpt-4o-mini">
             </label>
-            <p class="settings-note onboarding-wide">AI features will not work unless internet sharing is allowed, AI dictation extraction is enabled, and either an AI backend URL or OpenAI API key is saved.</p>
+            <p class="settings-note onboarding-wide">AI features will not work unless internet sharing is allowed, AI dictation extraction is enabled, and an HTTPS AI backend URL is saved. OpenAI API keys should stay on the backend, not in the app.</p>
             <div class="settings-group-title">Data</div>
             <p class="settings-note">Export a backup regularly so your personal logs are not only stored on this phone.</p>
           </div>
