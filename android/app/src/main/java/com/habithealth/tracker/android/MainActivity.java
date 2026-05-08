@@ -10,69 +10,32 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.app.KeyguardManager;
 import android.hardware.biometrics.BiometricPrompt;
-import android.media.MediaRecorder;
 import android.media.AudioAttributes;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CancellationSignal;
-import android.os.Handler;
-import android.os.Looper;
 import android.print.PrintAttributes;
 import android.print.PrintDocumentAdapter;
 import android.print.PrintManager;
-import android.speech.RecognitionListener;
-import android.speech.RecognizerIntent;
-import android.speech.SpeechRecognizer;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.util.Base64;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 
 import com.getcapacitor.BridgeActivity;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.util.ArrayList;
-import java.util.Locale;
-
 public class MainActivity extends BridgeActivity {
     private static final int DEVICE_CREDENTIAL_REQUEST = 4217;
-    private static final int AUDIO_PERMISSION_REQUEST = 4219;
     private static final int NOTIFICATION_PERMISSION_REQUEST = 4220;
     private static final String REMINDER_CHANNEL_ID = "health_task_tracker_reminders";
     private static final String CRISIS_CHANNEL_ID = "health_task_tracker_crisis_alerts";
     private static final long[] CRISIS_VIBRATION_PATTERN = new long[]{0, 900, 250, 900, 250, 1200, 350, 1200};
     private WebView printWebView;
     private String pendingCredentialCallbackId;
-    private String pendingPermissionSpeechCallbackId;
-    private String pendingPermissionAudioCallbackId;
-    private String activeSpeechCallbackId;
-    private String activeAudioCallbackId;
-    private SpeechRecognizer speechRecognizer;
-    private Intent speechIntent;
-    private MediaRecorder nativeAudioRecorder;
-    private File nativeAudioFile;
-    private final StringBuilder speechTranscript = new StringBuilder();
-    private String lastPartialTranscript = "";
-    private boolean speechManuallyStopping = false;
-    private final Handler speechRestartHandler = new Handler(Looper.getMainLooper());
-    private final Runnable speechPartialCommitRunnable = new Runnable() {
-        @Override
-        public void run() {
-            if (activeSpeechCallbackId == null || speechManuallyStopping) {
-                return;
-            }
-
-            appendPartialSpeechResult();
-            speechRestartHandler.postDelayed(this, 3000);
-        }
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,8 +43,6 @@ public class MainActivity extends BridgeActivity {
         hardenMedicalDataPrivacy();
         registerPrintBridge();
         registerSecurityBridge();
-        registerDictationBridge();
-        registerAudioRecorderBridge();
         registerKeyboardBridge();
         registerNotificationBridge();
         handleFacebookRedirect(getIntent());
@@ -122,29 +83,6 @@ public class MainActivity extends BridgeActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == NOTIFICATION_PERMISSION_REQUEST) {
             return;
-        }
-        if (requestCode != AUDIO_PERMISSION_REQUEST || (pendingPermissionSpeechCallbackId == null && pendingPermissionAudioCallbackId == null)) {
-            return;
-        }
-
-        String audioCallbackId = pendingPermissionAudioCallbackId;
-        String speechCallbackId = pendingPermissionSpeechCallbackId;
-        pendingPermissionAudioCallbackId = null;
-        pendingPermissionSpeechCallbackId = null;
-        if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            if (audioCallbackId != null) {
-                beginNativeAudioRecording(audioCallbackId);
-            }
-            if (speechCallbackId != null) {
-                beginLongDictation(speechCallbackId);
-            }
-        } else {
-            if (audioCallbackId != null) {
-                sendNativeAudioResult(audioCallbackId, false, "", "", "Microphone permission is needed for dictation.");
-            }
-            if (speechCallbackId != null) {
-                sendDictationResult(speechCallbackId, false, "", "Microphone permission is needed for dictation.");
-            }
         }
     }
 
@@ -196,32 +134,6 @@ public class MainActivity extends BridgeActivity {
         }
 
         webView.addJavascriptInterface(new SecurityBridge(), "HealthTaskSecurity");
-    }
-
-    private void registerDictationBridge() {
-        if (this.bridge == null) {
-            return;
-        }
-
-        WebView webView = this.bridge.getWebView();
-        if (webView == null) {
-            return;
-        }
-
-        webView.addJavascriptInterface(new DictationBridge(), "HealthTaskDictation");
-    }
-
-    private void registerAudioRecorderBridge() {
-        if (this.bridge == null) {
-            return;
-        }
-
-        WebView webView = this.bridge.getWebView();
-        if (webView == null) {
-            return;
-        }
-
-        webView.addJavascriptInterface(new AudioRecorderBridge(), "HealthTaskAudioRecorder");
     }
 
     private void registerKeyboardBridge() {
@@ -280,46 +192,6 @@ public class MainActivity extends BridgeActivity {
                 .replace("'", "\\'")
                 .replace("\n", "\\n")
                 .replace("\r", "\\r");
-    }
-
-    private void sendDictationResult(String callbackId, boolean success, String transcript, String message) {
-        if (this.bridge == null || callbackId == null) {
-            return;
-        }
-
-        WebView webView = this.bridge.getWebView();
-        if (webView == null) {
-            return;
-        }
-
-        String safeId = escapeForJavascript(callbackId);
-        String safeTranscript = escapeForJavascript(transcript);
-        String safeMessage = escapeForJavascript(message);
-        String script = "window.__nativeDictationResult && window.__nativeDictationResult('" + safeId + "', " + success + ", '" + safeTranscript + "', '" + safeMessage + "')";
-        webView.post(() -> webView.evaluateJavascript(script, null));
-    }
-
-    private void sendNativeAudioResult(String callbackId, boolean success, String audioBase64, String mimeType, String message) {
-        if (this.bridge == null || callbackId == null) {
-            return;
-        }
-
-        WebView webView = this.bridge.getWebView();
-        if (webView == null) {
-            return;
-        }
-
-        String safeId = escapeForJavascript(callbackId);
-        String safeAudio = escapeForJavascript(audioBase64);
-        String safeMimeType = escapeForJavascript(mimeType);
-        String safeMessage = escapeForJavascript(message);
-        String script = "window.__nativeAudioDictationResult && window.__nativeAudioDictationResult('" + safeId + "', " + success + ", '" + safeAudio + "', '" + safeMimeType + "', '" + safeMessage + "')";
-        webView.post(() -> webView.evaluateJavascript(script, null));
-    }
-
-    private boolean hasAudioPermission() {
-        return Build.VERSION.SDK_INT < Build.VERSION_CODES.M
-                || checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
     }
 
     private boolean hasNotificationPermission() {
@@ -485,264 +357,6 @@ public class MainActivity extends BridgeActivity {
         return Math.abs((String.valueOf(tag) + ":sms:" + number).hashCode());
     }
 
-    private String currentDictationTranscript() {
-        String transcript = speechTranscript.toString().trim();
-        String partial = lastPartialTranscript == null ? "" : lastPartialTranscript.trim();
-        if (!partial.isEmpty() && !transcript.endsWith(partial)) {
-            transcript = (transcript + " " + partial).trim();
-        }
-        return transcript;
-    }
-
-    private void appendSpeechResult(ArrayList<String> results) {
-        if (results == null || results.isEmpty()) {
-            return;
-        }
-
-        String result = results.get(0);
-        if (result == null || result.trim().isEmpty()) {
-            return;
-        }
-
-        appendPhraseToTranscript(result.trim());
-        lastPartialTranscript = "";
-    }
-
-    private void appendPhraseToTranscript(String phrase) {
-        if (phrase == null || phrase.trim().isEmpty()) {
-            return;
-        }
-
-        String cleanPhrase = phrase.trim();
-        String transcript = speechTranscript.toString().trim();
-        if (transcript.isEmpty()) {
-            speechTranscript.setLength(0);
-            speechTranscript.append(cleanPhrase);
-        } else if (transcript.equals(cleanPhrase) || transcript.endsWith(cleanPhrase)) {
-            return;
-        } else if (cleanPhrase.startsWith(transcript)) {
-            speechTranscript.setLength(0);
-            speechTranscript.append(cleanPhrase);
-        } else {
-            String suffix = getNonOverlappingSuffix(transcript, cleanPhrase);
-            if (suffix.isEmpty()) {
-                return;
-            }
-            speechTranscript.append(" ");
-            speechTranscript.append(suffix);
-        }
-    }
-
-    private String getNonOverlappingSuffix(String transcript, String phrase) {
-        int maxOverlap = Math.min(transcript.length(), phrase.length());
-        for (int length = maxOverlap; length > 0; length--) {
-            String transcriptEnd = transcript.substring(transcript.length() - length).toLowerCase(Locale.US);
-            String phraseStart = phrase.substring(0, length).toLowerCase(Locale.US);
-            if (transcriptEnd.equals(phraseStart)) {
-                return phrase.substring(length).trim();
-            }
-        }
-        return phrase.trim();
-    }
-
-    private void appendPartialSpeechResult() {
-        if (lastPartialTranscript == null || lastPartialTranscript.trim().isEmpty()) {
-            return;
-        }
-
-        ArrayList<String> partialResults = new ArrayList<>();
-        partialResults.add(lastPartialTranscript);
-        appendSpeechResult(partialResults);
-    }
-
-    private void beginLongDictation(String callbackId) {
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            sendDictationResult(callbackId, false, "", "Speech recognition is not available on this device.");
-            return;
-        }
-
-        stopSpeechRecognizerOnly();
-        activeSpeechCallbackId = callbackId;
-        speechTranscript.setLength(0);
-        lastPartialTranscript = "";
-        speechManuallyStopping = false;
-        speechIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        speechIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        speechIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
-        speechIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
-        speechIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
-        speechIntent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 5000);
-        speechIntent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500);
-        speechIntent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1000);
-
-        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
-        speechRecognizer.setRecognitionListener(new RecognitionListener() {
-            @Override
-            public void onReadyForSpeech(Bundle params) {}
-
-            @Override
-            public void onBeginningOfSpeech() {}
-
-            @Override
-            public void onRmsChanged(float rmsdB) {}
-
-            @Override
-            public void onBufferReceived(byte[] buffer) {}
-
-            @Override
-            public void onEndOfSpeech() {
-                appendPartialSpeechResult();
-            }
-
-            @Override
-            public void onError(int error) {
-                appendPartialSpeechResult();
-                if (speechManuallyStopping) {
-                    finishLongDictation(true, "");
-                } else if (activeSpeechCallbackId != null) {
-                    restartSpeechRecognizer();
-                }
-            }
-
-            @Override
-            public void onResults(Bundle results) {
-                appendSpeechResult(results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION));
-                if (speechManuallyStopping) {
-                    finishLongDictation(true, "");
-                } else {
-                    restartSpeechRecognizer();
-                }
-            }
-
-            @Override
-            public void onPartialResults(Bundle partialResults) {
-                ArrayList<String> results = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-                lastPartialTranscript = results != null && !results.isEmpty() ? results.get(0) : "";
-            }
-
-            @Override
-            public void onEvent(int eventType, Bundle params) {}
-        });
-        speechRecognizer.startListening(speechIntent);
-        speechRestartHandler.postDelayed(speechPartialCommitRunnable, 3000);
-    }
-
-    private void restartSpeechRecognizer() {
-        if (speechRecognizer == null || speechIntent == null || activeSpeechCallbackId == null) {
-            return;
-        }
-
-        speechRestartHandler.postDelayed(() -> {
-            if (speechRecognizer == null || speechIntent == null || activeSpeechCallbackId == null || speechManuallyStopping) {
-                return;
-            }
-            try {
-                speechRecognizer.cancel();
-                speechRecognizer.startListening(speechIntent);
-            } catch (Exception exception) {
-                finishLongDictation(!currentDictationTranscript().isEmpty(), "Speech recognition stopped.");
-            }
-        }, 350);
-    }
-
-    private void stopSpeechRecognizerOnly() {
-        speechRestartHandler.removeCallbacksAndMessages(null);
-        if (speechRecognizer != null) {
-            try {
-                speechRecognizer.cancel();
-                speechRecognizer.destroy();
-            } catch (Exception ignored) {
-                // Best effort cleanup.
-            }
-        }
-        speechRecognizer = null;
-    }
-
-    private void finishLongDictation(boolean success, String message) {
-        String callbackId = activeSpeechCallbackId;
-        String transcript = currentDictationTranscript();
-        activeSpeechCallbackId = null;
-        speechManuallyStopping = false;
-        stopSpeechRecognizerOnly();
-        speechTranscript.setLength(0);
-        lastPartialTranscript = "";
-        sendDictationResult(callbackId, success && !transcript.isEmpty(), transcript, transcript.isEmpty() ? "No speech recognized." : message);
-    }
-
-    private void beginNativeAudioRecording(String callbackId) {
-        try {
-            cleanupNativeAudioRecording(false);
-            activeAudioCallbackId = callbackId;
-            nativeAudioFile = File.createTempFile("health-task-dictation-", ".m4a", getCacheDir());
-            nativeAudioRecorder = new MediaRecorder();
-            nativeAudioRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-            nativeAudioRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-            nativeAudioRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
-            nativeAudioRecorder.setAudioEncodingBitRate(32000);
-            nativeAudioRecorder.setAudioSamplingRate(16000);
-            nativeAudioRecorder.setAudioChannels(1);
-            nativeAudioRecorder.setOutputFile(nativeAudioFile.getAbsolutePath());
-            nativeAudioRecorder.prepare();
-            nativeAudioRecorder.start();
-        } catch (Exception exception) {
-            String message = exception.getMessage() == null ? "Native audio recording could not start." : exception.getMessage();
-            cleanupNativeAudioRecording(true);
-            activeAudioCallbackId = null;
-            sendNativeAudioResult(callbackId, false, "", "", message);
-        }
-    }
-
-    private void finishNativeAudioRecording() {
-        String callbackId = activeAudioCallbackId;
-        activeAudioCallbackId = null;
-        try {
-            if (nativeAudioRecorder != null) {
-                nativeAudioRecorder.stop();
-            }
-            String audioBase64 = readNativeAudioBase64();
-            cleanupNativeAudioRecording(true);
-            if (audioBase64.isEmpty()) {
-                sendNativeAudioResult(callbackId, false, "", "", "No audio was recorded.");
-                return;
-            }
-            sendNativeAudioResult(callbackId, true, audioBase64, "audio/mp4", "");
-        } catch (Exception exception) {
-            String message = exception.getMessage() == null ? "Native audio recording could not finish." : exception.getMessage();
-            cleanupNativeAudioRecording(true);
-            sendNativeAudioResult(callbackId, false, "", "", message);
-        }
-    }
-
-    private String readNativeAudioBase64() throws Exception {
-        if (nativeAudioFile == null || !nativeAudioFile.exists() || nativeAudioFile.length() <= 0) {
-            return "";
-        }
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        FileInputStream input = new FileInputStream(nativeAudioFile);
-        byte[] buffer = new byte[8192];
-        int count;
-        while ((count = input.read(buffer)) != -1) {
-            output.write(buffer, 0, count);
-        }
-        input.close();
-        return Base64.encodeToString(output.toByteArray(), Base64.NO_WRAP);
-    }
-
-    private void cleanupNativeAudioRecording(boolean deleteFile) {
-        if (nativeAudioRecorder != null) {
-            try {
-                nativeAudioRecorder.release();
-            } catch (Exception ignored) {
-                // Best effort cleanup.
-            }
-        }
-        nativeAudioRecorder = null;
-        if (deleteFile && nativeAudioFile != null && nativeAudioFile.exists()) {
-            nativeAudioFile.delete();
-        }
-        nativeAudioFile = null;
-    }
-
     private void startDeviceCredentialUnlock(String callbackId) {
         KeyguardManager keyguardManager = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
         if (keyguardManager == null || !keyguardManager.isDeviceSecure()) {
@@ -814,80 +428,6 @@ public class MainActivity extends BridgeActivity {
                 } catch (Exception exception) {
                     startDeviceCredentialUnlock(callbackId);
                 }
-            });
-        }
-    }
-
-    private class DictationBridge {
-        @JavascriptInterface
-        public boolean isAvailable() {
-            return SpeechRecognizer.isRecognitionAvailable(MainActivity.this);
-        }
-
-        @JavascriptInterface
-        public void start(String callbackId) {
-            runOnUiThread(() -> {
-                if (!hasAudioPermission()) {
-                    pendingPermissionSpeechCallbackId = callbackId;
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, AUDIO_PERMISSION_REQUEST);
-                    }
-                    return;
-                }
-
-                beginLongDictation(callbackId);
-            });
-        }
-
-        @JavascriptInterface
-        public void stop() {
-            runOnUiThread(() -> {
-                if (activeSpeechCallbackId == null) {
-                    return;
-                }
-                speechManuallyStopping = true;
-                appendPartialSpeechResult();
-                if (speechRecognizer != null) {
-                    try {
-                        speechRecognizer.stopListening();
-                    } catch (Exception exception) {
-                        finishLongDictation(true, "");
-                    }
-                } else {
-                    finishLongDictation(true, "");
-                }
-            });
-        }
-    }
-
-    private class AudioRecorderBridge {
-        @JavascriptInterface
-        public boolean isAvailable() {
-            return true;
-        }
-
-        @JavascriptInterface
-        public void start(String callbackId) {
-            runOnUiThread(() -> {
-                if (!hasAudioPermission()) {
-                    pendingPermissionAudioCallbackId = callbackId;
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, AUDIO_PERMISSION_REQUEST);
-                    }
-                    return;
-                }
-
-                beginNativeAudioRecording(callbackId);
-            });
-        }
-
-        @JavascriptInterface
-        public void stop() {
-            runOnUiThread(() -> {
-                if (activeAudioCallbackId == null) {
-                    return;
-                }
-                finishNativeAudioRecording();
             });
         }
     }
