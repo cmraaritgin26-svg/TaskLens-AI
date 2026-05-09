@@ -16,7 +16,6 @@ The app may store information you enter, including:
 - Mood and notes
 - Journal entries
 - Settings, reminders, app lock preferences, and AI preferences
-- Optional Facebook user ID if you choose Facebook login for app unlock
 
 ## Local Storage
 
@@ -53,8 +52,8 @@ storage clearing, or uninstalling the app.
 
 ## Security
 
-The app supports biometric/device locking, optional Facebook login, and password
-fallback where biometric unlock is unavailable. Screenshots are allowed by the
+The app supports guest mode, biometric/device locking, and password fallback
+where biometric unlock is unavailable. Screenshots are allowed by the
 Android app. No security measure is perfect, so you should protect your phone
 and avoid sharing exported backups.
 
