@@ -262,9 +262,8 @@ public class MainActivity extends BridgeActivity {
                 .setShowWhen(true);
 
         if (crisisAlert) {
-            builder.setCategory(Notification.CATEGORY_ALARM)
+            builder.setCategory(Notification.CATEGORY_STATUS)
                     .setVisibility(Notification.VISIBILITY_PUBLIC)
-                    .setFullScreenIntent(pendingIntent, true)
                     .setVibrate(CRISIS_VIBRATION_PATTERN)
                     .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM));
         }
@@ -279,7 +278,7 @@ public class MainActivity extends BridgeActivity {
         }
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            builder.setPriority(crisisAlert ? Notification.PRIORITY_MAX : Notification.PRIORITY_DEFAULT);
+            builder.setPriority(crisisAlert ? Notification.PRIORITY_HIGH : Notification.PRIORITY_DEFAULT);
         }
 
         NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
