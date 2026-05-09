@@ -1,9 +1,10 @@
-# Privacy Policy Draft
+# Privacy Policy
 
-Effective date: [add date]
+Effective date: May 9, 2026
 
-Health & Task Tracker is a personal tracking app for tasks, nutrition, water,
-vitals, symptoms, mood, journal entries, reminders, and wellness trends.
+Health & Task Tracker is a personal wellness and task tracking app. It helps
+users track tasks, water intake, nutrition, vitals, symptoms, mood, journal
+entries, reminders, and wellness trends.
 
 ## Information You Enter
 
@@ -19,7 +20,14 @@ The app may store information you enter, including:
 
 ## Local Storage
 
-By default, app data is stored locally on your device.
+By default, app data is stored locally on your device. Health & Task Tracker
+does not require an account to use the app. Guest mode is available.
+
+## Optional App Lock
+
+The app may offer optional local app lock features, including biometric/device
+unlock or password protection. These features are used only to help protect
+access to the app on your device.
 
 ## Optional Cloud AI
 
@@ -29,26 +37,28 @@ backend URL.
 
 If enabled, the app may send health information, journal text, symptoms, mood,
 nutrition, vitals, and tasks over the internet to the AI backend you configure.
-The app uses this information for trend summaries and safety/wellness prompts.
+The app uses this information for trend summaries and wellness prompts.
 
 ## Backups and Exports
 
-The app can export a backup file at your request. Exported backups intentionally
-omit API keys, backend tokens, password hashes, salts, and biometric credential
-IDs. Backup files may still contain health logs and journal entries, so store
-them carefully.
+The app can export a backup file at your request. Exported backups may contain
+health logs, journal entries, task history, and other information you entered.
+Store exported backups carefully.
+
+Exported backups intentionally omit API keys, backend tokens, password hashes,
+salts, and biometric credential IDs.
 
 ## Account and Data Deletion
 
-Users can request deletion of any account linkage or associated data the
-developer can access at:
+You can delete local data using in-app delete controls, Settings > Master reset,
+Android app storage clearing, or by uninstalling the app.
+
+You can request deletion of any account-related or backend-accessible data at:
 
 https://cmraaritgin26-svg.github.io/Habit-Tracker/data-deletion.html
 
-Most app data is stored locally on the user's device. The developer cannot
-remotely delete data that only exists on the user's phone. Users can remove
-local data with in-app delete controls, Settings > Master reset, Android app
-storage clearing, or uninstalling the app.
+Most app data is stored locally on your device, so the developer cannot
+remotely delete information that exists only on your phone.
 
 ## Security
 
@@ -59,11 +69,13 @@ and avoid sharing exported backups.
 
 ## Medical Disclaimer
 
-The app is for personal tracking and wellness support. It does not diagnose,
-treat, cure, or prevent disease and does not replace professional medical
-advice. If you may hurt yourself or are in immediate danger, call or text
-emergency services where available.
+Health & Task Tracker is for personal wellness tracking only. It does not
+diagnose, treat, cure, or prevent disease and does not replace professional
+medical advice. If you may hurt yourself or are in immediate danger, call or
+text emergency services where available.
 
 ## Contact
 
-Contact: cmraaritgin26@gmail.com
+For privacy questions or deletion requests, contact:
+
+cmraaritgin26@gmail.com
