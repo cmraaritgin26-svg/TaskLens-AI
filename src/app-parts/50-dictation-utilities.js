@@ -1607,7 +1607,8 @@ render();
 scrollAppToTop();
 if (isAppLockEnabled()) {
   showAppLock();
+} else if (isGuestModeEnabled()) {
+  finishUnlock();
 } else {
   showSecuritySetup();
 }
-handleFacebookLoginRedirect();
