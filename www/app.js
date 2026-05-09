@@ -4406,6 +4406,7 @@ function loadHabits() {
     return Array.isArray(saved)
       ? saved
         .filter((habit) => habit && habit.name)
+        .filter((habit) => !isLegacyStarterWalkTask(habit))
         .map((habit) => ({
           id: habit.id || String(Date.now()),
           name: habit.name,
@@ -4428,6 +4429,15 @@ function loadHabits() {
   } catch {
     return [];
   }
+}
+
+function isLegacyStarterWalkTask(habit) {
+  const name = String(habit?.name || "").trim().toLowerCase();
+  return name === "walk for 10 minutes"
+    && !normalizeTaskTime(habit?.deadline)
+    && !normalizeTaskTime(habit?.time)
+    && !String(habit?.note || "").trim()
+    && (!Array.isArray(habit?.completions) || habit.completions.length === 0);
 }
 
 function saveHabits() {
@@ -5461,19 +5471,24 @@ function getInitialDataSteps() {
       fields: `
         <label class="field"><span>Mood</span><select name="mood"><option value=""></option><option>Good</option><option>Okay</option><option>Low</option><option>Stressed</option><option>Anxious</option></select></label>
         <label class="field"><span>Intensity</span><select name="intensity"><option value=""></option><option>Mild</option><option>Moderate</option><option>Strong</option></select></label>
-        <label class="field onboarding-wide"><span>Notes</span><textarea name="note" rows="3" placeholder="Anything affecting your mood?"></textarea></label>
+        <label class="field onboarding-wide"><span>Notes</span><textarea name="note" rows="3"></textarea></label>
       `,
       save: (formData) => {
-        moodEntries = [{
-          id: createHabitId(),
-          date: today,
-          recordedAt: new Date().toISOString(),
-          name: String(formData.get("mood") || "Okay"),
-          intensity: String(formData.get("intensity") || "Moderate"),
-          note: String(formData.get("note") || "").trim()
-        }, ...moodEntries];
-        saveMoodEntries();
-        renderMoods();
+        const name = String(formData.get("mood") || "").trim();
+        const intensity = String(formData.get("intensity") || "").trim();
+        const note = String(formData.get("note") || "").trim();
+        if (name) {
+          moodEntries = [{
+            id: createHabitId(),
+            date: today,
+            recordedAt: new Date().toISOString(),
+            name,
+            intensity: intensity || "Mild",
+            note
+          }, ...moodEntries];
+          saveMoodEntries();
+          renderMoods();
+        }
         goToNextInitialDataStep();
       }
     },
@@ -5481,9 +5496,9 @@ function getInitialDataSteps() {
       title: "Symptoms",
       copy: "Add one symptom if anything is going on today.",
       fields: `
-        <label class="field"><span>Symptom</span><input name="symptom" type="text" placeholder="Headache"></label>
+        <label class="field"><span>Symptom</span><input name="symptom" type="text"></label>
         <label class="field"><span>Severity</span><select name="severity"><option value=""></option><option>Mild</option><option>Moderate</option><option>Severe</option></select></label>
-        <label class="field onboarding-wide"><span>Notes</span><textarea name="note" rows="3" placeholder="When it started, triggers, or details"></textarea></label>
+        <label class="field onboarding-wide"><span>Notes</span><textarea name="note" rows="3"></textarea></label>
       `,
       save: (formData) => {
         const name = String(formData.get("symptom") || "").trim();
@@ -5523,10 +5538,10 @@ function getInitialDataSteps() {
       primaryText: "Add task",
       skipText: "Finish setup",
       fields: `
-        <label class="field onboarding-wide"><span>Task</span><input name="task" type="text" placeholder="Walk for 10 minutes"></label>
+        <label class="field onboarding-wide"><span>Task</span><input name="task" type="text"></label>
         <label class="field"><span>Day</span><select name="day">${dayOptions}</select></label>
         <label class="field"><span>Deadline</span><input name="deadline" type="time"></label>
-        <label class="field onboarding-wide"><span>Notes</span><textarea name="note" rows="3" placeholder="Anything important about this task?"></textarea></label>
+        <label class="field onboarding-wide"><span>Notes</span><textarea name="note" rows="3"></textarea></label>
       `,
       save: (formData) => {
         const name = String(formData.get("task") || "").trim();
@@ -5561,6 +5576,9 @@ function parseOnboardingNumber(value) {
 }
 
 function saveInitialNutrition(partial) {
+  const hasEntryValue = Object.values(partial).some((value) => value !== null && value !== "");
+  if (!hasEntryValue) return;
+
   const existing = nutritionEntries.find((entry) => entry.date === today) || {};
   const entry = {
     date: today,
