@@ -26,8 +26,6 @@ const backupReminderStoreKey = "health-task-tracker:last-backup-reminder:v1";
 const affirmationShownStoreKey = "health-task-tracker:last-affirmation:v1";
 const affirmationDepressionShownStoreKey = "health-task-tracker:last-depression-affirmation:v1";
 const DEFAULT_AI_BACKEND_URL = "";
-const FACEBOOK_APP_ID = "2422428068229609";
-const FACEBOOK_REDIRECT_URI = "fb2422428068229609://authorize";
 const DICTATION_FEATURE_ENABLED = false;
 const AI_DICTATION_TIMEOUT_MS = 1800;
 const AI_COACH_TIMEOUT_MS = 2500;
@@ -301,6 +299,7 @@ const reminderToggle = document.querySelector("#reminderToggle");
 const reminderTime = document.querySelector("#reminderTime");
 const heightFeet = document.querySelector("#heightFeet");
 const heightInches = document.querySelector("#heightInches");
+const guestModeToggle = document.querySelector("#guestModeToggle");
 const biometricToggle = document.querySelector("#biometricToggle");
 const aiExtractionToggle = document.querySelector("#aiExtractionToggle");
 const hipaaCloudToggle = document.querySelector("#hipaaCloudToggle");
@@ -325,7 +324,7 @@ const biometricUnlockButton = document.querySelector("#biometricUnlockButton");
 const resetPasswordButton = document.querySelector("#resetPasswordButton");
 const setupPasswordButton = document.querySelector("#setupPasswordButton");
 const setupBiometricButton = document.querySelector("#setupBiometricButton");
-const facebookLoginButton = document.querySelector("#facebookLoginButton");
+const guestModeButton = document.querySelector("#guestModeButton");
 const confirmPasswordModal = document.querySelector("#confirmPasswordModal");
 const confirmPasswordMessage = document.querySelector("#confirmPasswordMessage");
 const confirmPasswordInput = document.querySelector("#confirmPasswordInput");
@@ -846,6 +845,7 @@ aiApiKey.addEventListener("change", () => {
 aiBackendUrl.addEventListener("change", () => updateSetting("aiBackendUrl", normalizeAiBackendUrlInput(aiBackendUrl.value)));
 aiBackendToken.addEventListener("change", () => updateSetting("aiBackendToken", aiBackendToken.value.trim()));
 aiModel.addEventListener("change", () => updateSetting("aiModel", aiModel.value.trim()));
+guestModeToggle.addEventListener("change", () => updateGuestModeSetting(guestModeToggle.checked));
 setPasswordButton.addEventListener("click", () => setAppPassword());
 clearPasswordButton.addEventListener("click", () => clearAppPassword());
 biometricToggle.addEventListener("change", () => updateBiometricSetting());
@@ -859,7 +859,7 @@ biometricUnlockButton.addEventListener("click", () => unlockWithBiometric());
 resetPasswordButton.addEventListener("click", () => resetAppSecurityFromLock());
 setupPasswordButton.addEventListener("click", () => completeSecuritySetup());
 setupBiometricButton.addEventListener("click", () => completeBiometricSecuritySetup());
-facebookLoginButton?.addEventListener("click", () => startFacebookLogin());
+guestModeButton.addEventListener("click", () => continueAsGuest());
 confirmPasswordCancel.addEventListener("click", () => closeConfirmPasswordDialog(false));
 confirmPasswordSubmit.addEventListener("click", () => submitConfirmPasswordDialog());
 confirmPasswordInput.addEventListener("keydown", (event) => {
@@ -4775,9 +4775,9 @@ function loadAppSettings() {
       heightInches: 0,
       securitySalt: "",
       securityHash: "",
+      guestModeEnabled: false,
       biometricEnabled: false,
       biometricCredentialId: "",
-      facebookUserId: "",
       initialDataComplete: hasSavedSettings,
       aiExtractionEnabled: false,
       hipaaCloudConfirmed: false,
@@ -4801,9 +4801,9 @@ function loadAppSettings() {
       heightInches: 0,
       securitySalt: "",
       securityHash: "",
+      guestModeEnabled: false,
       biometricEnabled: false,
       biometricCredentialId: "",
-      facebookUserId: "",
       initialDataComplete: hasSavedSettings,
       aiExtractionEnabled: false,
       hipaaCloudConfirmed: false,
@@ -4831,6 +4831,7 @@ function renderSettings() {
   const totalHeight = Number(appSettings.heightInches) || 0;
   heightFeet.value = totalHeight ? String(Math.floor(totalHeight / 12)) : "";
   heightInches.value = totalHeight ? String(totalHeight % 12) : "";
+  guestModeToggle.checked = Boolean(appSettings.guestModeEnabled && !isAppLockEnabled());
   biometricToggle.checked = Boolean(appSettings.biometricEnabled && appSettings.biometricCredentialId);
   if (hipaaCloudToggle) hipaaCloudToggle.checked = Boolean(appSettings.hipaaCloudConfirmed);
   aiExtractionToggle.disabled = !appSettings.hipaaCloudConfirmed;
@@ -4841,6 +4842,7 @@ function renderSettings() {
   aiBackendToken.value = appSettings.aiBackendToken || "";
   aiModel.value = hasOwnSetting("aiModel") ? appSettings.aiModel || "" : "";
   biometricToggle.disabled = !isAppLockEnabled();
+  setPasswordButton.textContent = isAppLockEnabled() ? "Change password" : "Set password";
   clearPasswordButton.disabled = !isAppLockEnabled();
   clearPasswordButton.textContent = appSettings.biometricCredentialId && !appSettings.securityHash ? "Clear app lock" : "Clear password";
   securityPasswordCurrent.value = "";
@@ -4929,8 +4931,26 @@ function isAppLockEnabled() {
   return Boolean(appSettings && (
     (appSettings.securityHash && appSettings.securitySalt)
     || appSettings.biometricCredentialId
-    || appSettings.facebookUserId
   ));
+}
+
+function isGuestModeEnabled() {
+  return Boolean(appSettings?.guestModeEnabled && !isAppLockEnabled());
+}
+
+function updateGuestModeSetting(enabled) {
+  appSettings = {
+    ...appSettings,
+    guestModeEnabled: Boolean(enabled),
+    ...(enabled ? {
+      securitySalt: "",
+      securityHash: "",
+      biometricEnabled: false,
+      biometricCredentialId: ""
+    } : {})
+  };
+  saveAppSettings();
+  renderSettings();
 }
 
 async function setAppPassword() {
@@ -4950,9 +4970,9 @@ async function setAppPassword() {
     ...appSettings,
     securitySalt: salt,
     securityHash: hash,
+    guestModeEnabled: false,
     biometricEnabled: false,
-    biometricCredentialId: "",
-    facebookUserId: ""
+    biometricCredentialId: ""
   };
   saveAppSettings();
   appUnlocked = true;
@@ -4980,9 +5000,9 @@ async function clearAppPassword() {
     ...appSettings,
     securitySalt: "",
     securityHash: "",
+    guestModeEnabled: false,
     biometricEnabled: false,
-    biometricCredentialId: "",
-    facebookUserId: ""
+    biometricCredentialId: ""
   };
   saveAppSettings();
   appUnlocked = true;
@@ -5063,8 +5083,8 @@ function showAppLock() {
   unlockButton.hidden = !appSettings.securityHash;
   setupPasswordButton.hidden = true;
   setupBiometricButton.hidden = true;
+  guestModeButton.hidden = true;
   resetPasswordButton.hidden = false;
-  facebookLoginButton.hidden = !appSettings.facebookUserId;
   biometricUnlockButton.hidden = !appSettings.biometricCredentialId;
   lockModal.hidden = false;
   if (appSettings.biometricCredentialId && !biometricPromptAttempted) {
@@ -5076,6 +5096,7 @@ function showAppLock() {
 }
 
 function lockAppAfterBackground() {
+  if (isGuestModeEnabled()) return;
   appUnlocked = false;
   biometricPromptAttempted = false;
   lockPassword.value = "";
@@ -5088,8 +5109,8 @@ function showSecuritySetup() {
   appUnlocked = false;
   const canUseBiometric = isNativeBiometricAvailable();
   lockError.textContent = canUseBiometric
-    ? "Use Facebook login or your phone biometric/device unlock."
-    : "Use Facebook login, or create one app password if biometric unlock is not available.";
+    ? "Use your phone biometric/device unlock, or continue as guest."
+    : "Create one app password, or continue as guest.";
   lockPassword.value = "";
   lockPasswordField.querySelector("span").textContent = "Create password";
   lockPassword.autocomplete = "new-password";
@@ -5100,7 +5121,7 @@ function showSecuritySetup() {
   resetPasswordButton.hidden = true;
   setupPasswordButton.hidden = canUseBiometric;
   setupBiometricButton.hidden = !canUseBiometric;
-  facebookLoginButton.hidden = false;
+  guestModeButton.hidden = false;
   document.querySelector("#lockTitle").textContent = "Set up app security";
   lockModal.hidden = false;
   if (!canUseBiometric) window.setTimeout(() => lockPassword.focus(), 100);
@@ -5115,9 +5136,9 @@ function resetAppSecurityFromLock() {
     ...appSettings,
     securitySalt: "",
     securityHash: "",
+    guestModeEnabled: false,
     biometricEnabled: false,
     biometricCredentialId: "",
-    facebookUserId: "",
     initialDataComplete: true
   };
   saveAppSettings();
@@ -5132,6 +5153,7 @@ async function completeBiometricSecuritySetup() {
       ...appSettings,
       securitySalt: "",
       securityHash: "",
+      guestModeEnabled: false,
       biometricEnabled: true,
       biometricCredentialId: credentialId
     };
@@ -5155,6 +5177,7 @@ async function completeSecuritySetup() {
     ...appSettings,
     securitySalt: salt,
     securityHash: hash,
+    guestModeEnabled: false,
     biometricEnabled: false,
     biometricCredentialId: ""
   };
@@ -5181,49 +5204,18 @@ async function unlockWithBiometric() {
   }
 }
 
-function startFacebookLogin() {
-  const state = createSecurityToken(12);
-  sessionStorage.setItem("health-task-tracker:facebook-state", state);
-  const params = new URLSearchParams({
-    client_id: FACEBOOK_APP_ID,
-    redirect_uri: FACEBOOK_REDIRECT_URI,
-    response_type: "token",
-    scope: "public_profile",
-    state
-  });
-  location.href = `https://www.facebook.com/v20.0/dialog/oauth?${params.toString()}`;
-}
-
-async function handleFacebookLoginRedirect() {
-  const hash = new URLSearchParams(location.hash.replace(/^#/, ""));
-  const accessToken = hash.get("access_token");
-  if (!accessToken) return false;
-
-  const expectedState = sessionStorage.getItem("health-task-tracker:facebook-state") || "";
-  sessionStorage.removeItem("health-task-tracker:facebook-state");
-  if (expectedState && hash.get("state") !== expectedState) {
-    lockError.textContent = "Facebook login could not be verified.";
-    return true;
-  }
-
-  try {
-    const response = await fetch(`https://graph.facebook.com/me?fields=id&access_token=${encodeURIComponent(accessToken)}`);
-    if (!response.ok) throw new Error("Facebook profile check failed.");
-    const profile = await response.json();
-    const facebookUserId = String(profile.id || "");
-    if (!facebookUserId) throw new Error("Facebook did not return a user ID.");
-    if (appSettings.facebookUserId && appSettings.facebookUserId !== facebookUserId) {
-      lockError.textContent = "That Facebook account is not linked to this app lock.";
-      return true;
-    }
-    appSettings = { ...appSettings, facebookUserId };
-    saveAppSettings();
-    if (history.replaceState) history.replaceState(null, "", location.pathname + location.search);
-    finishUnlock();
-  } catch {
-    lockError.textContent = "Facebook login was canceled or unavailable.";
-  }
-  return true;
+function continueAsGuest() {
+  appSettings = {
+    ...appSettings,
+    guestModeEnabled: true,
+    securitySalt: "",
+    securityHash: "",
+    biometricEnabled: false,
+    biometricCredentialId: "",
+    initialDataComplete: true
+  };
+  saveAppSettings();
+  finishUnlock();
 }
 
 function finishUnlock() {
@@ -7619,7 +7611,8 @@ render();
 scrollAppToTop();
 if (isAppLockEnabled()) {
   showAppLock();
+} else if (isGuestModeEnabled()) {
+  finishUnlock();
 } else {
   showSecuritySetup();
 }
-handleFacebookLoginRedirect();
