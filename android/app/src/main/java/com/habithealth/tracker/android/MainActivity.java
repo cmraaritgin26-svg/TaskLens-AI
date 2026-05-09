@@ -44,7 +44,6 @@ public class MainActivity extends BridgeActivity {
         registerSecurityBridge();
         registerKeyboardBridge();
         registerNotificationBridge();
-        handleFacebookRedirect(getIntent());
     }
 
     private void configureWebViewPrivacy() {
@@ -61,7 +60,6 @@ public class MainActivity extends BridgeActivity {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
-        handleFacebookRedirect(intent);
     }
 
     @Override
@@ -82,30 +80,6 @@ public class MainActivity extends BridgeActivity {
         if (requestCode == NOTIFICATION_PERMISSION_REQUEST) {
             return;
         }
-    }
-
-    private void handleFacebookRedirect(Intent intent) {
-        if (intent == null || intent.getData() == null || this.bridge == null) {
-            return;
-        }
-
-        Uri data = intent.getData();
-        if (!"fb2422428068229609".equals(data.getScheme())) {
-            return;
-        }
-
-        String appUrl = "https://localhost/";
-        String fragment = data.getEncodedFragment();
-        String query = data.getEncodedQuery();
-        if (fragment != null && !fragment.isEmpty()) {
-            appUrl = appUrl + "#" + fragment;
-        } else if (query != null && !query.isEmpty()) {
-            appUrl = appUrl + "?" + query;
-        }
-
-        WebView webView = this.bridge.getWebView();
-        String finalAppUrl = appUrl;
-        webView.post(() -> webView.loadUrl(finalAppUrl));
     }
 
     private void registerPrintBridge() {
