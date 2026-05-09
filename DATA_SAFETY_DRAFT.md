@@ -8,8 +8,6 @@ configuration you submit.
 - Health and fitness: nutrition, water, weight, glucose, blood pressure,
   symptoms, mood, notes, journal entries.
 - App activity: tasks, task completion history, reminders, settings.
-- Personal info: optional Facebook user ID used only for app unlock when the
-  user chooses Facebook login.
 - User files: optional exported backup files created only when the user chooses
   export.
 
@@ -39,7 +37,7 @@ Optional cloud AI use:
 - Users can disable cloud AI internet sharing in Settings.
 - Users can delete individual journal entries.
 - Users can delete all journal entries.
-- Users can clear app lock settings, including Facebook login linkage.
+- Users can clear local app lock settings.
 - Users can request deletion of account linkage and associated data at
   `https://cmraaritgin26-svg.github.io/Habit-Tracker/data-deletion.html`.
 - Users can export/import data.
