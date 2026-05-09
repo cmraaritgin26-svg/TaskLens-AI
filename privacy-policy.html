@@ -1,55 +1,117 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Health &amp; Task Tracker Privacy Policy</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Health & Task Tracker Privacy Policy</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      line-height: 1.6;
-      max-width: 840px;
-      margin: 0 auto;
-      padding: 32px 18px;
-      color: #1f2933;
-      background: #ffffff;
+    :root {
+      color-scheme: light;
+      --ink: #17202a;
+      --muted: #556575;
+      --line: #d8e0e8;
+      --panel: #ffffff;
+      --page: #f5f8fb;
+      --accent: #167a52;
     }
-    h1, h2 { color: #102a43; }
-    h1 { line-height: 1.2; }
-    a { color: #0b5cad; }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.6;
+    }
+
+    main {
+      width: min(920px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 48px 0;
+    }
+
+    article {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: clamp(24px, 4vw, 44px);
+      box-shadow: 0 18px 48px rgba(28, 45, 64, 0.08);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(2rem, 5vw, 3rem);
+      line-height: 1.05;
+    }
+
+    h2 {
+      margin: 32px 0 10px;
+      font-size: 1.2rem;
+    }
+
+    p,
+    li {
+      color: var(--muted);
+      font-size: 1rem;
+    }
+
+    a {
+      color: var(--accent);
+      font-weight: 700;
+    }
   </style>
 </head>
 <body>
-  <h1>Health &amp; Task Tracker Privacy Policy</h1>
-  <p><strong>Effective date:</strong> May 8, 2026</p>
+  <main>
+    <article>
+      <h1>Privacy Policy</h1>
+      <p><strong>Effective date:</strong> May 9, 2026</p>
+      <p>Health & Task Tracker is a personal wellness and task tracking app. It helps users track tasks, water intake, nutrition, vitals, symptoms, mood, journal entries, reminders, and wellness trends.</p>
 
-  <p>Health &amp; Task Tracker is a personal tracking app for tasks, nutrition, water, vitals, symptoms, mood, journal entries, reminders, dictation, and wellness trends.</p>
+      <h2>Information You Enter</h2>
+      <p>The app may store information you choose to enter, including:</p>
+      <ul>
+        <li>Tasks and completion history</li>
+        <li>Water intake</li>
+        <li>Nutrition and calorie logs</li>
+        <li>Weight, glucose, blood pressure, and other vitals</li>
+        <li>Symptoms and severity</li>
+        <li>Mood and notes</li>
+        <li>Journal entries</li>
+        <li>Settings, reminders, app lock preferences, and AI preferences</li>
+      </ul>
 
-  <h2>Information You Enter</h2>
-  <p>The app may store information you enter, including tasks and completion history, nutrition and water logs, weight, glucose, blood pressure, other vitals, symptoms, mood, notes, journal entries, reminders, app settings, app lock preferences, AI preferences, and dictation transcripts generated from speech.</p>
+      <h2>Local Storage</h2>
+      <p>By default, app data is stored locally on your device. Health & Task Tracker does not require an account to use the app. Guest mode is available.</p>
 
-  <h2>Microphone Permission</h2>
-  <p>The app requests microphone permission so you can use dictation. Dictation is used to turn speech into text and help fill in app fields. The app is not intended to save raw voice recordings. Dictation text and extracted information may be saved in the app if you confirm or use the dictated information.</p>
+      <h2>Optional App Lock</h2>
+      <p>The app may offer optional local app lock features, including biometric/device unlock or password protection. These features are used only to help protect access to the app on your device.</p>
 
-  <h2>Local Storage</h2>
-  <p>By default, app data is stored locally on your device. You are responsible for protecting your device, backups, and exported files.</p>
+      <h2>Optional Cloud AI</h2>
+      <p>Cloud AI features are optional. They do not work unless you allow internet sharing in setup or settings, enable Cloud AI features, and configure an AI backend URL.</p>
+      <p>If enabled, the app may send health information, journal text, symptoms, mood, nutrition, vitals, and tasks over the internet to the AI backend you configure. The app uses this information for trend summaries and wellness prompts.</p>
 
-  <h2>Optional Cloud AI Features</h2>
-  <p>Cloud AI features are optional. They do not work unless you allow internet sharing in setup or settings and configure the AI features. If enabled, the app may send health information, journal text, symptoms, mood, nutrition, vitals, tasks, notes, and dictation transcripts over the internet to the AI service you configure. The app uses this information for dictation extraction, trend summaries, and safety or wellness prompts.</p>
+      <h2>Backups and Exports</h2>
+      <p>The app can export a backup file at your request. Exported backups may contain health logs, journal entries, task history, and other information you entered. Store exported backups carefully.</p>
+      <p>Exported backups intentionally omit API keys, backend tokens, password hashes, salts, and biometric credential IDs.</p>
 
-  <h2>Backups and Exports</h2>
-  <p>The app can export a backup file at your request. Exported backups may contain health logs, journal entries, and other personal information, so store them carefully.</p>
+      <h2>Data Deletion</h2>
+      <p>You can delete local data using in-app delete controls, Settings &gt; Master reset, Android app storage clearing, or by uninstalling the app.</p>
+      <p>You can request deletion of any account-related or backend-accessible data at <a href="https://cmraaritgin26-svg.github.io/Habit-Tracker/data-deletion.html">https://cmraaritgin26-svg.github.io/Habit-Tracker/data-deletion.html</a>.</p>
+      <p>Most app data is stored locally on your device, so the developer cannot remotely delete information that exists only on your phone.</p>
 
-  <h2>Security</h2>
-  <p>The Android app blocks screenshots and recent-app previews while open. The app may support local password or biometric locking. No security measure is perfect, and the app is not a substitute for secure medical record systems.</p>
+      <h2>Security</h2>
+      <p>The app supports guest mode, biometric/device locking, and password fallback where biometric unlock is unavailable. Screenshots are allowed by the Android app. No security method is perfect, so protect your phone and avoid sharing exported backups.</p>
 
-  <h2>Medical Disclaimer</h2>
-  <p>The app is for personal tracking and wellness support. It does not diagnose, treat, cure, or prevent disease and does not replace professional medical advice. If you may hurt yourself or are in immediate danger, call or text emergency services where available.</p>
+      <h2>Medical Disclaimer</h2>
+      <p>Health & Task Tracker is for personal wellness tracking only. It does not diagnose, treat, cure, or prevent disease and does not replace professional medical advice. If you may hurt yourself or are in immediate danger, call or text emergency services where available.</p>
 
-  <h2>Children</h2>
-  <p>The app is not intended for children under 13.</p>
-
-  <h2>Contact</h2>
-  <p>For privacy questions, contact the developer through the GitHub repository: <a href="https://github.com/cmraaritgin26-svg/Habit-Tracker">https://github.com/cmraaritgin26-svg/Habit-Tracker</a>.</p>
+      <h2>Contact</h2>
+      <p>For privacy questions or deletion requests, contact <a href="mailto:cmraaritgin26@gmail.com">cmraaritgin26@gmail.com</a>.</p>
+    </article>
+  </main>
 </body>
 </html>
