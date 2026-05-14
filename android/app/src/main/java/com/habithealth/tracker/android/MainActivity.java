@@ -19,6 +19,9 @@ import android.os.CancellationSignal;
 import android.print.PrintAttributes;
 import android.print.PrintDocumentAdapter;
 import android.print.PrintManager;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
 import android.speech.tts.TextToSpeech;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
@@ -28,14 +31,20 @@ import android.view.inputmethod.InputMethodManager;
 
 import com.getcapacitor.BridgeActivity;
 
+import java.util.ArrayList;
+import java.util.Locale;
+
 public class MainActivity extends BridgeActivity {
     private static final int DEVICE_CREDENTIAL_REQUEST = 4217;
     private static final int NOTIFICATION_PERMISSION_REQUEST = 4220;
+    private static final int RECORD_AUDIO_PERMISSION_REQUEST = 4221;
     private static final String REMINDER_CHANNEL_ID = "health_task_tracker_reminders";
     private static final String CRISIS_CHANNEL_ID = "health_task_tracker_crisis_alerts";
     private static final long[] CRISIS_VIBRATION_PATTERN = new long[]{0, 900, 250, 900, 250, 1200, 350, 1200};
     private WebView printWebView;
     private String pendingCredentialCallbackId;
+    private String pendingDictationPermissionCallbackId;
+    private SpeechRecognizer activeSpeechRecognizer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,6 +55,7 @@ public class MainActivity extends BridgeActivity {
         registerKeyboardBridge();
         registerNotificationBridge();
         registerTextToSpeechBridge();
+        registerDictationBridge();
     }
 
     private void configureWebViewPrivacy() {
@@ -80,6 +90,17 @@ public class MainActivity extends BridgeActivity {
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == NOTIFICATION_PERMISSION_REQUEST) {
+            return;
+        }
+        if (requestCode == RECORD_AUDIO_PERMISSION_REQUEST && pendingDictationPermissionCallbackId != null) {
+            String callbackId = pendingDictationPermissionCallbackId;
+            pendingDictationPermissionCallbackId = null;
+            boolean granted = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+            if (granted) {
+                startNativeDictation(callbackId);
+            } else {
+                sendDictationResult(callbackId, false, "", "Microphone permission was denied.");
+            }
             return;
         }
     }
@@ -149,6 +170,19 @@ public class MainActivity extends BridgeActivity {
         webView.addJavascriptInterface(new TextToSpeechBridge(), "HealthTaskTextToSpeech");
     }
 
+    private void registerDictationBridge() {
+        if (this.bridge == null) {
+            return;
+        }
+
+        WebView webView = this.bridge.getWebView();
+        if (webView == null) {
+            return;
+        }
+
+        webView.addJavascriptInterface(new DictationBridge(), "HealthTaskDictation");
+    }
+
     private boolean isDeviceSecure() {
         KeyguardManager keyguardManager = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
         return keyguardManager != null && keyguardManager.isDeviceSecure();
@@ -184,6 +218,137 @@ public class MainActivity extends BridgeActivity {
     private boolean hasNotificationPermission() {
         return Build.VERSION.SDK_INT < 33
                 || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private boolean hasRecordAudioPermission() {
+        return checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void sendDictationResult(String callbackId, boolean success, String transcript, String message) {
+        if (this.bridge == null || callbackId == null) {
+            return;
+        }
+
+        WebView webView = this.bridge.getWebView();
+        if (webView == null) {
+            return;
+        }
+
+        String script = "window.__nativeDictationResult && window.__nativeDictationResult('"
+                + escapeForJavascript(callbackId) + "', "
+                + success + ", '"
+                + escapeForJavascript(transcript) + "', '"
+                + escapeForJavascript(message) + "')";
+        webView.post(() -> webView.evaluateJavascript(script, null));
+    }
+
+    private void startNativeDictation(String callbackId) {
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            sendDictationResult(callbackId, false, "", "Speech recognition is not available on this device.");
+            return;
+        }
+
+        stopActiveSpeechRecognizer();
+        activeSpeechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
+        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+        intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+        intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
+        intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Dictate your health update");
+        activeSpeechRecognizer.setRecognitionListener(new RecognitionListener() {
+            private String bestTranscript = "";
+
+            @Override
+            public void onReadyForSpeech(Bundle params) {
+            }
+
+            @Override
+            public void onBeginningOfSpeech() {
+            }
+
+            @Override
+            public void onRmsChanged(float rmsdB) {
+            }
+
+            @Override
+            public void onBufferReceived(byte[] buffer) {
+            }
+
+            @Override
+            public void onEndOfSpeech() {
+            }
+
+            @Override
+            public void onError(int error) {
+                String transcript = bestTranscript.trim();
+                stopActiveSpeechRecognizer();
+                if (!transcript.isEmpty()) {
+                    sendDictationResult(callbackId, true, transcript, "");
+                    return;
+                }
+                sendDictationResult(callbackId, false, "", getSpeechErrorMessage(error));
+            }
+
+            @Override
+            public void onResults(Bundle results) {
+                String transcript = getBestSpeechResult(results);
+                stopActiveSpeechRecognizer();
+                sendDictationResult(callbackId, !transcript.trim().isEmpty(), transcript, transcript.trim().isEmpty() ? "No speech was captured." : "");
+            }
+
+            @Override
+            public void onPartialResults(Bundle partialResults) {
+                String transcript = getBestSpeechResult(partialResults);
+                if (!transcript.trim().isEmpty()) {
+                    bestTranscript = transcript;
+                }
+            }
+
+            @Override
+            public void onEvent(int eventType, Bundle params) {
+            }
+        });
+        activeSpeechRecognizer.startListening(intent);
+    }
+
+    private String getBestSpeechResult(Bundle results) {
+        if (results == null) return "";
+        ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+        if (matches == null || matches.isEmpty()) return "";
+        return matches.get(0) == null ? "" : matches.get(0);
+    }
+
+    private String getSpeechErrorMessage(int error) {
+        switch (error) {
+            case SpeechRecognizer.ERROR_AUDIO:
+                return "Audio recording failed.";
+            case SpeechRecognizer.ERROR_CLIENT:
+                return "Speech recognition failed.";
+            case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS:
+                return "Microphone permission is required.";
+            case SpeechRecognizer.ERROR_NETWORK:
+            case SpeechRecognizer.ERROR_NETWORK_TIMEOUT:
+                return "Speech recognition needs a network connection.";
+            case SpeechRecognizer.ERROR_NO_MATCH:
+                return "I did not catch any words.";
+            case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
+                return "Speech recognition is busy. Try again.";
+            case SpeechRecognizer.ERROR_SERVER:
+                return "Speech recognition service failed.";
+            case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
+                return "No speech was heard.";
+            default:
+                return "Dictation failed.";
+        }
+    }
+
+    private void stopActiveSpeechRecognizer() {
+        if (activeSpeechRecognizer == null) {
+            return;
+        }
+        activeSpeechRecognizer.destroy();
+        activeSpeechRecognizer = null;
     }
 
     private void requestNotificationPermissionIfNeeded() {
@@ -459,6 +624,34 @@ public class MainActivity extends BridgeActivity {
         @JavascriptInterface
         public void notify(String title, String body, String tag) {
             runOnUiThread(() -> showNativeNotification(title, body, tag));
+        }
+    }
+
+    private class DictationBridge {
+        @JavascriptInterface
+        public boolean isAvailable() {
+            return SpeechRecognizer.isRecognitionAvailable(MainActivity.this);
+        }
+
+        @JavascriptInterface
+        public void start(String callbackId) {
+            runOnUiThread(() -> {
+                if (!hasRecordAudioPermission()) {
+                    pendingDictationPermissionCallbackId = callbackId;
+                    requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, RECORD_AUDIO_PERMISSION_REQUEST);
+                    return;
+                }
+                startNativeDictation(callbackId);
+            });
+        }
+
+        @JavascriptInterface
+        public void stop() {
+            runOnUiThread(() -> {
+                if (activeSpeechRecognizer != null) {
+                    activeSpeechRecognizer.stopListening();
+                }
+            });
         }
     }
 
