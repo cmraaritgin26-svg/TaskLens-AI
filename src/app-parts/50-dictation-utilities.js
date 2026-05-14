@@ -851,6 +851,55 @@ function canUseCloudAi() {
   return Boolean(appSettings.hipaaCloudConfirmed && appSettings.aiExtractionEnabled && window.fetch && getConfiguredAiBackendUrl());
 }
 
+async function testAiTextToSpeech() {
+  if (!canUseCloudAi()) {
+    showToast("Enable cloud AI and save your AI backend URL first.");
+    return;
+  }
+  try {
+    showToast("Generating AI voice...");
+    await playAiTextToSpeech("AI voice is ready for Health and Task Tracker.");
+    showToast("Playing AI-generated voice.");
+  } catch (error) {
+    showToast(error.message || "AI text-to-speech failed.");
+  }
+}
+
+async function playAiTextToSpeech(text, options = {}) {
+  const backendUrl = getConfiguredAiBackendUrl();
+  if (!backendUrl) throw new Error("Enter an HTTPS AI backend URL in Settings.");
+  const headers = { "Content-Type": "application/json" };
+  if (appSettings.aiBackendToken) headers["X-App-Token"] = appSettings.aiBackendToken;
+  const response = await fetchWithTimeout(`${backendUrl}/api/tts/speech`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      text: truncateForAi(text, 1800),
+      model: appSettings.aiTtsModel || "gpt-4o-mini-tts",
+      voice: appSettings.aiTtsVoice || "coral",
+      instructions: options.instructions || "Speak in a warm, calm, supportive health coach tone."
+    })
+  }, 12000);
+  if (!response.ok) {
+    throw new Error(await getFriendlyAiError(response, "AI text-to-speech"));
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  try {
+    await new Audio(url).play();
+  } finally {
+    window.setTimeout(() => URL.revokeObjectURL(url), 30000);
+  }
+}
+
+function installPhoneTextToSpeechVoiceData() {
+  if (window.HealthTaskTextToSpeech && typeof window.HealthTaskTextToSpeech.installVoiceData === "function") {
+    window.HealthTaskTextToSpeech.installVoiceData();
+    return;
+  }
+  showToast("Phone voice install is available in the Android app build.");
+}
+
 async function extractAiDictationData(text) {
   if (!getConfiguredAiBackendUrl()) {
     throw new Error("Enter an HTTPS AI backend URL in Settings.");

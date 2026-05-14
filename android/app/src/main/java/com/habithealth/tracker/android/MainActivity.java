@@ -19,6 +19,7 @@ import android.os.CancellationSignal;
 import android.print.PrintAttributes;
 import android.print.PrintDocumentAdapter;
 import android.print.PrintManager;
+import android.speech.tts.TextToSpeech;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -44,6 +45,7 @@ public class MainActivity extends BridgeActivity {
         registerSecurityBridge();
         registerKeyboardBridge();
         registerNotificationBridge();
+        registerTextToSpeechBridge();
     }
 
     private void configureWebViewPrivacy() {
@@ -132,6 +134,19 @@ public class MainActivity extends BridgeActivity {
         }
 
         webView.addJavascriptInterface(new NotificationBridge(), "HealthTaskNotifications");
+    }
+
+    private void registerTextToSpeechBridge() {
+        if (this.bridge == null) {
+            return;
+        }
+
+        WebView webView = this.bridge.getWebView();
+        if (webView == null) {
+            return;
+        }
+
+        webView.addJavascriptInterface(new TextToSpeechBridge(), "HealthTaskTextToSpeech");
     }
 
     private boolean isDeviceSecure() {
@@ -444,6 +459,58 @@ public class MainActivity extends BridgeActivity {
         @JavascriptInterface
         public void notify(String title, String body, String tag) {
             runOnUiThread(() -> showNativeNotification(title, body, tag));
+        }
+    }
+
+    private class TextToSpeechBridge {
+        private TextToSpeech textToSpeech;
+
+        @JavascriptInterface
+        public boolean isAvailable() {
+            return true;
+        }
+
+        @JavascriptInterface
+        public void installVoiceData() {
+            runOnUiThread(() -> {
+                Intent intent = new Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA);
+                if (intent.resolveActivity(getPackageManager()) != null) {
+                    startActivity(intent);
+                    return;
+                }
+                openSettings();
+            });
+        }
+
+        @JavascriptInterface
+        public void openSettings() {
+            runOnUiThread(() -> {
+                Intent intent = new Intent("com.android.settings.TTS_SETTINGS");
+                if (intent.resolveActivity(getPackageManager()) != null) {
+                    startActivity(intent);
+                    return;
+                }
+                Intent settingsIntent = new Intent(android.provider.Settings.ACTION_SETTINGS);
+                startActivity(settingsIntent);
+            });
+        }
+
+        @JavascriptInterface
+        public void speak(String text) {
+            String speechText = text == null || text.trim().isEmpty()
+                    ? "Text to speech is ready."
+                    : text.trim();
+            runOnUiThread(() -> {
+                if (textToSpeech == null) {
+                    textToSpeech = new TextToSpeech(MainActivity.this, status -> {
+                        if (status == TextToSpeech.SUCCESS && textToSpeech != null) {
+                            textToSpeech.speak(speechText, TextToSpeech.QUEUE_FLUSH, null, "health-task-tts-test");
+                        }
+                    });
+                    return;
+                }
+                textToSpeech.speak(speechText, TextToSpeech.QUEUE_FLUSH, null, "health-task-tts-test");
+            });
         }
     }
 

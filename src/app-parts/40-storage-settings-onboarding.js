@@ -393,6 +393,8 @@ function loadAppSettings() {
       aiBackendUrl: DEFAULT_AI_BACKEND_URL,
       aiBackendToken: "",
       aiModel: "gpt-4o-mini",
+      aiTtsModel: "gpt-4o-mini-tts",
+      aiTtsVoice: "coral",
       ...savedSettings
     };
     settings.aiApiKey = "";
@@ -418,7 +420,9 @@ function loadAppSettings() {
       aiApiKey: "",
       aiBackendUrl: DEFAULT_AI_BACKEND_URL,
       aiBackendToken: "",
-      aiModel: "gpt-4o-mini"
+      aiModel: "gpt-4o-mini",
+      aiTtsModel: "gpt-4o-mini-tts",
+      aiTtsVoice: "coral"
     };
   }
 }
@@ -449,6 +453,8 @@ function renderSettings() {
   aiBackendUrl.value = hasOwnSetting("aiBackendUrl") ? appSettings.aiBackendUrl || "" : "";
   aiBackendToken.value = appSettings.aiBackendToken || "";
   aiModel.value = hasOwnSetting("aiModel") ? appSettings.aiModel || "" : "";
+  if (aiTtsModel) aiTtsModel.value = hasOwnSetting("aiTtsModel") ? appSettings.aiTtsModel || "" : "";
+  if (aiTtsVoice) aiTtsVoice.value = appSettings.aiTtsVoice || "coral";
   biometricToggle.disabled = !isAppLockEnabled();
   setPasswordButton.textContent = isAppLockEnabled() ? "Change password" : "Set password";
   clearPasswordButton.disabled = !isAppLockEnabled();

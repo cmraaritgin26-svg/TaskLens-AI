@@ -3,9 +3,27 @@ import http from "node:http";
 const PORT = Number(process.env.PORT || 8787);
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
+const OPENAI_TTS_MODEL = process.env.OPENAI_TTS_MODEL || "gpt-4o-mini-tts";
+const OPENAI_TTS_VOICE = process.env.OPENAI_TTS_VOICE || "coral";
 const APP_CLIENT_TOKEN = process.env.APP_CLIENT_TOKEN || "";
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
 const MAX_BODY_BYTES = 250_000;
+const MAX_TTS_INPUT_CHARS = 1800;
+const OPENAI_TTS_VOICES = new Set([
+  "alloy",
+  "ash",
+  "ballad",
+  "coral",
+  "echo",
+  "fable",
+  "nova",
+  "onyx",
+  "sage",
+  "shimmer",
+  "verse",
+  "marin",
+  "cedar"
+]);
 
 const extractionSchemaPrompt = `Search the saved speaker transcript document for Health & Task Tracker data.
 Return only valid JSON with these keys:
@@ -77,6 +95,11 @@ const server = http.createServer(async (request, response) => {
 
   if (request.url === "/api/safety/scan" && request.method === "POST") {
     await handleSafetyScan(request, response);
+    return;
+  }
+
+  if (request.url === "/api/tts/speech" && request.method === "POST") {
+    await handleTextToSpeech(request, response);
     return;
   }
 
@@ -155,6 +178,41 @@ async function handleCoachAnalyze(request, response) {
     }
     const insight = await analyzeCoachSnapshot(snapshot);
     sendJson(response, 200, insight);
+  } catch (error) {
+    sendJson(response, error.statusCode || 500, { error: error.message || "Server error" });
+  }
+}
+
+async function handleTextToSpeech(request, response) {
+  if (!OPENAI_API_KEY) {
+    sendJson(response, 500, { error: "OPENAI_API_KEY is not configured." });
+    return;
+  }
+
+  if (!isAuthorized(request)) {
+    sendJson(response, 401, { error: "Unauthorized" });
+    return;
+  }
+
+  try {
+    const body = await readJsonBody(request);
+    const text = limitText(body.text, MAX_TTS_INPUT_CHARS);
+    if (!text) {
+      sendJson(response, 400, { error: "Missing text." });
+      return;
+    }
+    const audio = await synthesizeSpeech({
+      text,
+      model: limitText(body.model, 80) || OPENAI_TTS_MODEL,
+      voice: normalizeTtsVoice(body.voice),
+      instructions: limitText(body.instructions, 500) || "Speak in a warm, calm, supportive health coach tone."
+    });
+    response.writeHead(200, {
+      "Content-Type": "audio/mpeg",
+      "Cache-Control": "no-store",
+      "Pragma": "no-cache"
+    });
+    response.end(Buffer.from(audio));
   } catch (error) {
     sendJson(response, error.statusCode || 500, { error: error.message || "Server error" });
   }
@@ -294,6 +352,35 @@ async function scanSafetySnapshot(snapshot) {
   const content = data.choices?.[0]?.message?.content || "";
   if (!content) throw new Error("OpenAI returned no safety scan.");
   return JSON.parse(content);
+}
+
+async function synthesizeSpeech({ text, model, voice, instructions }) {
+  const openAiResponse = await fetch("https://api.openai.com/v1/audio/speech", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${OPENAI_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model,
+      voice,
+      input: text,
+      instructions,
+      response_format: "mp3"
+    })
+  });
+
+  if (!openAiResponse.ok) {
+    const details = await openAiResponse.text();
+    throw new Error(details || `OpenAI speech request failed with ${openAiResponse.status}`);
+  }
+
+  return openAiResponse.arrayBuffer();
+}
+
+function normalizeTtsVoice(value) {
+  const voice = String(value || OPENAI_TTS_VOICE).trim().toLowerCase();
+  return OPENAI_TTS_VOICES.has(voice) ? voice : OPENAI_TTS_VOICE;
 }
 
 function sanitizeCoachSnapshot(snapshot) {
