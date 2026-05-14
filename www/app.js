@@ -4797,8 +4797,8 @@ function loadAppSettings() {
       biometricEnabled: false,
       biometricCredentialId: "",
       initialDataComplete: hasSavedSettings,
-      aiExtractionEnabled: false,
-      hipaaCloudConfirmed: false,
+      aiExtractionEnabled: true,
+      hipaaCloudConfirmed: true,
       aiApiKey: "",
       aiBackendUrl: DEFAULT_AI_BACKEND_URL,
       aiBackendToken: "",
@@ -4825,8 +4825,8 @@ function loadAppSettings() {
       biometricEnabled: false,
       biometricCredentialId: "",
       initialDataComplete: hasSavedSettings,
-      aiExtractionEnabled: false,
-      hipaaCloudConfirmed: false,
+      aiExtractionEnabled: true,
+      hipaaCloudConfirmed: true,
       aiApiKey: "",
       aiBackendUrl: DEFAULT_AI_BACKEND_URL,
       aiBackendToken: "",
@@ -5426,7 +5426,7 @@ function getInitialDataSteps() {
           <span>I understand cloud AI can send my health info over the internet</span>
           <input name="cloudAiAcknowledgement" type="checkbox" ${appSettings.hipaaCloudConfirmed ? "checked" : ""}>
         </label>
-        <p class="settings-note onboarding-wide">AI features will not work unless this is checked, Cloud AI features are enabled in Settings, and an HTTPS AI backend URL is saved. OpenAI API keys should stay on the backend.</p>
+        <p class="settings-note onboarding-wide">AI dictation uses your configured secure backend. OpenAI API keys should stay on the backend.</p>
       `,
       save: (formData) => {
         const acknowledged = formData.get("cloudAiAcknowledgement") === "on";
