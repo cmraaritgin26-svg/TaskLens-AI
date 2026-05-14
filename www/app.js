@@ -6637,7 +6637,7 @@ async function processParsedHealthDictation(result, documentEntry) {
   }
   pendingParsedDictationResult = result;
   pendingParsedDictationDocument = typeof documentEntry === "string" ? { text: documentEntry } : documentEntry;
-  showParsedDictationReview(result);
+  commitParsedHealthDictation(result);
 }
 
 function commitParsedHealthDictation(resultToCommit = pendingParsedDictationResult) {
