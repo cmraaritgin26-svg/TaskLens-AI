@@ -6633,6 +6633,7 @@ function getDictationDocumentSearchText(documentEntry) {
 
 async function processParsedHealthDictation(result, documentEntry) {
   const text = typeof documentEntry === "string" ? documentEntry : documentEntry.text || "";
+  result = sanitizeDictationResultForTranscript(result, text);
   if (!hasDictationResult(result)) {
     handleUnclearDictation(text);
     return;
@@ -6643,7 +6644,8 @@ async function processParsedHealthDictation(result, documentEntry) {
 }
 
 function commitParsedHealthDictation(resultToCommit = pendingParsedDictationResult) {
-  const result = resultToCommit;
+  const transcript = pendingParsedDictationDocument?.text || "";
+  const result = sanitizeDictationResultForTranscript(resultToCommit, transcript);
   if (!result || !hasDictationResult(result)) {
     dictationReviewMessage.textContent = "There is no field data ready to save. Re-dictate or change the transcript.";
     showToast("No field data found. Try dictating again.");
@@ -6767,7 +6769,7 @@ function getDictationReviewSteps() {
   const symptoms = getDictationSymptoms(result);
   const mood = result.mood || {};
   const tasks = getDictationTasks(result);
-  return [
+  const steps = [
     {
       title: "Review Nutrition",
       fields: `
@@ -6832,6 +6834,10 @@ function getDictationReviewSteps() {
       apply: (data) => setDictationTasks(result, readTasksReviewFields(data, tasks.length || 1))
     }
   ];
+  if (!hasExplicitJournalIntent(pendingParsedDictationDocument?.text || "")) {
+    return steps.filter((step) => step.title !== "Review Journal");
+  }
+  return steps;
 }
 
 function reviewInput(name, label, value, type = "text") {
@@ -7289,6 +7295,14 @@ function normalizeAiNutrition(value) {
 function normalizeAiChoice(value, allowed, fallback) {
   const found = allowed.find((item) => item.toLowerCase() === String(value || "").toLowerCase());
   return found || fallback;
+}
+
+function sanitizeDictationResultForTranscript(result, transcript) {
+  if (!result || typeof result !== "object") return result;
+  if (!hasExplicitJournalIntent(transcript)) {
+    return { ...result, journal: null };
+  }
+  return result;
 }
 
 function extractStructuredDictationData(text) {
