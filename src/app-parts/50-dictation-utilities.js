@@ -239,12 +239,24 @@ function appendDictationToReview(text) {
 function startNativeDictation() {
   return new Promise((resolve, reject) => {
     const callbackId = createSecurityToken(12);
+    const timeoutId = window.setTimeout(() => {
+      const callback = window.__nativeDictationCallbacks?.[callbackId];
+      if (!callback) return;
+      delete window.__nativeDictationCallbacks[callbackId];
+      try {
+        window.HealthTaskDictation.stop();
+      } catch {
+        // Ignore native cleanup errors after a timeout.
+      }
+      callback.reject(new Error("Dictation timed out."));
+    }, 45000);
     window.__nativeDictationCallbacks = window.__nativeDictationCallbacks || {};
-    window.__nativeDictationCallbacks[callbackId] = { resolve, reject };
+    window.__nativeDictationCallbacks[callbackId] = { resolve, reject, timeoutId };
     window.__nativeDictationResult = (id, success, transcript, message) => {
       const callback = window.__nativeDictationCallbacks?.[id];
       if (!callback) return;
       delete window.__nativeDictationCallbacks[id];
+      window.clearTimeout(callback.timeoutId);
       if (success) callback.resolve(transcript || "");
       else callback.reject(new Error(message || "Dictation failed."));
     };

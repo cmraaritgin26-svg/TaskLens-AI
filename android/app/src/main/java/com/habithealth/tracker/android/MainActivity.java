@@ -44,6 +44,8 @@ public class MainActivity extends BridgeActivity {
     private WebView printWebView;
     private String pendingCredentialCallbackId;
     private String pendingDictationPermissionCallbackId;
+    private String activeDictationCallbackId;
+    private String activeDictationTranscript = "";
     private SpeechRecognizer activeSpeechRecognizer;
 
     @Override
@@ -249,6 +251,8 @@ public class MainActivity extends BridgeActivity {
         }
 
         stopActiveSpeechRecognizer();
+        activeDictationCallbackId = callbackId;
+        activeDictationTranscript = "";
         activeSpeechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
         Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
@@ -281,7 +285,7 @@ public class MainActivity extends BridgeActivity {
 
             @Override
             public void onError(int error) {
-                String transcript = bestTranscript.trim();
+                String transcript = (bestTranscript.trim().isEmpty() ? activeDictationTranscript : bestTranscript).trim();
                 stopActiveSpeechRecognizer();
                 if (!transcript.isEmpty()) {
                     sendDictationResult(callbackId, true, transcript, "");
@@ -302,6 +306,7 @@ public class MainActivity extends BridgeActivity {
                 String transcript = getBestSpeechResult(partialResults);
                 if (!transcript.trim().isEmpty()) {
                     bestTranscript = transcript;
+                    activeDictationTranscript = transcript;
                 }
             }
 
@@ -345,10 +350,24 @@ public class MainActivity extends BridgeActivity {
 
     private void stopActiveSpeechRecognizer() {
         if (activeSpeechRecognizer == null) {
+            activeDictationCallbackId = null;
+            activeDictationTranscript = "";
             return;
         }
         activeSpeechRecognizer.destroy();
         activeSpeechRecognizer = null;
+        activeDictationCallbackId = null;
+        activeDictationTranscript = "";
+    }
+
+    private void finishActiveDictationFromStop() {
+        String callbackId = activeDictationCallbackId;
+        String transcript = activeDictationTranscript == null ? "" : activeDictationTranscript.trim();
+        stopActiveSpeechRecognizer();
+        if (callbackId == null) {
+            return;
+        }
+        sendDictationResult(callbackId, true, transcript, "");
     }
 
     private void requestNotificationPermissionIfNeeded() {
@@ -647,11 +666,7 @@ public class MainActivity extends BridgeActivity {
 
         @JavascriptInterface
         public void stop() {
-            runOnUiThread(() -> {
-                if (activeSpeechRecognizer != null) {
-                    activeSpeechRecognizer.stopListening();
-                }
-            });
+            runOnUiThread(() -> finishActiveDictationFromStop());
         }
     }
 
