@@ -1802,6 +1802,9 @@ input[type="color"] {
 
 .dictation-review-panel {
   width: min(620px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .dictation-review-field {
@@ -1882,7 +1885,14 @@ input[type="color"] {
 }
 
 .dictation-review-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
   justify-content: center;
+  margin: 12px -16px -16px;
+  padding: 10px 16px 14px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
 }
 
 .review-today-list {
