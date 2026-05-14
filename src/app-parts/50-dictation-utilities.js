@@ -429,7 +429,7 @@ async function processParsedHealthDictation(result, documentEntry) {
   }
   pendingParsedDictationResult = result;
   pendingParsedDictationDocument = typeof documentEntry === "string" ? { text: documentEntry } : documentEntry;
-  commitParsedHealthDictation(result);
+  showParsedDictationReview(result);
 }
 
 function commitParsedHealthDictation(resultToCommit = pendingParsedDictationResult) {
@@ -1058,8 +1058,18 @@ function normalizeAiDictationResult(data, originalText) {
 function normalizeAiNutrition(value) {
   if (!value || typeof value !== "object") return null;
   const nutrition = {};
-  ["calories", "carbs", "weight", "glucose", "systolic", "diastolic", "water"].forEach((key) => {
-    const number = Number.parseFloat(value[key]);
+  const aliases = {
+    calories: ["calories", "calorie", "calorieIntake", "calorie_intake"],
+    carbs: ["carbs", "carbohydrates", "netCarbs", "net_carbs"],
+    weight: ["weight", "pounds", "lbs"],
+    glucose: ["glucose", "bloodSugar", "blood_sugar"],
+    systolic: ["systolic", "systolicBloodPressure", "systolic_blood_pressure"],
+    diastolic: ["diastolic", "diastolicBloodPressure", "diastolic_blood_pressure"],
+    water: ["water", "waterOz", "water_oz", "ounces"]
+  };
+  Object.entries(aliases).forEach(([key, names]) => {
+    const rawValue = names.map((name) => value[name]).find((item) => item !== null && item !== undefined && item !== "");
+    const number = Number.parseFloat(rawValue);
     if (Number.isFinite(number)) nutrition[key] = number;
   });
   if (["Entering", "Ketosis", "Deep ketosis", "Exiting"].includes(value.ketosisPhase)) nutrition.ketosisPhase = value.ketosisPhase;
@@ -1183,10 +1193,65 @@ function normalizeDictationText(text) {
 }
 
 function applyDictationTextAliases(text) {
-  return dictationNormalizationRules.reduce(
+  const normalized = dictationNormalizationRules.reduce(
     (normalized, [pattern, replacement]) => normalized.replace(pattern, replacement),
     String(text || "")
   );
+  return applyFuzzyHealthDictationAliases(normalized);
+}
+
+function applyFuzzyHealthDictationAliases(text) {
+  const fuzzyAliases = {
+    calories: ["calories", "calorie", "calories", "calery", "caleries", "callories", "valories", "valeries", "kcal"],
+    carbs: ["carbs", "carbz", "carbohydrates", "carbohydrate", "carbos"],
+    glucose: ["glucose", "glucoze", "glukose", "glucous", "sugar"],
+    weight: ["weight", "weigh", "weighed", "waight", "pounds"],
+    water: ["water", "hydration", "fluids"],
+    ounces: ["ounces", "ounce", "ounzes"],
+    ketosis: ["ketosis", "ketones", "keytones"],
+    systolic: ["systolic", "sistolic"],
+    diastolic: ["diastolic", "diastollic"],
+    headache: ["headache", "headake"],
+    nausea: ["nausea", "nausia", "nauzea"],
+    dizziness: ["dizziness", "dizzyness"],
+    fatigue: ["fatigue", "fatige", "tired"],
+    anxiety: ["anxiety", "anxious"],
+    stressed: ["stressed", "stress"]
+  };
+  return String(text || "").replace(/\b[a-z]{4,}\b/g, (word) => {
+    for (const [replacement, aliases] of Object.entries(fuzzyAliases)) {
+      if (aliases.some((alias) => isCloseDictationWord(word, alias))) return replacement;
+    }
+    return word;
+  });
+}
+
+function isCloseDictationWord(word, alias) {
+  if (!word || !alias) return false;
+  if (word === alias) return true;
+  if (Math.abs(word.length - alias.length) > 2) return false;
+  const maxDistance = Math.min(word.length, alias.length) >= 7 ? 2 : 1;
+  return getLimitedEditDistance(word, alias, maxDistance) <= maxDistance;
+}
+
+function getLimitedEditDistance(first, second, limit) {
+  const previous = Array.from({ length: second.length + 1 }, (_, index) => index);
+  for (let row = 1; row <= first.length; row += 1) {
+    const current = [row];
+    let rowMinimum = current[0];
+    for (let column = 1; column <= second.length; column += 1) {
+      const cost = first[row - 1] === second[column - 1] ? 0 : 1;
+      current[column] = Math.min(
+        current[column - 1] + 1,
+        previous[column] + 1,
+        previous[column - 1] + cost
+      );
+      rowMinimum = Math.min(rowMinimum, current[column]);
+    }
+    if (rowMinimum > limit) return limit + 1;
+    previous.splice(0, previous.length, ...current);
+  }
+  return previous[second.length];
 }
 
 function replaceSpokenNumbers(text) {
