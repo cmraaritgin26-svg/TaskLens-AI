@@ -46,6 +46,7 @@ public class MainActivity extends BridgeActivity {
     private String pendingDictationPermissionCallbackId;
     private String activeDictationCallbackId;
     private String activeDictationTranscript = "";
+    private boolean activeDictationStopRequested = false;
     private SpeechRecognizer activeSpeechRecognizer;
 
     @Override
@@ -253,6 +254,16 @@ public class MainActivity extends BridgeActivity {
         stopActiveSpeechRecognizer();
         activeDictationCallbackId = callbackId;
         activeDictationTranscript = "";
+        activeDictationStopRequested = false;
+        startNativeDictationSegment(callbackId);
+    }
+
+    private void startNativeDictationSegment(String callbackId) {
+        if (activeDictationStopRequested || callbackId == null || !callbackId.equals(activeDictationCallbackId)) {
+            return;
+        }
+
+        destroyActiveSpeechRecognizerOnly();
         activeSpeechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
         Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
@@ -288,20 +299,30 @@ public class MainActivity extends BridgeActivity {
 
             @Override
             public void onError(int error) {
-                String transcript = (bestTranscript.trim().isEmpty() ? activeDictationTranscript : bestTranscript).trim();
-                stopActiveSpeechRecognizer();
-                if (!transcript.isEmpty()) {
-                    sendDictationResult(callbackId, true, transcript, "");
+                appendActiveDictationTranscript(bestTranscript);
+                destroyActiveSpeechRecognizerOnly();
+                if (activeDictationStopRequested) {
+                    finishActiveDictationFromStop();
                     return;
                 }
-                sendDictationResult(callbackId, false, "", getSpeechErrorMessage(error));
+                if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
+                    sendDictationResult(callbackId, false, "", getSpeechErrorMessage(error));
+                    resetActiveDictationState();
+                    return;
+                }
+                scheduleNativeDictationRestart(callbackId);
             }
 
             @Override
             public void onResults(Bundle results) {
                 String transcript = getBestSpeechResult(results);
-                stopActiveSpeechRecognizer();
-                sendDictationResult(callbackId, !transcript.trim().isEmpty(), transcript, transcript.trim().isEmpty() ? "No speech was captured." : "");
+                appendActiveDictationTranscript(transcript);
+                destroyActiveSpeechRecognizerOnly();
+                if (activeDictationStopRequested) {
+                    finishActiveDictationFromStop();
+                    return;
+                }
+                scheduleNativeDictationRestart(callbackId);
             }
 
             @Override
@@ -318,6 +339,34 @@ public class MainActivity extends BridgeActivity {
             }
         });
         activeSpeechRecognizer.startListening(intent);
+    }
+
+    private void scheduleNativeDictationRestart(String callbackId) {
+        WebView bridgeWebView = this.bridge == null ? null : this.bridge.getWebView();
+        if (bridgeWebView == null) return;
+        bridgeWebView.postDelayed(() -> {
+            if (!activeDictationStopRequested && callbackId != null && callbackId.equals(activeDictationCallbackId)) {
+                startNativeDictationSegment(callbackId);
+            }
+        }, 250);
+    }
+
+    private void appendActiveDictationTranscript(String segment) {
+        String cleanSegment = segment == null ? "" : segment.trim();
+        if (cleanSegment.isEmpty()) return;
+        String existing = activeDictationTranscript == null ? "" : activeDictationTranscript.trim();
+        if (existing.isEmpty()) {
+            activeDictationTranscript = cleanSegment;
+            return;
+        }
+        if (existing.endsWith(cleanSegment) || existing.contains(cleanSegment)) {
+            return;
+        }
+        if (cleanSegment.endsWith(existing)) {
+            activeDictationTranscript = cleanSegment;
+            return;
+        }
+        activeDictationTranscript = existing + " " + cleanSegment;
     }
 
     private String getBestSpeechResult(Bundle results) {
@@ -352,18 +401,27 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void stopActiveSpeechRecognizer() {
+        destroyActiveSpeechRecognizerOnly();
+        resetActiveDictationState();
+    }
+
+    private void destroyActiveSpeechRecognizerOnly() {
         if (activeSpeechRecognizer == null) {
-            activeDictationCallbackId = null;
-            activeDictationTranscript = "";
             return;
         }
+        activeSpeechRecognizer.cancel();
         activeSpeechRecognizer.destroy();
         activeSpeechRecognizer = null;
+    }
+
+    private void resetActiveDictationState() {
         activeDictationCallbackId = null;
         activeDictationTranscript = "";
+        activeDictationStopRequested = false;
     }
 
     private void finishActiveDictationFromStop() {
+        activeDictationStopRequested = true;
         String callbackId = activeDictationCallbackId;
         String transcript = activeDictationTranscript == null ? "" : activeDictationTranscript.trim();
         stopActiveSpeechRecognizer();

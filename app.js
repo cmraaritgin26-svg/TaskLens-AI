@@ -6487,7 +6487,7 @@ function startNativeDictation() {
         // Ignore native cleanup errors after a timeout.
       }
       callback.reject(new Error("Dictation timed out."));
-    }, 45000);
+    }, 1800000);
     window.__nativeDictationCallbacks = window.__nativeDictationCallbacks || {};
     window.__nativeDictationCallbacks[callbackId] = { resolve, reject, timeoutId };
     window.__nativeDictationResult = (id, success, transcript, message) => {
@@ -6568,7 +6568,8 @@ function closeDictationReview() {
 
 async function saveReviewedDictation() {
   if (pendingParsedDictationResult) {
-    advanceDictationReviewStep();
+    applyDictationFullReview();
+    commitParsedHealthDictation();
     return;
   }
   const reviewed = dictationReviewText.value.trim();
@@ -6682,7 +6683,41 @@ function showParsedDictationReview(result) {
   dictationReviewManual.hidden = true;
   dictationReviewChange.hidden = false;
   dictationReviewModal.hidden = false;
-  renderDictationReviewStep();
+  renderDictationFullReview();
+}
+
+function renderDictationFullReview() {
+  const title = document.querySelector("#dictationReviewTitle");
+  if (title) title.textContent = "Review Dictation";
+  dictationFieldReview.replaceChildren(buildDictationFullReviewForm());
+  dictationReviewChange.textContent = "Change transcript";
+  dictationReviewSave.textContent = "Confirm & Save";
+  dictationReviewMessage.textContent = "Review the AI-filled fields, then Confirm & Save.";
+  dictationReviewSave.focus({ preventScroll: false });
+}
+
+function buildDictationFullReviewForm() {
+  const form = document.createElement("form");
+  form.className = "dictation-step-form dictation-full-review-form";
+  form.innerHTML = getDictationReviewSteps().map((step) => `
+    <div class="dictation-review-section">
+      <h3>${escapeHtml(step.title.replace(/^Review\s+/i, ""))}</h3>
+      ${step.fields}
+    </div>
+  `).join("");
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    applyDictationFullReview();
+    commitParsedHealthDictation();
+  });
+  return form;
+}
+
+function applyDictationFullReview() {
+  const form = dictationFieldReview.querySelector("form");
+  if (!form) return;
+  const data = new FormData(form);
+  getDictationReviewSteps().forEach((step) => step.apply(data));
 }
 
 function renderDictationReviewStep() {
