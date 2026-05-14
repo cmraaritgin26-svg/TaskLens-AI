@@ -26,7 +26,7 @@ const backupReminderStoreKey = "health-task-tracker:last-backup-reminder:v1";
 const affirmationShownStoreKey = "health-task-tracker:last-affirmation:v1";
 const affirmationDepressionShownStoreKey = "health-task-tracker:last-depression-affirmation:v1";
 const DEFAULT_AI_BACKEND_URL = "https://habit-tracker-1-lp0z.onrender.com";
-const DICTATION_FEATURE_ENABLED = false;
+const DICTATION_FEATURE_ENABLED = true;
 const AI_DICTATION_TIMEOUT_MS = 1800;
 const AI_COACH_TIMEOUT_MS = 2500;
 const AI_SAFETY_SCAN_TIMEOUT_MS = 6000;
@@ -4809,7 +4809,7 @@ function loadAppSettings() {
     };
     settings.aiApiKey = "";
     settings.aiBackendUrl = normalizeAiBackendUrlInput(settings.aiBackendUrl || "", { silent: true });
-    localStorage.setItem(aiDefaultEnabledStoreKey, "done");
+    migrateAiDictationDefaults(settings);
     if (!settings.hipaaCloudConfirmed) settings.aiExtractionEnabled = false;
     if (!settings.aiBackendUrl) settings.aiExtractionEnabled = false;
     return settings;
@@ -4835,6 +4835,17 @@ function loadAppSettings() {
       aiTtsVoice: "coral"
     };
   }
+}
+
+function migrateAiDictationDefaults(settings) {
+  const migrationVersion = "ai-dictation-default-on:v2";
+  if (localStorage.getItem(aiDefaultEnabledStoreKey) === migrationVersion) return;
+  if (!DEFAULT_AI_BACKEND_URL) return;
+  settings.aiBackendUrl = normalizeAiBackendUrlInput(settings.aiBackendUrl || DEFAULT_AI_BACKEND_URL, { silent: true });
+  settings.hipaaCloudConfirmed = true;
+  settings.aiExtractionEnabled = true;
+  localStorage.setItem(aiDefaultEnabledStoreKey, migrationVersion);
+  localStorage.setItem(settingsStoreKey, JSON.stringify(settings));
 }
 
 function saveAppSettings() {
