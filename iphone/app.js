@@ -149,6 +149,8 @@ let webDictationBuffer = "";
 let webDictationPartial = "";
 let webDictationCommitTimer = null;
 let webDictationStopping = false;
+let nativeDictationStopRequested = false;
+let nativeDictationStopTimer = null;
 let pendingDictationExtraction = null;
 let pendingDictationTranscript = "";
 let pendingParsedDictationResult = null;
@@ -6144,28 +6146,40 @@ function startLegacyHealthDictation(options = {}) {
 }
 
 function startNativeDictationFlow(fallbackMessage, options = {}) {
+  nativeDictationStopRequested = false;
+  clearNativeDictationStopTimer();
   dictationActive = true;
   dictateButton.classList.add("is-listening");
   setDictateButtonLabel("Stop dictation");
   startNativeDictation()
     .then((transcript) => {
+      if (nativeDictationStopRequested && !String(transcript || "").trim()) return;
       handleDictationTranscript(transcript, options);
     })
     .catch(() => {
+      if (nativeDictationStopRequested) return;
       const typed = window.prompt(`${fallbackMessage || "Dictation was canceled or unavailable."} Type what you want to log.`, "");
       if (typed && typed.trim()) handleDictationTranscript(typed.trim(), options);
     })
     .finally(() => {
-      dictationActive = false;
-      dictateButton.classList.remove("is-listening");
-      setDictateButtonLabel("Dictate");
+      resetNativeDictationButtonState();
     });
 }
 
 function stopHealthDictation() {
   if (isNativeDictationAvailable() && typeof window.HealthTaskDictation.stop === "function") {
-    window.HealthTaskDictation.stop();
+    nativeDictationStopRequested = true;
     setDictateButtonLabel("Saving dictation");
+    try {
+      window.HealthTaskDictation.stop();
+    } catch {
+      // The forced reset below still clears the UI if the native bridge cannot stop.
+    }
+    clearNativeDictationStopTimer();
+    nativeDictationStopTimer = window.setTimeout(() => {
+      if (!dictationActive) return;
+      resetNativeDictationButtonState();
+    }, 1200);
     return;
   }
 
@@ -6189,6 +6203,20 @@ function clearWebDictationCommitTimer() {
   if (webDictationCommitTimer) {
     window.clearInterval(webDictationCommitTimer);
     webDictationCommitTimer = null;
+  }
+}
+
+function resetNativeDictationButtonState() {
+  dictationActive = false;
+  dictateButton.classList.remove("is-listening");
+  setDictateButtonLabel("Dictate");
+  clearNativeDictationStopTimer();
+}
+
+function clearNativeDictationStopTimer() {
+  if (nativeDictationStopTimer) {
+    window.clearTimeout(nativeDictationStopTimer);
+    nativeDictationStopTimer = null;
   }
 }
 
