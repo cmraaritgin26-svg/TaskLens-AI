@@ -232,6 +232,10 @@ function isNativeDictationAvailable() {
 function handleDictationTranscript(transcript, options = {}) {
   const text = String(transcript || "").trim();
   if (!text) return;
+  if (!options.appendToReview && onboardingModal && !onboardingModal.hidden) {
+    processOnboardingStepDictation(text);
+    return;
+  }
   if (options.appendToReview) {
     appendDictationToReview(text);
     return;
@@ -831,10 +835,6 @@ function promptForDictationSpecifics(result, text) {
 
 async function parseHealthDictation(text) {
   const localResult = extractStructuredDictationData(text);
-  if (hasDictationResult(localResult)) {
-    localResult.missingDetails = buildDictationMissingDetails(localResult, normalizeDictationText(text));
-    return localResult;
-  }
   if (isAiDictationEnabled()) {
     try {
       const aiResult = await extractAiDictationData(text);
@@ -842,6 +842,9 @@ async function parseHealthDictation(text) {
     } catch (error) {
       console.warn("AI dictation was too slow or unavailable; using local parser.", error);
     }
+  }
+  if (hasDictationResult(localResult)) {
+    localResult.missingDetails = buildDictationMissingDetails(localResult, normalizeDictationText(text));
   }
   return localResult;
 }

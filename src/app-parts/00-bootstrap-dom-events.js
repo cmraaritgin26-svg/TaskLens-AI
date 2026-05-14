@@ -27,7 +27,7 @@ const affirmationShownStoreKey = "health-task-tracker:last-affirmation:v1";
 const affirmationDepressionShownStoreKey = "health-task-tracker:last-depression-affirmation:v1";
 const DEFAULT_AI_BACKEND_URL = "https://habit-tracker-1-lp0z.onrender.com";
 const DICTATION_FEATURE_ENABLED = true;
-const AI_DICTATION_TIMEOUT_MS = 1800;
+const AI_DICTATION_TIMEOUT_MS = 12000;
 const AI_COACH_TIMEOUT_MS = 2500;
 const AI_SAFETY_SCAN_TIMEOUT_MS = 6000;
 const HISTORY_RETENTION_DAYS = 3650;
@@ -166,6 +166,7 @@ let aiSafetyScanRequestId = 0;
 let masterChartRangeDays = HISTORY_RETENTION_DAYS;
 let smartCoachRenderTimer = null;
 let activeOnboardingDictationButton = null;
+let activeOnboardingFieldName = "";
 
 function updateDialogScrollLock() {
   const hasOpenDialog = Boolean(document.querySelector(".history-modal:not([hidden]), .affirmation-modal:not([hidden])"));

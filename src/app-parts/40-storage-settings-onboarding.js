@@ -880,6 +880,7 @@ function renderInitialDataOnboarding() {
   onboardingCopy.textContent = step.copy;
   onboardingForm.innerHTML = step.fields;
   onboardingActions.innerHTML = "";
+  bindOnboardingFieldFocus();
 
   if (DICTATION_FEATURE_ENABLED && step.fields && /<(input|textarea|select)\b/i.test(step.fields) && !/type="checkbox"/i.test(step.fields)) {
     const dictateStepButton = document.createElement("button");
@@ -951,14 +952,40 @@ function dictateIntoOnboardingField(event) {
     });
 }
 
+function bindOnboardingFieldFocus() {
+  activeOnboardingFieldName = "";
+  getOnboardingDictationFields().forEach((field) => {
+    field.addEventListener("focus", () => {
+      activeOnboardingFieldName = field.name || "";
+    });
+  });
+}
+
 function getActiveOnboardingField() {
   const active = document.activeElement;
   if (active && onboardingForm.contains(active) && isOnboardingDictationField(active)) return active;
-  return onboardingForm.querySelector("textarea, input:not([type='checkbox']):not([type='hidden']), select");
+  const fields = getOnboardingDictationFields();
+  const remembered = fields.find((field) => field.name && field.name === activeOnboardingFieldName);
+  if (remembered && !remembered.value) return remembered;
+  const nextEmpty = getNextOnboardingDictationField(remembered);
+  return nextEmpty || remembered || fields[0] || null;
 }
 
 function isOnboardingDictationField(field) {
   return field && ["INPUT", "TEXTAREA", "SELECT"].includes(field.tagName) && field.type !== "checkbox" && field.type !== "hidden";
+}
+
+function getOnboardingDictationFields() {
+  return Array.from(onboardingForm.querySelectorAll("textarea, input:not([type='checkbox']):not([type='hidden']), select"))
+    .filter(isOnboardingDictationField);
+}
+
+function getNextOnboardingDictationField(currentField) {
+  const fields = getOnboardingDictationFields();
+  if (!fields.length) return null;
+  const startIndex = currentField ? fields.indexOf(currentField) + 1 : 0;
+  const ordered = [...fields.slice(Math.max(startIndex, 0)), ...fields.slice(0, Math.max(startIndex, 0))];
+  return ordered.find((field) => !String(field.value || "").trim()) || null;
 }
 
 function startSimpleDictation() {
@@ -991,6 +1018,10 @@ function startSimpleDictation() {
 function applyDictatedTextToOnboardingField(field, text) {
   const dictated = String(text || "").trim();
   if (!dictated || !field) return;
+  if (applyStructuredDictationToOnboardingFields(dictated)) return;
+  if ((field.type === "number" || field.inputMode === "numeric" || field.inputMode === "decimal") && field.value) {
+    field = getNextOnboardingDictationField(field) || field;
+  }
   if (field.tagName === "SELECT") {
     const options = Array.from(field.options).filter((item) => item.textContent.trim());
     const option = options.find((item) => item.textContent.toLowerCase() === dictated.toLowerCase())
@@ -998,6 +1029,7 @@ function applyDictatedTextToOnboardingField(field, text) {
     if (option) {
       field.value = option.value;
       field.dispatchEvent(new Event("change", { bubbles: true }));
+      activeOnboardingFieldName = getNextOnboardingDictationField(field)?.name || field.name || "";
       return;
     }
   }
@@ -1006,12 +1038,138 @@ function applyDictatedTextToOnboardingField(field, text) {
     if (Number.isFinite(number)) {
       field.value = String(number);
       field.dispatchEvent(new Event("input", { bubbles: true }));
+      activeOnboardingFieldName = getNextOnboardingDictationField(field)?.name || field.name || "";
       return;
     }
   }
   const separator = field.value && field.tagName === "TEXTAREA" ? " " : "";
   field.value = `${field.value || ""}${separator}${dictated}`.trim();
   field.dispatchEvent(new Event("input", { bubbles: true }));
+  activeOnboardingFieldName = getNextOnboardingDictationField(field)?.name || field.name || "";
+}
+
+async function processOnboardingStepDictation(text) {
+  const transcript = String(text || "").trim();
+  if (!transcript) return;
+  showToast(isAiDictationEnabled() ? "AI is reading setup fields..." : "Reading setup fields...");
+  try {
+    const result = await parseHealthDictation(transcript);
+    const filledCount = applyDictationResultToOnboardingFields(result, transcript);
+    if (filledCount > 0) {
+      showToast(`Filled ${filledCount} setup ${filledCount === 1 ? "field" : "fields"}.`);
+      return;
+    }
+  } catch (error) {
+    console.warn("Setup dictation analysis failed; using field fallback.", error);
+  }
+  const field = getActiveOnboardingField();
+  applyDictatedTextToOnboardingField(field, transcript);
+}
+
+function applyDictationResultToOnboardingFields(result, transcript = "") {
+  const fields = getOnboardingDictationFields();
+  if (!fields.length || !result) return 0;
+  const values = getOnboardingDictationValues(result, transcript, fields);
+  let filledCount = 0;
+  fields.forEach((field) => {
+    if (String(field.value || "").trim()) return;
+    const value = values[field.name];
+    if (value === null || value === undefined || String(value).trim() === "") return;
+    if (setOnboardingFieldFromDictationValue(field, value)) filledCount += 1;
+  });
+  return filledCount;
+}
+
+function getOnboardingDictationValues(result, transcript, fields) {
+  const names = new Set(fields.map((field) => field.name));
+  const nutrition = result.nutrition || {};
+  const symptom = result.symptom || (Array.isArray(result.symptoms) ? result.symptoms[0] : null) || {};
+  const mood = result.mood || {};
+  const task = result.task || (Array.isArray(result.tasks) ? result.tasks[0] : null) || {};
+  const values = {
+    calories: nutrition.calories,
+    carbs: nutrition.carbs,
+    weight: nutrition.weight,
+    ketosisPhase: nutrition.ketosisPhase,
+    glucose: nutrition.glucose,
+    systolic: nutrition.systolic,
+    diastolic: nutrition.diastolic,
+    water: nutrition.water,
+    mood: mood.name,
+    intensity: mood.intensity,
+    symptom: symptom.name,
+    severity: symptom.severity,
+    journal: result.journal?.text,
+    task: task.name,
+    day: task.day,
+    deadline: task.deadline
+  };
+  if (names.has("note")) {
+    if (names.has("mood")) values.note = mood.note;
+    else if (names.has("symptom")) values.note = symptom.note;
+    else if (names.has("task")) values.note = task.note || transcript;
+  }
+  return values;
+}
+
+function setOnboardingFieldFromDictationValue(field, value) {
+  const text = String(value ?? "").trim();
+  if (!text) return false;
+  if (field.tagName === "SELECT") {
+    const options = Array.from(field.options).filter((item) => item.textContent.trim());
+    const option = options.find((item) => item.value.toLowerCase() === text.toLowerCase())
+      || options.find((item) => item.textContent.toLowerCase() === text.toLowerCase())
+      || options.find((item) => text.toLowerCase().includes(item.textContent.toLowerCase()));
+    if (!option) return false;
+    field.value = option.value;
+    field.dispatchEvent(new Event("change", { bubbles: true }));
+    activeOnboardingFieldName = getNextOnboardingDictationField(field)?.name || field.name || "";
+    return true;
+  }
+  if (field.type === "number" || field.inputMode === "numeric" || field.inputMode === "decimal") {
+    const number = Number.parseFloat(text);
+    if (!Number.isFinite(number)) return false;
+    field.value = String(number);
+  } else {
+    field.value = text;
+  }
+  field.dispatchEvent(new Event("input", { bubbles: true }));
+  activeOnboardingFieldName = getNextOnboardingDictationField(field)?.name || field.name || "";
+  return true;
+}
+
+function applyStructuredDictationToOnboardingFields(text) {
+  const fields = getOnboardingDictationFields();
+  if (fields.length < 2) return false;
+  const normalized = replaceSpokenNumbers(text.toLowerCase());
+  let filledAny = false;
+  fields.forEach((field) => {
+    if (!(field.type === "number" || field.inputMode === "numeric" || field.inputMode === "decimal")) return;
+    const labels = getOnboardingFieldDictationLabels(field);
+    const number = getDictatedNumberNear(normalized, labels);
+    if (!Number.isFinite(number)) return;
+    field.value = String(number);
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+    activeOnboardingFieldName = getNextOnboardingDictationField(field)?.name || field.name || "";
+    filledAny = true;
+  });
+  return filledAny;
+}
+
+function getOnboardingFieldDictationLabels(field) {
+  const name = String(field?.name || "").toLowerCase();
+  const label = field?.closest("label")?.querySelector("span")?.textContent || "";
+  const baseLabels = [name, label.toLowerCase().replace(/\([^)]*\)/g, "").trim()].filter(Boolean);
+  const aliases = {
+    calories: ["calories", "calorie", "cals", "cal"],
+    carbs: ["carbs", "carbohydrates", "net carbs"],
+    weight: ["weight", "pounds", "lbs"],
+    glucose: ["glucose", "blood sugar"],
+    systolic: ["systolic", "top number"],
+    diastolic: ["diastolic", "bottom number"],
+    water: ["water", "ounces", "oz"]
+  };
+  return [...new Set([...(aliases[name] || []), ...baseLabels])];
 }
 
 function getInitialDataSteps() {
