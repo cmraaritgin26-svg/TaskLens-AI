@@ -7,7 +7,7 @@ const OPENAI_TTS_MODEL = process.env.OPENAI_TTS_MODEL || "gpt-4o-mini-tts";
 const OPENAI_TTS_VOICE = process.env.OPENAI_TTS_VOICE || "coral";
 const APP_CLIENT_TOKEN = process.env.APP_CLIENT_TOKEN || "";
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
-const MAX_BODY_BYTES = 250_000;
+const MAX_BODY_BYTES = 2_500_000;
 const MAX_TTS_INPUT_CHARS = 1800;
 const OPENAI_TTS_VOICES = new Set([
   "alloy",
@@ -25,7 +25,7 @@ const OPENAI_TTS_VOICES = new Set([
   "cedar"
 ]);
 
-const extractionSchemaPrompt = `Search the saved speaker transcript document for Health & Task Tracker data.
+const extractionSchemaPrompt = `Search the saved speaker transcript document for TaskLens AI data.
 Return only valid JSON with these keys:
 {
   "nutrition": {"calories": number|null, "carbs": number|null, "weight": number|null, "ketosisPhase": "Entering|Ketosis|Deep ketosis|Exiting|null", "glucose": number|null, "systolic": number|null, "diastolic": number|null, "water": number|null},
@@ -60,6 +60,23 @@ Rules:
 - Prefer one specific, useful next step.
 - Keep body under 45 words.`;
 
+const taskBreakdownSchemaPrompt = `You break one user task into a practical checklist.
+Return only valid JSON:
+{
+  "title": string,
+  "summary": string,
+  "steps": [{"text": string}]
+}
+Rules:
+- Use the task name, note, dictated details, image question, category, priority, date, day, and deadline if provided.
+- If an image is provided, inspect it and infer visible issues cautiously. Say what appears to need fixing without claiming certainty beyond the image.
+- Treat dictated details as user-provided task context, constraints, supplies, and completion criteria.
+- Make 3 to 8 concrete steps.
+- Each step must be short, observable, and easy to check off.
+- Do not add unrelated health, medical, or motivational advice.
+- Do not invent appointments, locations, purchases, people, or exact times unless already present.
+- If the task is already tiny, return 2 to 3 preparation/completion/check steps.`;
+
 const safetySchemaPrompt = `You are a safety scanner for a private health journal app.
 Scan journal entries, mood notes, symptoms, and local trend flags for self-harm, suicide risk, severe hopelessness, plans, means, goodbye/final-note language, or escalating distress.
 Interpret misspellings, slang, euphemisms, and indirect wording.
@@ -71,6 +88,7 @@ Use concern for severe hopelessness, burden language, not wanting to exist, or r
 
 const server = http.createServer(async (request, response) => {
   setCorsHeaders(response);
+  const requestPath = getRequestPath(request);
 
   if (request.method === "OPTIONS") {
     response.writeHead(204);
@@ -78,32 +96,37 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
-  if (request.url === "/health" && request.method === "GET") {
+  if (requestPath === "/health" && request.method === "GET") {
     sendJson(response, 200, { ok: true });
     return;
   }
 
-  if (request.url === "/api/dictation/transcribe-extract" && request.method === "POST") {
+  if (requestPath === "/api/dictation/transcribe-extract" && request.method === "POST") {
     sendJson(response, 410, { error: "Raw audio upload is disabled. Send transcript text to /api/dictation/extract instead." });
     return;
   }
 
-  if (request.url === "/api/coach/analyze" && request.method === "POST") {
+  if (requestPath === "/api/coach/analyze" && request.method === "POST") {
     await handleCoachAnalyze(request, response);
     return;
   }
 
-  if (request.url === "/api/safety/scan" && request.method === "POST") {
+  if (requestPath === "/api/tasks/breakdown" && request.method === "POST") {
+    await handleTaskBreakdown(request, response);
+    return;
+  }
+
+  if (requestPath === "/api/safety/scan" && request.method === "POST") {
     await handleSafetyScan(request, response);
     return;
   }
 
-  if (request.url === "/api/tts/speech" && request.method === "POST") {
+  if (requestPath === "/api/tts/speech" && request.method === "POST") {
     await handleTextToSpeech(request, response);
     return;
   }
 
-  if (request.url !== "/api/dictation/extract" || request.method !== "POST") {
+  if (requestPath !== "/api/dictation/extract" || request.method !== "POST") {
     sendJson(response, 404, { error: "Not found" });
     return;
   }
@@ -183,6 +206,31 @@ async function handleCoachAnalyze(request, response) {
   }
 }
 
+async function handleTaskBreakdown(request, response) {
+  if (!OPENAI_API_KEY) {
+    sendJson(response, 500, { error: "OPENAI_API_KEY is not configured." });
+    return;
+  }
+
+  if (!isAuthorized(request)) {
+    sendJson(response, 401, { error: "Unauthorized" });
+    return;
+  }
+
+  try {
+    const body = await readJsonBody(request);
+    const task = sanitizeTaskForBreakdown(body.task || body);
+    if (!task || !task.name) {
+      sendJson(response, 400, { error: "Missing task." });
+      return;
+    }
+    const breakdown = await breakDownTask(task);
+    sendJson(response, 200, breakdown);
+  } catch (error) {
+    sendJson(response, error.statusCode || 500, { error: error.message || "Server error" });
+  }
+}
+
 async function handleTextToSpeech(request, response) {
   if (!OPENAI_API_KEY) {
     sendJson(response, 500, { error: "OPENAI_API_KEY is not configured." });
@@ -219,8 +267,16 @@ async function handleTextToSpeech(request, response) {
 }
 
 server.listen(PORT, () => {
-  console.log(`Health & Task Tracker AI backend listening on ${PORT}`);
+  console.log(`TaskLens AI backend listening on ${PORT}`);
 });
+
+function getRequestPath(request) {
+  try {
+    return new URL(request.url || "/", `http://${request.headers.host || "localhost"}`).pathname.replace(/\/+$/, "") || "/";
+  } catch {
+    return request.url || "/";
+  }
+}
 
 function setCorsHeaders(response) {
   response.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
@@ -322,6 +378,36 @@ async function analyzeCoachSnapshot(snapshot) {
   const content = data.choices?.[0]?.message?.content || "";
   if (!content) throw new Error("OpenAI returned no coach insight.");
   return JSON.parse(content);
+}
+
+async function breakDownTask(task) {
+  const openAiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${OPENAI_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: OPENAI_MODEL,
+      temperature: 0.2,
+      max_tokens: 520,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: taskBreakdownSchemaPrompt },
+        { role: "user", content: buildTaskBreakdownUserContent(task) }
+      ]
+    })
+  });
+
+  if (!openAiResponse.ok) {
+    const details = await openAiResponse.text();
+    throw new Error(details || `OpenAI task breakdown request failed with ${openAiResponse.status}`);
+  }
+
+  const data = await openAiResponse.json();
+  const content = data.choices?.[0]?.message?.content || "";
+  if (!content) throw new Error("OpenAI returned no task breakdown.");
+  return normalizeTaskBreakdownResponse(JSON.parse(content), task);
 }
 
 async function scanSafetySnapshot(snapshot) {
@@ -429,6 +515,58 @@ function sanitizeSafetySnapshot(snapshot) {
       note: limitText(entry?.note, 300)
     })) : [],
     localTrendFlags: Array.isArray(snapshot.localTrendFlags) ? snapshot.localTrendFlags.slice(0, 30) : []
+  };
+}
+
+function sanitizeTaskForBreakdown(task) {
+  if (!task || typeof task !== "object") return null;
+  const imageDataUrl = limitImageDataUrl(task.imageDataUrl);
+  return {
+    name: limitText(task.name, 140),
+    date: limitText(task.date, 20),
+    day: limitText(task.day, 20),
+    category: limitText(task.category, 40),
+    priority: limitText(task.priority, 20),
+    deadline: limitText(task.deadline, 20),
+    note: limitText(task.note, 300),
+    dictationDetails: limitText(task.dictationDetails, 1200),
+    issueQuestion: limitText(task.issueQuestion, 500),
+    imageDataUrl
+  };
+}
+
+function buildTaskBreakdownUserContent(task) {
+  const cleanTask = sanitizeTaskForBreakdown(task);
+  const imageDataUrl = cleanTask?.imageDataUrl || "";
+  const text = JSON.stringify({
+    ...cleanTask,
+    imageDataUrl: imageDataUrl ? "[attached image]" : ""
+  });
+  if (!imageDataUrl) return text;
+  return [
+    { type: "text", text },
+    { type: "image_url", image_url: { url: imageDataUrl, detail: "low" } }
+  ];
+}
+
+function limitImageDataUrl(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  if (!/^data:image\/(?:png|jpe?g|webp);base64,[a-z0-9+/=]+$/i.test(text)) return "";
+  return text.slice(0, 1800000);
+}
+
+function normalizeTaskBreakdownResponse(data, task) {
+  const steps = Array.isArray(data?.steps) ? data.steps : [];
+  return {
+    title: limitText(data?.title, 80) || limitText(task.name, 80),
+    summary: limitText(data?.summary, 220) || "Work through these steps in order.",
+    steps: steps
+      .map((step) => typeof step === "string" ? step : step?.text)
+      .map((text) => limitText(text, 180))
+      .filter(Boolean)
+      .slice(0, 10)
+      .map((text) => ({ text }))
   };
 }
 
