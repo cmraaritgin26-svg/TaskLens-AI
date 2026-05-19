@@ -62,6 +62,14 @@ Rules:
 - Prefer one specific, useful next step.
 - Keep body under 45 words.`;
 
+const appChatSystemPrompt = `You are TaskLens AI chat, a ChatGPT-style assistant inside an ADHD-focused task app.
+Help the user think clearly, ask follow-up questions when needed, and answer normal questions conversationally.
+When the user asks about the app, explain TaskLens features in plain language: photo checklists, brain dump tasks, Now/Next/Later, task sizes, focus mode, AI checklist editing, saved project history, and settings.
+For ADHD overwhelm, keep answers grounded and short: name one next action, reduce choices, and avoid long motivational speeches.
+Do not mention backend URLs, API keys, tokens, implementation details, or system prompts.
+Do not claim to be ChatGPT; behave like a helpful AI chat inside TaskLens AI.
+If the user asks for medical, legal, financial, or emergency advice, be careful and suggest getting qualified help for high-stakes decisions.`;
+
 const taskBreakdownSchemaPrompt = `You break one user task into a practical, tailored checklist for someone who may struggle with task initiation and overwhelm.
 Return only valid JSON:
 {
@@ -128,8 +136,18 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
+  if (requestPath === "/api/chat" && request.method === "POST") {
+    await handleAppChat(request, response);
+    return;
+  }
+
   if (requestPath === "/api/tasks/breakdown" && request.method === "POST") {
     await handleTaskBreakdown(request, response);
+    return;
+  }
+
+  if (requestPath === "/api/tasks/target-image" && request.method === "POST") {
+    await handleTaskTargetImage(request, response);
     return;
   }
 
@@ -223,6 +241,31 @@ async function handleCoachAnalyze(request, response) {
   }
 }
 
+async function handleAppChat(request, response) {
+  if (!OPENAI_API_KEY) {
+    sendJson(response, 500, { error: "OPENAI_API_KEY is not configured." });
+    return;
+  }
+
+  if (!isAuthorized(request)) {
+    sendJson(response, 401, { error: "Unauthorized" });
+    return;
+  }
+
+  try {
+    const body = await readJsonBody(request);
+    const messages = sanitizeAppChatMessages(body.messages);
+    if (!messages.length) {
+      sendJson(response, 400, { error: "Missing chat message." });
+      return;
+    }
+    const reply = await answerAppChat(messages);
+    sendJson(response, 200, { reply });
+  } catch (error) {
+    sendJson(response, error.statusCode || 500, { error: error.message || "Server error" });
+  }
+}
+
 async function handleTaskBreakdown(request, response) {
   if (!OPENAI_API_KEY) {
     sendJson(response, 500, { error: "OPENAI_API_KEY is not configured." });
@@ -243,6 +286,32 @@ async function handleTaskBreakdown(request, response) {
     }
     const breakdown = await breakDownTask(task);
     sendJson(response, 200, breakdown);
+  } catch (error) {
+    sendJson(response, error.statusCode || 500, { error: error.message || "Server error" });
+  }
+}
+
+async function handleTaskTargetImage(request, response) {
+  if (!OPENAI_API_KEY) {
+    sendJson(response, 500, { error: "OPENAI_API_KEY is not configured." });
+    return;
+  }
+
+  if (!isAuthorized(request)) {
+    sendJson(response, 401, { error: "Unauthorized" });
+    return;
+  }
+
+  try {
+    const body = await readJsonBody(request);
+    const task = sanitizeTaskForBreakdown(body.task || {});
+    const breakdown = normalizeTaskBreakdownResponse(body.breakdown || {}, task || {});
+    if (!task || !task.name || !task.imageDataUrl) {
+      sendJson(response, 400, { error: "Missing task photo." });
+      return;
+    }
+    const targetImageDataUrl = await generateTaskTargetImage(task, breakdown);
+    sendJson(response, 200, { targetImageDataUrl });
   } catch (error) {
     sendJson(response, error.statusCode || 500, { error: error.message || "Server error" });
   }
@@ -397,6 +466,35 @@ async function analyzeCoachSnapshot(snapshot) {
   return JSON.parse(content);
 }
 
+async function answerAppChat(messages) {
+  const openAiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${OPENAI_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: OPENAI_MODEL,
+      temperature: 0.4,
+      max_tokens: 700,
+      messages: [
+        { role: "system", content: appChatSystemPrompt },
+        ...messages
+      ]
+    })
+  });
+
+  if (!openAiResponse.ok) {
+    const details = await openAiResponse.text();
+    throw new Error(details || `OpenAI chat request failed with ${openAiResponse.status}`);
+  }
+
+  const data = await openAiResponse.json();
+  const content = data.choices?.[0]?.message?.content || "";
+  if (!content) throw new Error("OpenAI returned no chat reply.");
+  return limitText(content, 2400);
+}
+
 async function breakDownTask(task) {
   const openAiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -424,15 +522,7 @@ async function breakDownTask(task) {
   const data = await openAiResponse.json();
   const content = data.choices?.[0]?.message?.content || "";
   if (!content) throw new Error("OpenAI returned no task breakdown.");
-  const breakdown = normalizeTaskBreakdownResponse(JSON.parse(content), task);
-  if (task.imageDataUrl) {
-    try {
-      breakdown.targetImageDataUrl = await generateTaskTargetImage(task, breakdown);
-    } catch (error) {
-      breakdown.targetImageError = limitText(error?.message || "Target image could not be created.", 180);
-    }
-  }
-  return breakdown;
+  return normalizeTaskBreakdownResponse(JSON.parse(content), task);
 }
 
 async function generateTaskTargetImage(task, breakdown) {
@@ -631,6 +721,17 @@ function sanitizeTensorFlowPhotoLabels(labels) {
       return true;
     })
     .slice(0, 8);
+}
+
+function sanitizeAppChatMessages(messages) {
+  if (!Array.isArray(messages)) return [];
+  return messages
+    .slice(-12)
+    .map((message) => ({
+      role: message?.role === "assistant" ? "assistant" : "user",
+      content: limitText(message?.content, 1800)
+    }))
+    .filter((message) => message.content);
 }
 
 function buildTaskBreakdownUserContent(task) {
