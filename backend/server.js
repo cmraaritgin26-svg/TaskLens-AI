@@ -40,7 +40,7 @@ Use only information present in the transcript document. Do not invent numbers, 
 Do not create a journal entry from general dictation. Set journal to null unless the speaker explicitly says this is a journal entry, says "note to self", or says to put/write/remember something in the journal.
 Preserve original user wording only for explicit notes and explicit journal text. If a category is mentioned without enough detail, add a missingDetails question.`;
 
-const coachSchemaPrompt = `You are the Health & Task Tracker AI Coach.
+const coachSchemaPrompt = `You are the TaskLens AI assistant.
 Analyze the user's app data for practical patterns across tasks, deadlines, nutrition, water, weight, blood pressure, glucose, ketosis, symptoms, mood, and journal entries.
 Use full task details including names, notes, categories, priority, scheduled times, deadlines, completion history, missed deadlines, daily dashboard progress, and weekly progress. Cross-check task patterns against vitals, symptoms, mood, water, nutrition, ketosis, and journal text.
 Return only valid JSON with these keys:
@@ -60,7 +60,7 @@ Rules:
 - Prefer one specific, useful next step.
 - Keep body under 45 words.`;
 
-const taskBreakdownSchemaPrompt = `You break one user task into a practical checklist.
+const taskBreakdownSchemaPrompt = `You break one user task into a practical, tailored checklist for someone who may struggle with task initiation and overwhelm.
 Return only valid JSON:
 {
   "title": string,
@@ -68,14 +68,24 @@ Return only valid JSON:
   "steps": [{"text": string}]
 }
 Rules:
-- Use the task name, note, dictated details, image question, category, priority, date, day, and deadline if provided.
-- If an image is provided, inspect it and infer visible issues cautiously. Say what appears to need fixing without claiming certainty beyond the image.
-- Treat dictated details as user-provided task context, constraints, supplies, and completion criteria.
-- Make 3 to 8 concrete steps.
-- Each step must be short, observable, and easy to check off.
+- Use the task name, note, typed details, image question, category, priority, date, day, and deadline if provided.
+- If an image is provided, inspect it and base steps on visible objects, locations, damage, mess, labels, tools, surfaces, or hazards. Infer cautiously and say "visible" or "appears" when needed.
+- If tensorflowPhotoLabels are provided, treat them as on-device visible-object hints from the user's photo. Use those labels to make steps more concrete, but do not claim certainty beyond what appears visible.
+- For photo-based tasks with tensorflowPhotoLabels, at least 4 steps must name a visible object, label, surface, tool, or location from the image or TensorFlow labels when enough are available.
+- Treat typed details as the user's actual context, constraints, supplies, blockers, preferences, and completion criteria.
+- Make 5 to 10 detailed steps unless the task is already tiny.
+- Each step should usually be 18 to 40 words and include the target, the action, and the finish condition, such as "Move the laundry basket beside the washer, put only dirty clothes into it, and stop when the floor beside the bed is clear."
+- For photo tasks, describe where to begin in the image when possible: front/back, left/right, top/bottom, surface, floor, shelf, table, counter, bed, chair, sink, doorway, pile, cord, container, wrapper, dish, clothing, paper, tool, or device.
+- Include the first physical action the user should take.
+- Include setup, doing, and finish/check steps when useful.
+- Tailor wording to the user's stated situation. Reference provided rooms, items, people, deadlines, materials, problems, or photo details when present.
+- Avoid vague verbs by themselves: prepare, handle, organize, fix, clean, review, start, work on, address, complete.
+- Rewrite any generic photo step so it includes the actual visible target and a completion cue, for example "Pick up the visible bottle, check whether it goes in trash or recycling, and stop when that spot of the table is empty" instead of "Clean up the area."
+- Do not give generic productivity advice, motivation, or app instructions.
 - Do not add unrelated health, medical, or motivational advice.
 - Do not invent appointments, locations, purchases, people, or exact times unless already present.
-- If the task is already tiny, return 2 to 3 preparation/completion/check steps.`;
+- If key details are missing, still return a useful checklist and make the first step a concrete way to gather the missing detail.
+- If the task is already tiny, return 2 to 3 setup/completion/check steps.`;
 
 const safetySchemaPrompt = `You are a safety scanner for a private health journal app.
 Scan journal entries, mood notes, symptoms, and local trend flags for self-harm, suicide risk, severe hopelessness, plans, means, goodbye/final-note language, or escalating distress.
@@ -527,12 +537,29 @@ function sanitizeTaskForBreakdown(task) {
     day: limitText(task.day, 20),
     category: limitText(task.category, 40),
     priority: limitText(task.priority, 20),
+    size: limitText(task.size, 20),
     deadline: limitText(task.deadline, 20),
     note: limitText(task.note, 300),
     dictationDetails: limitText(task.dictationDetails, 1200),
     issueQuestion: limitText(task.issueQuestion, 500),
+    tensorflowPhotoLabels: sanitizeTensorFlowPhotoLabels(task.tensorflowPhotoLabels),
     imageDataUrl
   };
+}
+
+function sanitizeTensorFlowPhotoLabels(labels) {
+  if (!Array.isArray(labels)) return [];
+  const seen = new Set();
+  return labels
+    .map((item) => typeof item === "string" ? item : item?.label)
+    .map((label) => limitText(label, 48).toLowerCase())
+    .filter(Boolean)
+    .filter((label) => {
+      if (seen.has(label)) return false;
+      seen.add(label);
+      return true;
+    })
+    .slice(0, 8);
 }
 
 function buildTaskBreakdownUserContent(task) {
@@ -553,17 +580,17 @@ function limitImageDataUrl(value) {
   const text = String(value || "").trim();
   if (!text) return "";
   if (!/^data:image\/(?:png|jpe?g|webp);base64,[a-z0-9+/=]+$/i.test(text)) return "";
-  return text.slice(0, 1800000);
+  return text.slice(0, 750000);
 }
 
 function normalizeTaskBreakdownResponse(data, task) {
   const steps = Array.isArray(data?.steps) ? data.steps : [];
   return {
     title: limitText(data?.title, 80) || limitText(task.name, 80),
-    summary: limitText(data?.summary, 220) || "Work through these steps in order.",
+    summary: limitText(data?.summary, 240) || "Work through these steps in order.",
     steps: steps
       .map((step) => typeof step === "string" ? step : step?.text)
-      .map((text) => limitText(text, 180))
+      .map((text) => limitText(text, 520))
       .filter(Boolean)
       .slice(0, 10)
       .map((text) => ({ text }))
