@@ -4,6 +4,7 @@ const PORT = Number(process.env.PORT || 8787);
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o";
 const OPENAI_TASK_MODEL = process.env.OPENAI_TASK_MODEL || "gpt-4o";
+const OPENAI_IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || "gpt-image-1";
 const OPENAI_TTS_MODEL = process.env.OPENAI_TTS_MODEL || "gpt-4o-mini-tts";
 const OPENAI_TTS_VOICE = process.env.OPENAI_TTS_VOICE || "coral";
 const APP_CLIENT_TOKEN = process.env.APP_CLIENT_TOKEN || "";
@@ -423,7 +424,71 @@ async function breakDownTask(task) {
   const data = await openAiResponse.json();
   const content = data.choices?.[0]?.message?.content || "";
   if (!content) throw new Error("OpenAI returned no task breakdown.");
-  return normalizeTaskBreakdownResponse(JSON.parse(content), task);
+  const breakdown = normalizeTaskBreakdownResponse(JSON.parse(content), task);
+  if (task.imageDataUrl) {
+    try {
+      breakdown.targetImageDataUrl = await generateTaskTargetImage(task, breakdown);
+    } catch (error) {
+      breakdown.targetImageError = limitText(error?.message || "Target image could not be created.", 180);
+    }
+  }
+  return breakdown;
+}
+
+async function generateTaskTargetImage(task, breakdown) {
+  const imageDataUrl = limitImageDataUrl(task.imageDataUrl);
+  if (!imageDataUrl) return "";
+  const imageFile = dataUrlToBlob(imageDataUrl);
+  const prompt = buildTaskTargetImagePrompt(task, breakdown);
+  const form = new FormData();
+  form.append("model", OPENAI_IMAGE_MODEL);
+  form.append("prompt", prompt);
+  form.append("image", imageFile.blob, imageFile.filename);
+  form.append("size", "1024x1024");
+  form.append("quality", "low");
+
+  const openAiResponse = await fetch("https://api.openai.com/v1/images/edits", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${OPENAI_API_KEY}`
+    },
+    body: form
+  });
+
+  if (!openAiResponse.ok) {
+    const details = await openAiResponse.text();
+    throw new Error(details || `OpenAI target image request failed with ${openAiResponse.status}`);
+  }
+  const data = await openAiResponse.json();
+  const b64 = data.data?.[0]?.b64_json || "";
+  if (!b64) throw new Error("OpenAI returned no target image.");
+  return `data:image/png;base64,${b64}`;
+}
+
+function buildTaskTargetImagePrompt(task, breakdown) {
+  const steps = Array.isArray(breakdown.steps)
+    ? breakdown.steps.map((step, index) => `${index + 1}. ${limitText(step?.text, 260)}`).join("\n")
+    : "";
+  return limitText(`Create a realistic after-state reference image for this TaskLens AI photo checklist.
+Use the user's uploaded photo as the starting point. Preserve the same room, surface, camera angle, lighting, major furniture, walls, floor, and important belongings. Show what the scene should reasonably look like after the checklist is completed.
+Do not create a fantasy redesign. Do not add expensive new furniture, decorations, labels, text, people, or unrelated objects. Only remove, straighten, group, clear, or place visible items in a realistic way based on the task and checklist.
+Task: ${task.name}
+User note/details: ${task.note || task.dictationDetails || ""}
+Checklist:
+${steps}
+The output should look like an achievable cleaned/organized version of the submitted photo.`, 4000);
+}
+
+function dataUrlToBlob(dataUrl) {
+  const match = String(dataUrl || "").match(/^data:image\/(png|jpe?g|webp);base64,([a-z0-9+/=]+)$/i);
+  if (!match) throw new Error("Unsupported image data.");
+  const extension = match[1].toLowerCase().replace("jpeg", "jpg");
+  const mime = `image/${extension === "jpg" ? "jpeg" : extension}`;
+  const buffer = Buffer.from(match[2], "base64");
+  return {
+    blob: new Blob([buffer], { type: mime }),
+    filename: `tasklens-before.${extension}`
+  };
 }
 
 async function scanSafetySnapshot(snapshot) {
@@ -599,7 +664,9 @@ function normalizeTaskBreakdownResponse(data, task) {
       .map((text) => limitText(text, 1200))
       .filter(Boolean)
       .slice(0, 10)
-      .map((text) => ({ text }))
+      .map((text) => ({ text })),
+    targetImageDataUrl: typeof data?.targetImageDataUrl === "string" ? limitImageDataUrl(data.targetImageDataUrl) : "",
+    targetImageError: limitText(data?.targetImageError, 180)
   };
 }
 
