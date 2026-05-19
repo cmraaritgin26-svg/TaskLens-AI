@@ -74,9 +74,13 @@ Rules:
 - If tensorflowPhotoLabels are provided, treat them only as on-device visible-object hints from the user's photo. Use them to catch obvious objects, but do not let them override richer visual details you can see in the image.
 - For photo-based tasks with tensorflowPhotoLabels, at least 4 steps must name a visible object, label, surface, tool, or location from the image or TensorFlow labels when enough are available.
 - Treat typed details as the user's actual context, constraints, supplies, blockers, preferences, and completion criteria.
-- Make 5 to 10 detailed steps unless the task is already tiny.
-- Each step should usually be 18 to 40 words and include the target, the action, and the finish condition, such as "Move the laundry basket beside the washer, put only dirty clothes into it, and stop when the floor beside the bed is clear."
+- Make 6 to 10 highly specific micro-steps unless the task is already tiny.
+- Each step should usually be 28 to 55 words and include: where to look, the exact visible object or area, what to do with it, where it should go, and how the user knows that step is done.
 - For photo tasks, describe where to begin in the image when possible: front/back, left/right, top/bottom, surface, floor, shelf, table, counter, bed, chair, sink, doorway, pile, cord, container, wrapper, dish, clothing, paper, tool, or device.
+- Use photo-specific ordering instead of broad categories. Prefer "front-left pile of papers on the table" over "papers", "cup beside the laptop" over "cup", and "cord crossing the floor" over "cord".
+- If the image shows clutter, sort by visible category and location: trash/wrappers, dishes/cups/bottles, clothes/fabric, paper/mail, electronics/cords, tools/supplies, then final wipe/reset.
+- Do not collapse multiple visible areas into one step. Make separate steps for separate surfaces, piles, corners, containers, or object groups.
+- Avoid generic "clean the area" language. Use commands like "pick up", "move", "throw away", "stack", "wipe", "plug in", "put into", "set beside", "open", "empty", "close", and "take a second photo".
 - Include the first physical action the user should take.
 - Include setup, doing, and finish/check steps when useful.
 - Tailor wording to the user's stated situation. Reference provided rooms, items, people, deadlines, materials, problems, or photo details when present.
@@ -401,7 +405,7 @@ async function breakDownTask(task) {
     body: JSON.stringify({
       model: OPENAI_TASK_MODEL,
       temperature: 0.2,
-      max_tokens: 1400,
+      max_tokens: 2200,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: taskBreakdownSchemaPrompt },
@@ -591,7 +595,7 @@ function normalizeTaskBreakdownResponse(data, task) {
     summary: limitText(data?.summary, 240) || "Work through these steps in order.",
     steps: steps
       .map((step) => typeof step === "string" ? step : step?.text)
-      .map((text) => limitText(text, 520))
+      .map((text) => limitText(text, 760))
       .filter(Boolean)
       .slice(0, 10)
       .map((text) => ({ text }))
