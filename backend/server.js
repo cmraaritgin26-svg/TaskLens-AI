@@ -595,7 +595,7 @@ function normalizeTaskBreakdownResponse(data, task) {
     summary: limitText(data?.summary, 240) || "Work through these steps in order.",
     steps: steps
       .map((step) => typeof step === "string" ? step : step?.text)
-      .map((text) => limitText(text, 760))
+      .map((text) => limitText(text, 1200))
       .filter(Boolean)
       .slice(0, 10)
       .map((text) => ({ text }))
