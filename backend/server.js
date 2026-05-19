@@ -74,6 +74,7 @@ Rules:
 - If tensorflowPhotoLabels are provided, treat them only as on-device visible-object hints from the user's photo. Use them to catch obvious objects, but do not let them override richer visual details you can see in the image.
 - For photo-based tasks with tensorflowPhotoLabels, at least 4 steps must name a visible object, label, surface, tool, or location from the image or TensorFlow labels when enough are available.
 - Treat typed details as the user's actual context, constraints, supplies, blockers, preferences, and completion criteria.
+- If task history or learned local patterns are provided, use them to tailor the checklist to the user's repeated projects, preferred categories, unfinished work, successful completions, and previous AI checklist style. Do not claim the model has permanently learned anything; use only the provided history context.
 - Make 6 to 10 highly specific micro-steps unless the task is already tiny.
 - Each step should usually be 28 to 55 words and include: where to look, the exact visible object or area, what to do with it, where it should go, and how the user knows that step is done.
 - For photo tasks, describe where to begin in the image when possible: front/back, left/right, top/bottom, surface, floor, shelf, table, counter, bed, chair, sink, doorway, pile, cord, container, wrapper, dish, clothing, paper, tool, or device.
@@ -545,7 +546,7 @@ function sanitizeTaskForBreakdown(task) {
     size: limitText(task.size, 20),
     deadline: limitText(task.deadline, 20),
     note: limitText(task.note, 300),
-    dictationDetails: limitText(task.dictationDetails, 1200),
+    dictationDetails: limitText(task.dictationDetails, 2500),
     issueQuestion: limitText(task.issueQuestion, 500),
     tensorflowPhotoLabels: sanitizeTensorFlowPhotoLabels(task.tensorflowPhotoLabels),
     imageDataUrl
