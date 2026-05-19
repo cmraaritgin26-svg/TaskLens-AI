@@ -55,7 +55,7 @@ Android app storage clearing, or by uninstalling the app.
 
 You can request deletion of any account-related or backend-accessible data at:
 
-https://cmraaritgin26-svg.github.io/Habit-Tracker/data-deletion.html
+https://cmraaritgin26-svg.github.io/TaskLens-AI/data-deletion.html
 
 Most app data is stored locally on your device, so the developer cannot
 remotely delete information that exists only on your phone.

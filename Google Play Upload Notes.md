@@ -36,9 +36,9 @@ Current SDK target:
 Android 15 / API 35
 
 Privacy policy URL:
-`https://cmraaritgin26-svg.github.io/Habit-Tracker/privacy-policy.html`
+`https://cmraaritgin26-svg.github.io/TaskLens-AI/privacy-policy.html`
 
 Account deletion URL:
-`https://cmraaritgin26-svg.github.io/Habit-Tracker/data-deletion.html`
+`https://cmraaritgin26-svg.github.io/TaskLens-AI/data-deletion.html`
 
 I could not post directly to Google Play from this device because publishing requires your Google Play Console account access and app signing setup.
