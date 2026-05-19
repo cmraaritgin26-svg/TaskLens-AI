@@ -2,12 +2,13 @@ import http from "node:http";
 
 const PORT = Number(process.env.PORT || 8787);
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
-const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o";
+const OPENAI_TASK_MODEL = process.env.OPENAI_TASK_MODEL || "gpt-4o";
 const OPENAI_TTS_MODEL = process.env.OPENAI_TTS_MODEL || "gpt-4o-mini-tts";
 const OPENAI_TTS_VOICE = process.env.OPENAI_TTS_VOICE || "coral";
 const APP_CLIENT_TOKEN = process.env.APP_CLIENT_TOKEN || "";
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
-const MAX_BODY_BYTES = 2_500_000;
+const MAX_BODY_BYTES = 5_500_000;
 const MAX_TTS_INPUT_CHARS = 1800;
 const OPENAI_TTS_VOICES = new Set([
   "alloy",
@@ -69,8 +70,8 @@ Return only valid JSON:
 }
 Rules:
 - Use the task name, note, typed details, image question, category, priority, date, day, and deadline if provided.
-- If an image is provided, inspect it and base steps on visible objects, locations, damage, mess, labels, tools, surfaces, or hazards. Infer cautiously and say "visible" or "appears" when needed.
-- If tensorflowPhotoLabels are provided, treat them as on-device visible-object hints from the user's photo. Use those labels to make steps more concrete, but do not claim certainty beyond what appears visible.
+- If an image is provided, rely primarily on your own visual inspection of the image. Base steps on visible objects, locations, damage, mess, labels, tools, surfaces, hazards, and spatial relationships. Infer cautiously and say "visible" or "appears" when needed.
+- If tensorflowPhotoLabels are provided, treat them only as on-device visible-object hints from the user's photo. Use them to catch obvious objects, but do not let them override richer visual details you can see in the image.
 - For photo-based tasks with tensorflowPhotoLabels, at least 4 steps must name a visible object, label, surface, tool, or location from the image or TensorFlow labels when enough are available.
 - Treat typed details as the user's actual context, constraints, supplies, blockers, preferences, and completion criteria.
 - Make 5 to 10 detailed steps unless the task is already tiny.
@@ -398,9 +399,9 @@ async function breakDownTask(task) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: OPENAI_MODEL,
+      model: OPENAI_TASK_MODEL,
       temperature: 0.2,
-      max_tokens: 520,
+      max_tokens: 1400,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: taskBreakdownSchemaPrompt },
@@ -572,7 +573,7 @@ function buildTaskBreakdownUserContent(task) {
   if (!imageDataUrl) return text;
   return [
     { type: "text", text },
-    { type: "image_url", image_url: { url: imageDataUrl, detail: "low" } }
+    { type: "image_url", image_url: { url: imageDataUrl, detail: "high" } }
   ];
 }
 
@@ -580,7 +581,7 @@ function limitImageDataUrl(value) {
   const text = String(value || "").trim();
   if (!text) return "";
   if (!/^data:image\/(?:png|jpe?g|webp);base64,[a-z0-9+/=]+$/i.test(text)) return "";
-  return text.slice(0, 750000);
+  return text.slice(0, 2_200_000);
 }
 
 function normalizeTaskBreakdownResponse(data, task) {
