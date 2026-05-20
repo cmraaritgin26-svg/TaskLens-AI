@@ -102,7 +102,77 @@ Rules:
 - If key details are missing, still return a useful checklist and make the first step a concrete way to gather the missing detail.
 - If the task is already tiny, return 2 to 3 setup/completion/check steps.`;
 
-const safetySchemaPrompt = `You are a safety scanner for a private health journal app.
+const privacyPolicyHtml = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TaskLens AI Privacy Policy</title>
+  <style>
+    body{margin:0;background:#f5f8fb;color:#17202a;font-family:Arial,Helvetica,sans-serif;line-height:1.6}
+    main{width:min(920px,calc(100% - 32px));margin:0 auto;padding:48px 0}
+    article{background:#fff;border:1px solid #d8e0e8;border-radius:18px;padding:clamp(24px,4vw,44px);box-shadow:0 18px 48px rgba(28,45,64,.08)}
+    h1{margin:0 0 8px;font-size:clamp(2rem,5vw,3rem);line-height:1.05}
+    h2{margin:32px 0 10px;font-size:1.2rem}
+    p,li{color:#556575;font-size:1rem}
+    a{color:#167a52;font-weight:700}
+  </style>
+</head>
+<body>
+  <main><article>
+    <h1>Privacy Policy</h1>
+    <p><strong>Effective date:</strong> May 18, 2026</p>
+    <p>TaskLens AI is a task organization app. It helps users capture tasks, turn photos or typed details into checklists, use focus timers, and organize work into Now, Next, and Later.</p>
+    <h2>Information You Enter</h2>
+    <p>The app may store task names, notes, checklist steps, checklist completion state, selected photos, settings, reminders, and local backup files you create.</p>
+    <h2>Local Storage</h2>
+    <p>By default, app data is stored locally on your device. TaskLens AI does not require an account to use the app.</p>
+    <h2>Optional Cloud AI</h2>
+    <p>Cloud AI features are optional. If enabled, the app may send selected task details, checklist context, selected photos, and on-device photo labels to the TaskLens AI service to generate checklist suggestions.</p>
+    <p>AI checklists are suggestions and may be wrong. Review AI output before acting on it.</p>
+    <h2>Backups and Exports</h2>
+    <p>Exported backups may contain task history, checklist data, settings, and other information you entered. Store exported backups carefully.</p>
+    <h2>Data Deletion</h2>
+    <p>You can delete local data using in-app delete controls, Android app storage clearing, or by uninstalling the app.</p>
+    <p>You can request deletion of account-related or service-accessible data at <a href="https://habit-tracker-1-lp0z.onrender.com/data-deletion.html">https://habit-tracker-1-lp0z.onrender.com/data-deletion.html</a>.</p>
+    <h2>Contact</h2>
+    <p>For privacy questions or deletion requests, contact <a href="mailto:cmraaritgin26@gmail.com">cmraaritgin26@gmail.com</a>.</p>
+  </article></main>
+</body>
+</html>`;
+
+const dataDeletionHtml = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TaskLens AI Data Deletion</title>
+  <style>
+    body{margin:0;background:#f5f8fb;color:#17202a;font-family:Arial,Helvetica,sans-serif;line-height:1.6}
+    main{width:min(920px,calc(100% - 32px));margin:0 auto;padding:48px 0}
+    article{background:#fff;border:1px solid #d8e0e8;border-radius:18px;padding:clamp(24px,4vw,44px);box-shadow:0 18px 48px rgba(28,45,64,.08)}
+    h1{margin:0 0 8px;font-size:clamp(2rem,5vw,3rem);line-height:1.05}
+    h2{margin:32px 0 10px;font-size:1.2rem}
+    p,li{color:#556575;font-size:1rem}
+    a{color:#167a52;font-weight:700}
+  </style>
+</head>
+<body>
+  <main><article>
+    <h1>Account and Data Deletion</h1>
+    <p>Use this page to request deletion of any TaskLens AI account linkage and associated data that the developer can access.</p>
+    <p>Email <a href="mailto:cmraaritgin26@gmail.com?subject=TaskLens%20AI%20data%20deletion%20request">cmraaritgin26@gmail.com</a> with the subject <strong>TaskLens AI data deletion request</strong>.</p>
+    <h2>What will be deleted</h2>
+    <p>If any server-side account record, support record, or AI service record is associated with your request, it will be deleted or anonymized where deletion is not technically possible.</p>
+    <h2>Local data on your phone</h2>
+    <p>Most TaskLens AI data is stored only on your device. To remove local app data, use the in-app delete controls, Android app storage clearing, or uninstall the app.</p>
+    <h2>Timing</h2>
+    <p>Deletion requests are reviewed and completed within 30 days when enough information is provided to identify the associated account or records.</p>
+  </article></main>
+</body>
+</html>`;
+
+const safetySchemaPrompt = `You are a safety scanner for a private task log app.
 Scan journal entries, mood notes, symptoms, and local trend flags for self-harm, suicide risk, severe hopelessness, plans, means, goodbye/final-note language, or escalating distress.
 Interpret misspellings, slang, euphemisms, and indirect wording.
 Do not diagnose.
@@ -121,8 +191,18 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
-  if (requestPath === "/health" && request.method === "GET") {
+  if ((requestPath === "/health" || requestPath === "/status") && request.method === "GET") {
     sendJson(response, 200, { ok: true });
+    return;
+  }
+
+  if (requestPath === "/privacy-policy.html" && request.method === "GET") {
+    sendHtml(response, 200, privacyPolicyHtml);
+    return;
+  }
+
+  if (requestPath === "/data-deletion.html" && request.method === "GET") {
+    sendHtml(response, 200, dataDeletionHtml);
     return;
   }
 
@@ -339,7 +419,7 @@ async function handleTextToSpeech(request, response) {
       text,
       model: limitText(body.model, 80) || OPENAI_TTS_MODEL,
       voice: normalizeTtsVoice(body.voice),
-      instructions: limitText(body.instructions, 500) || "Speak in a warm, calm, supportive health coach tone."
+      instructions: limitText(body.instructions, 500) || "Speak in a warm, calm, supportive task coach tone."
     });
     response.writeHead(200, {
       "Content-Type": "audio/mpeg",
@@ -377,6 +457,15 @@ function sendJson(response, statusCode, payload) {
     "Pragma": "no-cache"
   });
   response.end(JSON.stringify(payload));
+}
+
+function sendHtml(response, statusCode, html) {
+  response.writeHead(statusCode, {
+    "Content-Type": "text/html; charset=utf-8",
+    "Cache-Control": "no-store",
+    "Pragma": "no-cache"
+  });
+  response.end(html);
 }
 
 function isAuthorized(request) {
