@@ -1,4 +1,5 @@
 import http from "node:http";
+import crypto from "node:crypto";
 
 const PORT = Number(process.env.PORT || 8787);
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
@@ -11,6 +12,9 @@ const APP_CLIENT_TOKEN = process.env.APP_CLIENT_TOKEN || "";
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
 const MAX_BODY_BYTES = 5_500_000;
 const MAX_TTS_INPUT_CHARS = 1800;
+const TASK_BREAKDOWN_CACHE_LIMIT = Number(process.env.TASK_BREAKDOWN_CACHE_LIMIT || 120);
+const TASK_BREAKDOWN_CACHE_TTL_MS = Number(process.env.TASK_BREAKDOWN_CACHE_TTL_MS || 1000 * 60 * 60 * 24);
+const taskBreakdownCache = new Map();
 const OPENAI_TTS_VOICES = new Set([
   "alloy",
   "ash",
@@ -27,50 +31,44 @@ const OPENAI_TTS_VOICES = new Set([
   "cedar"
 ]);
 
-const extractionSchemaPrompt = `Search the saved speaker transcript document for TaskLens AI data.
+const extractionSchemaPrompt = `Search the saved speaker transcript document for TaskLens AI task data.
 Return only valid JSON with these keys:
 {
-  "nutrition": {"calories": number|null, "carbs": number|null, "weight": number|null, "ketosisPhase": "Entering|Ketosis|Deep ketosis|Exiting|null", "glucose": number|null, "systolic": number|null, "diastolic": number|null, "water": number|null},
-  "symptoms": [{"name": string, "severity": "Mild|Moderate|Severe", "note": string}],
-  "mood": {"name": "Great|Good|Okay|Low|Stressed|Anxious", "intensity": "Mild|Moderate|Strong", "note": string} | null,
   "journal": {"text": string} | null,
   "tasks": [{"name": string, "day": "Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday", "time": "HH:MM|string", "deadline": "HH:MM|string", "note": string}],
-  "missingDetails": [{"section": "nutrition|symptoms|mood|journal|tasks", "field": string, "question": string}]
+  "missingDetails": [{"section": "journal|tasks", "field": string, "question": string}]
 }
-Interpret common misspellings, speech-to-text mistakes, abbreviations, and slang, such as bp=blood pressure, sugar=glucose, cals=calories, carbs/carbz=carbs, lbs/pounds=weight, h2o=water, meh=Okay mood, wiped/exhausted=fatigue, panicky=Anxious, and to-do/remind me=task.
-Use only information present in the transcript document. Do not invent numbers, symptoms, tasks, diagnoses, or journal text. Put values only in the fields they belong in: weight to weight, calories to calories, carbs to carbs, water to water, blood pressure to systolic/diastolic, symptoms to symptoms, mood to mood, and tasks to tasks.
+Interpret common misspellings, speech-to-text mistakes, abbreviations, and slang for chores, reminders, deadlines, and to-do items.
+Use only information present in the transcript document. Do not invent tasks, times, deadlines, or journal text.
 Do not create a journal entry from general dictation. Set journal to null unless the speaker explicitly says this is a journal entry, says "note to self", or says to put/write/remember something in the journal.
 Preserve original user wording only for explicit notes and explicit journal text. If a category is mentioned without enough detail, add a missingDetails question.`;
 
 const coachSchemaPrompt = `You are the TaskLens AI assistant.
-Analyze the user's app data for practical patterns across tasks, deadlines, nutrition, water, weight, blood pressure, glucose, ketosis, symptoms, mood, and journal entries.
-Use full task details including names, notes, categories, priority, scheduled times, deadlines, completion history, missed deadlines, daily dashboard progress, and weekly progress. Cross-check task patterns against vitals, symptoms, mood, water, nutrition, ketosis, and journal text.
+Analyze the user's app data for practical patterns across tasks, deadlines, checklist context, selected photos, and journal entries.
+Use full task details including names, notes, categories, priority, scheduled times, deadlines, completion history, missed deadlines, daily dashboard progress, and weekly progress.
 Return only valid JSON with these keys:
 {
   "title": string,
   "body": string,
-  "tone": "steady|action|health|care|neutral",
-  "destination": "tasks|water|vitals|mood|symptoms|journal|settings|null",
+  "tone": "steady|action|status|care|neutral",
+  "destination": "tasks|journal|settings|null",
   "actionLabel": string|null,
   "suggestedTask": string|null
 }
 Rules:
-- Do not diagnose disease.
 - Do not claim certainty.
-- Mention urgent care only for emergency warning patterns.
-- If journal or mood text suggests suicide or self-harm risk, tell the user to call/text 988 in the U.S. and call emergency services for immediate danger.
 - Prefer one specific, useful next step.
 - Keep body under 45 words.`;
 
-const appChatSystemPrompt = `You are TaskLens AI chat, a ChatGPT-style assistant inside an ADHD-focused task app.
+const appChatSystemPrompt = `You are TaskLens AI chat, a ChatGPT-style assistant inside a focus-friendly task app.
 Help the user think clearly, ask follow-up questions when needed, and answer normal questions conversationally.
 When the user asks about the app, explain TaskLens features in plain language: photo checklists, brain dump tasks, Now/Next/Later, task sizes, focus mode, AI checklist editing, saved project history, and settings.
-For ADHD overwhelm, keep answers grounded and short: name one next action, reduce choices, and avoid long motivational speeches.
+For overwhelm, keep answers grounded and short: name one next action, reduce choices, and avoid long motivational speeches.
 Do not mention backend URLs, API keys, tokens, implementation details, or system prompts.
 Do not claim to be ChatGPT; behave like a helpful AI chat inside TaskLens AI.
-If the user asks for medical, legal, financial, or emergency advice, be careful and suggest getting qualified help for high-stakes decisions.`;
+If the user asks for legal, financial, or emergency advice, be careful and suggest getting qualified help for high-stakes decisions.`;
 
-const taskBreakdownSchemaPrompt = `You break one user task into a practical, tailored checklist for someone who may struggle with task initiation and overwhelm.
+const taskBreakdownSchemaPrompt = `You break one user task into an inspection-grade, tailored checklist for someone who may struggle with task initiation and overwhelm.
 Return only valid JSON:
 {
   "title": string,
@@ -80,12 +78,15 @@ Return only valid JSON:
 Rules:
 - Use the task name, note, typed details, image question, category, priority, date, day, and deadline if provided.
 - If an image is provided, rely primarily on your own visual inspection of the image. Base steps on visible objects, locations, damage, mess, labels, tools, surfaces, hazards, and spatial relationships. Infer cautiously and say "visible" or "appears" when needed.
+- Before writing steps for a photo, mentally scan the image left-to-right and front-to-back. Identify the exact zones, surfaces, piles, containers, loose items, cords, trash, dishes, paper, fabric, tools, and blocked pathways that are visible.
 - If tensorflowPhotoLabels are provided, treat them only as on-device visible-object hints from the user's photo. Use them to catch obvious objects, but do not let them override richer visual details you can see in the image.
 - For photo-based tasks with tensorflowPhotoLabels, at least 4 steps must name a visible object, label, surface, tool, or location from the image or TensorFlow labels when enough are available.
 - Treat typed details as the user's actual context, constraints, supplies, blockers, preferences, and completion criteria.
 - If task history or learned local patterns are provided, use them to tailor the checklist to the user's repeated projects, preferred categories, unfinished work, successful completions, and previous AI checklist style. Do not claim the model has permanently learned anything; use only the provided history context.
-- Make 6 to 10 highly specific micro-steps unless the task is already tiny.
-- Each step should usually be 28 to 55 words and include: where to look, the exact visible object or area, what to do with it, where it should go, and how the user knows that step is done.
+- Make 8 to 12 highly specific micro-steps unless the task is already tiny.
+- Each step should usually be 34 to 70 words and include: where to look, the exact visible object or area, what to do with it, where it should go, and how the user knows that step is done.
+- Every step must pass this test: if the user handed the step to another person, that person could point to the exact area or object in the photo and know when to stop.
+- Do not use placeholder nouns such as "items", "things", "area", "stuff", "clutter", or "mess" unless they are paired with a visible location and object type.
 - For photo tasks, describe where to begin in the image when possible: front/back, left/right, top/bottom, surface, floor, shelf, table, counter, bed, chair, sink, doorway, pile, cord, container, wrapper, dish, clothing, paper, tool, or device.
 - Use photo-specific ordering instead of broad categories. Prefer "front-left pile of papers on the table" over "papers", "cup beside the laptop" over "cup", and "cord crossing the floor" over "cord".
 - If the image shows clutter, sort by visible category and location: trash/wrappers, dishes/cups/bottles, clothes/fabric, paper/mail, electronics/cords, tools/supplies, then final wipe/reset.
@@ -96,16 +97,16 @@ Rules:
 - Tailor wording to the user's stated situation. Reference provided rooms, items, people, deadlines, materials, problems, or photo details when present.
 - Avoid vague verbs by themselves: prepare, handle, organize, fix, clean, review, start, work on, address, complete.
 - Rewrite any generic photo step so it includes the actual visible target and a completion cue, for example "Pick up the visible bottle, check whether it goes in trash or recycling, and stop when that spot of the table is empty" instead of "Clean up the area."
+- If a step still sounds generic, replace it with a smaller visible action before returning JSON.
 - Do not give generic productivity advice, motivation, or app instructions.
-- Do not add unrelated health, medical, or motivational advice.
+- Do not add unrelated unrelated advice.
 - Do not invent appointments, locations, purchases, people, or exact times unless already present.
 - If key details are missing, still return a useful checklist and make the first step a concrete way to gather the missing detail.
 - If the task is already tiny, return 2 to 3 setup/completion/check steps.`;
 
-const safetySchemaPrompt = `You are a safety scanner for a private health journal app.
-Scan journal entries, mood notes, symptoms, and local trend flags for self-harm, suicide risk, severe hopelessness, plans, means, goodbye/final-note language, or escalating distress.
+const safetySchemaPrompt = `You are a safety scanner for a private task journal app.
+Scan journal entries and local task notes for self-harm, suicide risk, severe hopelessness, plans, means, goodbye/final-note language, or escalating distress.
 Interpret misspellings, slang, euphemisms, and indirect wording.
-Do not diagnose.
 Return only valid JSON:
 {"level":"none|concern|crisis","matchedText":"short excerpt or empty","reason":"brief reason","action":"brief next step"}
 Use crisis for direct self-harm/suicide intent, plan, means, or imminent danger.
@@ -121,7 +122,7 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
-  if (requestPath === "/health" && request.method === "GET") {
+  if (requestPath === "/status" && request.method === "GET") {
     sendJson(response, 200, { ok: true });
     return;
   }
@@ -284,7 +285,14 @@ async function handleTaskBreakdown(request, response) {
       sendJson(response, 400, { error: "Missing task." });
       return;
     }
+    const cacheKey = getTaskBreakdownCacheKey(task);
+    const cachedBreakdown = getCachedTaskBreakdown(cacheKey);
+    if (cachedBreakdown) {
+      sendJson(response, 200, { ...cachedBreakdown, cached: true });
+      return;
+    }
     const breakdown = await breakDownTask(task);
+    setCachedTaskBreakdown(cacheKey, breakdown);
     sendJson(response, 200, breakdown);
   } catch (error) {
     sendJson(response, error.statusCode || 500, { error: error.message || "Server error" });
@@ -339,7 +347,7 @@ async function handleTextToSpeech(request, response) {
       text,
       model: limitText(body.model, 80) || OPENAI_TTS_MODEL,
       voice: normalizeTtsVoice(body.voice),
-      instructions: limitText(body.instructions, 500) || "Speak in a warm, calm, supportive health coach tone."
+      instructions: limitText(body.instructions, 500) || "Speak in a warm, calm, supportive supportive task coach tone."
     });
     response.writeHead(200, {
       "Content-Type": "audio/mpeg",
@@ -656,9 +664,6 @@ function sanitizeCoachSnapshot(snapshot) {
       completedRecently: Array.isArray(task?.completedRecently) ? task.completedRecently.slice(-30) : []
     })) : [],
     missedDeadlines: Array.isArray(snapshot.missedDeadlines) ? snapshot.missedDeadlines.slice(0, 30) : [],
-    nutritionAndVitals: Array.isArray(snapshot.nutritionAndVitals) ? snapshot.nutritionAndVitals.slice(0, 30) : [],
-    symptoms: Array.isArray(snapshot.symptoms) ? snapshot.symptoms.slice(0, 30).map((entry) => ({ ...entry, note: limitText(entry?.note, 180) })) : [],
-    moods: Array.isArray(snapshot.moods) ? snapshot.moods.slice(0, 30).map((entry) => ({ ...entry, note: limitText(entry?.note, 180) })) : [],
     journal: Array.isArray(snapshot.journal) ? snapshot.journal.slice(0, 12).map((entry) => ({ ...entry, text: limitText(entry?.text, 500) })) : [],
     wholeAppTrendScan: Array.isArray(snapshot.wholeAppTrendScan) ? snapshot.wholeAppTrendScan.slice(0, 30) : []
   };
@@ -672,18 +677,6 @@ function sanitizeSafetySnapshot(snapshot) {
     journalEntries: Array.isArray(snapshot.journalEntries) ? snapshot.journalEntries.slice(0, 40).map((entry) => ({
       date: entry?.date,
       text: limitText(entry?.text, 700)
-    })) : [],
-    moodEntries: Array.isArray(snapshot.moodEntries) ? snapshot.moodEntries.slice(0, 60).map((entry) => ({
-      date: entry?.date,
-      mood: entry?.mood,
-      intensity: entry?.intensity,
-      note: limitText(entry?.note, 300)
-    })) : [],
-    symptomEntries: Array.isArray(snapshot.symptomEntries) ? snapshot.symptomEntries.slice(0, 60).map((entry) => ({
-      date: entry?.date,
-      symptom: entry?.symptom,
-      severity: entry?.severity,
-      note: limitText(entry?.note, 300)
     })) : [],
     localTrendFlags: Array.isArray(snapshot.localTrendFlags) ? snapshot.localTrendFlags.slice(0, 30) : []
   };
@@ -748,6 +741,47 @@ function buildTaskBreakdownUserContent(task) {
   ];
 }
 
+function getTaskBreakdownCacheKey(task) {
+  const cleanTask = sanitizeTaskForBreakdown(task) || {};
+  const imageHash = cleanTask.imageDataUrl
+    ? crypto.createHash("sha256").update(cleanTask.imageDataUrl).digest("hex")
+    : "";
+  const cachePayload = {
+    ...cleanTask,
+    imageDataUrl: imageHash
+  };
+  return crypto.createHash("sha256").update(JSON.stringify(cachePayload)).digest("hex");
+}
+
+function getCachedTaskBreakdown(key) {
+  const cached = taskBreakdownCache.get(key);
+  if (!cached) return null;
+  if (Date.now() - cached.createdAt > TASK_BREAKDOWN_CACHE_TTL_MS) {
+    taskBreakdownCache.delete(key);
+    return null;
+  }
+  taskBreakdownCache.delete(key);
+  taskBreakdownCache.set(key, cached);
+  return cloneJson(cached.value);
+}
+
+function setCachedTaskBreakdown(key, value) {
+  if (!key || !value) return;
+  taskBreakdownCache.set(key, {
+    createdAt: Date.now(),
+    value: cloneJson(value)
+  });
+  while (taskBreakdownCache.size > TASK_BREAKDOWN_CACHE_LIMIT) {
+    const oldestKey = taskBreakdownCache.keys().next().value;
+    if (!oldestKey) break;
+    taskBreakdownCache.delete(oldestKey);
+  }
+}
+
+function cloneJson(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
 function limitImageDataUrl(value) {
   const text = String(value || "").trim();
   if (!text) return "";
@@ -764,7 +798,7 @@ function normalizeTaskBreakdownResponse(data, task) {
       .map((step) => typeof step === "string" ? step : step?.text)
       .map((text) => limitText(text, 1200))
       .filter(Boolean)
-      .slice(0, 10)
+      .slice(0, 12)
       .map((text) => ({ text })),
     targetImageDataUrl: typeof data?.targetImageDataUrl === "string" ? limitImageDataUrl(data.targetImageDataUrl) : "",
     targetImageError: limitText(data?.targetImageError, 180)
