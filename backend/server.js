@@ -8,10 +8,12 @@ const OPENAI_TASK_MODEL = process.env.OPENAI_TASK_MODEL || "gpt-4o";
 const OPENAI_IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || "gpt-image-1";
 const OPENAI_TTS_MODEL = process.env.OPENAI_TTS_MODEL || "gpt-4o-mini-tts";
 const OPENAI_TTS_VOICE = process.env.OPENAI_TTS_VOICE || "coral";
+const GOOGLE_CLOUD_VISION_API_KEY = process.env.GOOGLE_CLOUD_VISION_API_KEY || "";
 const APP_CLIENT_TOKEN = process.env.APP_CLIENT_TOKEN || "";
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
 const MAX_BODY_BYTES = 5_500_000;
 const MAX_TTS_INPUT_CHARS = 1800;
+const GOOGLE_VISION_TIMEOUT_MS = Number(process.env.GOOGLE_VISION_TIMEOUT_MS || 4500);
 const TASK_BREAKDOWN_CACHE_LIMIT = Number(process.env.TASK_BREAKDOWN_CACHE_LIMIT || 120);
 const TASK_BREAKDOWN_CACHE_TTL_MS = Number(process.env.TASK_BREAKDOWN_CACHE_TTL_MS || 1000 * 60 * 60 * 24);
 const taskBreakdownCache = new Map();
@@ -79,6 +81,8 @@ Rules:
 - Use the task name, note, typed details, image question, category, priority, date, day, and deadline if provided.
 - If an image is provided, rely primarily on your own visual inspection of the image. Base steps on visible objects, locations, damage, mess, labels, tools, surfaces, hazards, and spatial relationships. Infer cautiously and say "visible" or "appears" when needed.
 - Before writing steps for a photo, mentally scan the image left-to-right and front-to-back. Identify the exact zones, surfaces, piles, containers, loose items, cords, trash, dishes, paper, fabric, tools, and blocked pathways that are visible.
+- If googleVisionContext is provided, use it as helper evidence from OCR, object localization, and image labels. Use OCR text to name visible papers, labels, boxes, notes, forms, receipts, mail, calendars, product names, or instructions when useful.
+- Use Google object zones to make steps more spatial: top-left, right side, lower center, front edge, etc. Do not let OCR or labels override your direct visual read of the image.
 - If tensorflowPhotoLabels are provided, treat them only as on-device visible-object hints from the user's photo. Use them to catch obvious objects, but do not let them override richer visual details you can see in the image.
 - For photo-based tasks with tensorflowPhotoLabels, at least 4 steps must name a visible object, label, surface, tool, or location from the image or TensorFlow labels when enough are available.
 - Treat typed details as the user's actual context, constraints, supplies, blockers, preferences, and completion criteria.
@@ -291,7 +295,8 @@ async function handleTaskBreakdown(request, response) {
       sendJson(response, 200, { ...cachedBreakdown, cached: true });
       return;
     }
-    const breakdown = await breakDownTask(task);
+    const enrichedTask = await enrichTaskWithGoogleVision(task);
+    const breakdown = await breakDownTask(enrichedTask);
     setCachedTaskBreakdown(cacheKey, breakdown);
     sendJson(response, 200, breakdown);
   } catch (error) {
@@ -533,6 +538,99 @@ async function breakDownTask(task) {
   return normalizeTaskBreakdownResponse(JSON.parse(content), task);
 }
 
+async function enrichTaskWithGoogleVision(task) {
+  if (!GOOGLE_CLOUD_VISION_API_KEY || !task?.imageDataUrl) return task;
+  try {
+    const visionContext = await analyzeImageWithGoogleVision(task.imageDataUrl);
+    if (!visionContext) return task;
+    return {
+      ...task,
+      googleVisionContext: visionContext
+    };
+  } catch (error) {
+    console.warn("Google Vision enrichment skipped.", error?.message || error);
+    return task;
+  }
+}
+
+async function analyzeImageWithGoogleVision(imageDataUrl) {
+  const base64Image = getImageBase64Content(imageDataUrl);
+  if (!base64Image) return "";
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), GOOGLE_VISION_TIMEOUT_MS);
+  try {
+    const visionResponse = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${encodeURIComponent(GOOGLE_CLOUD_VISION_API_KEY)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({
+        requests: [{
+          image: { content: base64Image },
+          features: [
+            { type: "TEXT_DETECTION", maxResults: 8 },
+            { type: "OBJECT_LOCALIZATION", maxResults: 10 },
+            { type: "LABEL_DETECTION", maxResults: 10 }
+          ]
+        }]
+      })
+    });
+    if (!visionResponse.ok) {
+      const details = await visionResponse.text();
+      throw new Error(details || `Google Vision request failed with ${visionResponse.status}`);
+    }
+    const data = await visionResponse.json();
+    return formatGoogleVisionContext(data.responses?.[0] || {});
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+function getImageBase64Content(imageDataUrl) {
+  const match = String(imageDataUrl || "").match(/^data:image\/(?:png|jpe?g|webp);base64,([a-z0-9+/=]+)$/i);
+  return match ? match[1] : "";
+}
+
+function formatGoogleVisionContext(result) {
+  const text = limitText(result.fullTextAnnotation?.text || result.textAnnotations?.[0]?.description || "", 900);
+  const objects = Array.isArray(result.localizedObjectAnnotations)
+    ? result.localizedObjectAnnotations
+      .slice(0, 8)
+      .map((object) => {
+        const name = limitText(object?.name, 48);
+        if (!name) return "";
+        const score = Math.round(Number(object.score || 0) * 100);
+        const zone = getGoogleVisionObjectZone(object);
+        return `${name}${zone ? ` at ${zone}` : ""}${score ? ` (${score}% confidence)` : ""}`;
+      })
+      .filter(Boolean)
+    : [];
+  const labels = Array.isArray(result.labelAnnotations)
+    ? result.labelAnnotations
+      .slice(0, 8)
+      .map((label) => limitText(label?.description, 48))
+      .filter(Boolean)
+    : [];
+  const sections = [
+    text ? `OCR visible text: ${text}` : "",
+    objects.length ? `Object locations: ${objects.join("; ")}` : "",
+    labels.length ? `Image labels: ${labels.join(", ")}` : ""
+  ].filter(Boolean);
+  return limitText(sections.join("\n"), 1800);
+}
+
+function getGoogleVisionObjectZone(object) {
+  const vertices = object?.boundingPoly?.normalizedVertices;
+  if (!Array.isArray(vertices) || !vertices.length) return "";
+  const xs = vertices.map((vertex) => Number(vertex.x)).filter(Number.isFinite);
+  const ys = vertices.map((vertex) => Number(vertex.y)).filter(Number.isFinite);
+  if (!xs.length || !ys.length) return "";
+  const centerX = xs.reduce((sum, value) => sum + value, 0) / xs.length;
+  const centerY = ys.reduce((sum, value) => sum + value, 0) / ys.length;
+  const horizontal = centerX < 0.34 ? "left" : (centerX > 0.66 ? "right" : "center");
+  const vertical = centerY < 0.34 ? "top" : (centerY > 0.66 ? "bottom" : "middle");
+  return `${vertical}-${horizontal}`;
+}
+
 async function generateTaskTargetImage(task, breakdown) {
   const imageDataUrl = limitImageDataUrl(task.imageDataUrl);
   if (!imageDataUrl) return "";
@@ -697,6 +795,7 @@ function sanitizeTaskForBreakdown(task) {
     dictationDetails: limitText(task.dictationDetails, 2500),
     issueQuestion: limitText(task.issueQuestion, 500),
     tensorflowPhotoLabels: sanitizeTensorFlowPhotoLabels(task.tensorflowPhotoLabels),
+    googleVisionContext: limitText(task.googleVisionContext, 1800),
     imageDataUrl
   };
 }
@@ -747,7 +846,9 @@ function getTaskBreakdownCacheKey(task) {
     ? crypto.createHash("sha256").update(cleanTask.imageDataUrl).digest("hex")
     : "";
   const cachePayload = {
+    cacheVersion: GOOGLE_CLOUD_VISION_API_KEY ? "vision-v1" : "no-vision-v1",
     ...cleanTask,
+    googleVisionContext: "",
     imageDataUrl: imageHash
   };
   return crypto.createHash("sha256").update(JSON.stringify(cachePayload)).digest("hex");

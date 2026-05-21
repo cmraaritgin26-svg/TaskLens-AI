@@ -1,18 +1,21 @@
 services:
   - type: web
-    name: health-task-tracker-ai-backend
+    name: tasklens-ai-ai-backend
     runtime: node
-    plan: free
     rootDir: backend
     buildCommand: npm install
     startCommand: npm start
-    healthCheckPath: /health
+    healthCheckPath: /status
     autoDeploy: true
     envVars:
       - key: OPENAI_API_KEY
         sync: false
       - key: OPENAI_MODEL
-        value: gpt-4o-mini
+        value: gpt-4o
+      - key: OPENAI_TASK_MODEL
+        value: gpt-4o
+      - key: GOOGLE_CLOUD_VISION_API_KEY
+        sync: false
       - key: OPENAI_TTS_MODEL
         value: gpt-4o-mini-tts
       - key: OPENAI_TTS_VOICE
