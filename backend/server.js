@@ -16,6 +16,7 @@ const MAX_TTS_INPUT_CHARS = 1800;
 const GOOGLE_VISION_TIMEOUT_MS = Number(process.env.GOOGLE_VISION_TIMEOUT_MS || 4500);
 const TASK_BREAKDOWN_CACHE_LIMIT = Number(process.env.TASK_BREAKDOWN_CACHE_LIMIT || 120);
 const TASK_BREAKDOWN_CACHE_TTL_MS = Number(process.env.TASK_BREAKDOWN_CACHE_TTL_MS || 1000 * 60 * 60 * 24);
+const TASK_BREAKDOWN_CACHE_VERSION = "vision-detail-v2";
 const taskBreakdownCache = new Map();
 const OPENAI_TTS_VOICES = new Set([
   "alloy",
@@ -87,8 +88,11 @@ Rules:
 - For photo-based tasks with tensorflowPhotoLabels, at least 4 steps must name a visible object, label, surface, tool, or location from the image or TensorFlow labels when enough are available.
 - Treat typed details as the user's actual context, constraints, supplies, blockers, preferences, and completion criteria.
 - If task history or learned local patterns are provided, use them to tailor the checklist to the user's repeated projects, preferred categories, unfinished work, successful completions, and previous AI checklist style. Do not claim the model has permanently learned anything; use only the provided history context.
-- Make 8 to 12 highly specific micro-steps unless the task is already tiny.
-- Each step should usually be 34 to 70 words and include: where to look, the exact visible object or area, what to do with it, where it should go, and how the user knows that step is done.
+- For photo tasks, return 9 to 12 highly specific micro-steps. Do not return fewer than 9 photo steps unless the image truly contains only one simple object.
+- Each photo step should usually be 40 to 80 words and include: where to look, the exact visible object or area, what to do with it, where it should go, and how the user knows that step is done.
+- If OCR text is visible, include the actual readable words in the relevant steps, such as the title on a paper, label, box, form, note, bill, envelope, or receipt.
+- Split document and paper tasks by visible document identity. Prefer "set the visible ELECTRIC BILL paper in a pay-today spot" over "sort papers."
+- The summary must mention 2 to 4 specific visible anchors from the photo, not a generic description.
 - Every step must pass this test: if the user handed the step to another person, that person could point to the exact area or object in the photo and know when to stop.
 - Do not use placeholder nouns such as "items", "things", "area", "stuff", "clutter", or "mess" unless they are paired with a visible location and object type.
 - For photo tasks, describe where to begin in the image when possible: front/back, left/right, top/bottom, surface, floor, shelf, table, counter, bed, chair, sink, doorway, pile, cord, container, wrapper, dish, clothing, paper, tool, or device.
@@ -518,7 +522,7 @@ async function breakDownTask(task) {
     body: JSON.stringify({
       model: OPENAI_TASK_MODEL,
       temperature: 0.2,
-      max_tokens: 2200,
+      max_tokens: 3600,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: taskBreakdownSchemaPrompt },
@@ -846,7 +850,7 @@ function getTaskBreakdownCacheKey(task) {
     ? crypto.createHash("sha256").update(cleanTask.imageDataUrl).digest("hex")
     : "";
   const cachePayload = {
-    cacheVersion: GOOGLE_CLOUD_VISION_API_KEY ? "vision-v1" : "no-vision-v1",
+    cacheVersion: TASK_BREAKDOWN_CACHE_VERSION,
     ...cleanTask,
     googleVisionContext: "",
     imageDataUrl: imageHash
