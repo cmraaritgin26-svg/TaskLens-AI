@@ -16,7 +16,7 @@ const MAX_TTS_INPUT_CHARS = 1800;
 const GOOGLE_VISION_TIMEOUT_MS = Number(process.env.GOOGLE_VISION_TIMEOUT_MS || 4500);
 const TASK_BREAKDOWN_CACHE_LIMIT = Number(process.env.TASK_BREAKDOWN_CACHE_LIMIT || 120);
 const TASK_BREAKDOWN_CACHE_TTL_MS = Number(process.env.TASK_BREAKDOWN_CACHE_TTL_MS || 1000 * 60 * 60 * 24);
-const TASK_BREAKDOWN_CACHE_VERSION = "vision-detail-v2";
+const TASK_BREAKDOWN_CACHE_VERSION = "vision-detail-v3";
 const taskBreakdownCache = new Map();
 const OPENAI_TTS_VOICES = new Set([
   "alloy",
@@ -539,7 +539,66 @@ async function breakDownTask(task) {
   const data = await openAiResponse.json();
   const content = data.choices?.[0]?.message?.content || "";
   if (!content) throw new Error("OpenAI returned no task breakdown.");
-  return normalizeTaskBreakdownResponse(JSON.parse(content), task);
+  const breakdown = normalizeTaskBreakdownResponse(JSON.parse(content), task);
+  if (needsTaskBreakdownRepair(breakdown, task)) {
+    return repairTaskBreakdown(task, breakdown);
+  }
+  return breakdown;
+}
+
+async function repairTaskBreakdown(task, breakdown) {
+  const repairPrompt = `${taskBreakdownSchemaPrompt}
+
+The previous checklist failed quality review because it was too short, too generic, or did not include enough visible anchors.
+Repair it now. Keep useful facts, but rewrite the checklist so every photo step is specific, physical, and verifiable.
+Return only valid JSON with 9 to 12 steps.`;
+  const openAiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${OPENAI_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: OPENAI_TASK_MODEL,
+      temperature: 0.15,
+      max_tokens: 3800,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: repairPrompt },
+        { role: "user", content: buildTaskBreakdownRepairUserContent(task, breakdown) }
+      ]
+    })
+  });
+
+  if (!openAiResponse.ok) {
+    const details = await openAiResponse.text();
+    console.warn("OpenAI task repair failed.", details || openAiResponse.status);
+    return breakdown;
+  }
+
+  const data = await openAiResponse.json();
+  const content = data.choices?.[0]?.message?.content || "";
+  if (!content) return breakdown;
+  try {
+    const repaired = normalizeTaskBreakdownResponse(JSON.parse(content), task);
+    return repaired.steps.length >= breakdown.steps.length ? repaired : breakdown;
+  } catch {
+    return breakdown;
+  }
+}
+
+function needsTaskBreakdownRepair(breakdown, task) {
+  if (!task?.imageDataUrl || !Array.isArray(breakdown?.steps)) return false;
+  if (breakdown.steps.length < 9) return true;
+  const weakSteps = breakdown.steps.filter((step) => isWeakPhotoChecklistStep(step?.text));
+  return weakSteps.length >= Math.ceil(breakdown.steps.length / 3);
+}
+
+function isWeakPhotoChecklistStep(text) {
+  const cleanText = String(text || "").replace(/\s+/g, " ").trim();
+  const words = cleanText.split(/\s+/).filter(Boolean);
+  if (words.length < 26) return true;
+  return /\b(sort them|tidy up|organize the area|clear and organized|respective places|necessary items|other correspondence|review the sorted items|check for any other|make sure everything)\b/i.test(cleanText);
 }
 
 async function enrichTaskWithGoogleVision(task) {
@@ -836,6 +895,29 @@ function buildTaskBreakdownUserContent(task) {
   const text = JSON.stringify({
     ...cleanTask,
     imageDataUrl: imageDataUrl ? "[attached image]" : ""
+  });
+  if (!imageDataUrl) return text;
+  return [
+    { type: "text", text },
+    { type: "image_url", image_url: { url: imageDataUrl, detail: "high" } }
+  ];
+}
+
+function buildTaskBreakdownRepairUserContent(task, breakdown) {
+  const cleanTask = sanitizeTaskForBreakdown(task);
+  const imageDataUrl = cleanTask?.imageDataUrl || "";
+  const text = JSON.stringify({
+    task: {
+      ...cleanTask,
+      imageDataUrl: imageDataUrl ? "[attached image]" : ""
+    },
+    failedChecklist: breakdown,
+    repairRequirements: [
+      "Return 9 to 12 photo-specific steps.",
+      "Each step must name a visible object, readable text, surface, pile, side, or zone.",
+      "Each step must include the action, destination, and done-check.",
+      "Do not use generic cleanup wording."
+    ]
   });
   if (!imageDataUrl) return text;
   return [
