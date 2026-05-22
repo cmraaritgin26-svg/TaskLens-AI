@@ -21,6 +21,11 @@
       --teal: #14b8a6;
       --shadow: 0 18px 44px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.04);
       --font-body: "Quicksand", Arial, system-ui, sans-serif;
+      --heading: #f8fafc;
+      --accent-dark-rgb: 8, 20, 53;
+      --accent-mid-rgb: 37, 99, 235;
+      --accent-soft-rgb: 96, 165, 250;
+      --accent-contrast: #8ed8ff;
     }
 
     * { box-sizing: border-box; }
@@ -51,84 +56,125 @@
       mask-image: linear-gradient(180deg, black, transparent 82%);
     }
 
-    .site-header,
     main,
     .site-footer {
-      width: min(920px, calc(100% - 24px));
+      width: min(780px, calc(100% - 24px));
       margin-inline: auto;
     }
 
-    .site-header,
     .site-footer,
-    .brand,
-    .site-nav {
+    .app-title-row,
+    .header-focus-strip,
+    .page-actions {
       display: flex;
       align-items: center;
     }
 
-    .site-header,
     .site-footer {
       justify-content: space-between;
       gap: 14px;
       padding: 14px 0;
     }
 
-    .brand,
-    .site-nav a,
     a {
       color: var(--ink);
     }
 
-    .brand,
-    .site-nav a {
+    .page-actions a {
       text-decoration: none;
     }
 
-    .brand {
-      gap: 10px;
-      font-size: 1.05rem;
-      font-weight: 900;
-    }
-
-    .brand img {
-      border-radius: 12px;
-      box-shadow: var(--shadow);
-    }
-
-    .site-nav {
+    .page-actions {
       flex-wrap: wrap;
+      justify-content: center;
       gap: 8px;
+      margin-top: 14px;
     }
 
-    .site-nav a {
+    .page-actions a {
       border: 1px solid var(--line);
-      border-radius: 999px;
+      border-radius: 12px;
       background: var(--surface-strong);
       padding: 9px 13px;
       font-weight: 900;
     }
 
     main {
-      padding: 32px 0 48px;
+      padding: 18px 0 48px;
     }
 
+    .app-heading-copy,
     article,
     .request-box {
       border: 1px solid var(--line);
-      border-radius: 8px;
       background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent),
         rgba(17, 24, 39, 0.94);
       box-shadow: var(--shadow);
     }
 
+    .app-heading-copy {
+      display: grid;
+      justify-items: center;
+      margin-bottom: 14px;
+      border-color: rgba(var(--accent-soft-rgb), 0.2);
+      border-radius: 26px;
+      background:
+        radial-gradient(circle at 50% -20%, rgba(var(--accent-soft-rgb), 0.2), transparent 48%),
+        linear-gradient(150deg, rgba(var(--accent-dark-rgb), 0.9), rgba(var(--accent-dark-rgb), 0.74));
+      padding: clamp(16px, 5vw, 26px) clamp(14px, 4vw, 24px) clamp(18px, 5vw, 28px);
+      text-align: center;
+    }
+
+    .app-title-row {
+      justify-content: center;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .app-title-icon {
+      display: block;
+      width: clamp(82px, 22vw, 124px);
+      height: clamp(82px, 22vw, 124px);
+      flex: 0 0 auto;
+      object-fit: contain;
+    }
+
+    .app-tagline {
+      max-width: 100%;
+      margin: 12px auto 0;
+      color: var(--muted);
+      font-size: clamp(0.78rem, 3.15vw, 1.08rem);
+      font-weight: 900;
+      line-height: 1.35;
+    }
+
+    .header-focus-strip {
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      max-width: 32rem;
+      margin-top: 14px;
+      color: var(--accent-contrast);
+      font-size: clamp(0.9rem, 3.8vw, 1.16rem);
+      font-weight: 950;
+    }
+
+    .header-focus-strip i {
+      color: var(--muted);
+      font-style: normal;
+    }
+
     article {
+      border-radius: 18px;
       padding: clamp(22px, 4vw, 44px);
     }
 
     h1 {
+      color: var(--heading);
       margin: 0 0 8px;
       font-size: clamp(2rem, 8vw, 4rem);
+      font-weight: 900;
       line-height: 0.98;
     }
 
@@ -161,33 +207,45 @@
     .request-box {
       margin: 24px 0;
       padding: 18px;
+      border-radius: 14px;
       background:
         radial-gradient(circle at 88% 12%, rgba(96, 165, 250, 0.15), transparent 32%),
         linear-gradient(145deg, rgba(37, 99, 235, 0.24), rgba(17, 24, 39, 0.94));
     }
 
     @media (max-width: 720px) {
-      .site-header,
       .site-footer {
         align-items: stretch;
         flex-direction: column;
+      }
+
+      .app-title-row {
+        flex-wrap: wrap;
       }
     }
   </style>
 </head>
 <body>
-  <header class="site-header" aria-label="TaskLens AI">
-    <a class="brand" href="index.html" aria-label="TaskLens AI home">
-      <img src="icons/icon-192.png" alt="" width="44" height="44">
-      <span>TaskLens AI</span>
-    </a>
-    <nav class="site-nav" aria-label="Main navigation">
-      <a href="index.html">Home</a>
-      <a href="privacy-policy.html">Privacy</a>
-      <a href="data-deletion.html">Delete Data</a>
-    </nav>
-  </header>
   <main>
+    <section class="app-heading-copy" aria-label="TaskLens AI">
+      <div class="app-title-row">
+        <img class="app-title-icon" src="icons/tasklens-header-icon.png" alt="" aria-hidden="true">
+        <h1>TaskLens AI</h1>
+      </div>
+      <p class="app-tagline">Take a photo. Get a focus-friendly checklist.</p>
+      <div class="header-focus-strip" aria-label="Task flow">
+        <span>Capture</span>
+        <i aria-hidden="true">-&gt;</i>
+        <span>Break down</span>
+        <i aria-hidden="true">-&gt;</i>
+        <span>Start</span>
+      </div>
+      <nav class="page-actions" aria-label="Site navigation">
+        <a href="index.html">Home</a>
+        <a href="privacy-policy.html">Privacy</a>
+      </nav>
+    </section>
+
     <article>
       <p class="eyebrow">Account and data control</p>
       <h1>Account and Data Deletion</h1>
