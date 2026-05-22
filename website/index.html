@@ -3,15 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Health & Task Tracker</title>
-  <meta name="description" content="Health & Task Tracker helps track daily tasks, nutrition, vitals, symptoms, mood, journal entries, hydration, and AI-supported patterns.">
-  <link rel="icon" href="../icons/icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="../icons/icon-192.png">
-  <meta property="og:title" content="Health & Task Tracker">
-  <meta property="og:description" content="Track tasks, hydration, nutrition, vitals, symptoms, mood, journaling, and AI-supported patterns.">
-  <meta property="og:image" content="../icons/icon-512.png">
+  <title>TaskLens AI</title>
+  <meta name="description" content="TaskLens AI turns scattered thoughts and photos into clear task checklists for focus-friendly organization.">
+  <link rel="canonical" href="https://www.tasklensai.com/">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta property="og:title" content="TaskLens AI">
+  <meta property="og:description" content="Turn scattered thoughts and photos into clear task checklists for focus-friendly organization.">
+  <meta property="og:url" content="https://www.tasklensai.com/">
+  <meta property="og:image" content="https://www.tasklensai.com/icons/icon-512.png">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:image" content="../icons/icon-512.png">
+  <meta name="twitter:image" content="https://www.tasklensai.com/icons/icon-512.png">
   <style>
     :root {
       color-scheme: dark;
@@ -107,8 +109,11 @@
     .brand img,
     .app-title-icon,
     .phone-top img {
-      border-radius: 12px;
-      box-shadow: var(--shadow);
+      display: block;
+      border: 2px solid rgba(255, 255, 255, 0.92);
+      border-radius: 50%;
+      background: transparent;
+      box-shadow: none;
     }
 
     .site-nav,
@@ -137,7 +142,6 @@
       padding: 48px 0;
     }
 
-    .hero-copy,
     .phone-preview,
     .feature-card,
     .ai-panel,
@@ -153,12 +157,16 @@
       box-shadow: var(--shadow);
     }
 
-    .hero-copy,
     .phone-preview,
     .feature-card,
     .ai-panel,
     .privacy-card {
       padding: 18px;
+    }
+
+    .hero-copy {
+      max-width: 560px;
+      text-align: center;
     }
 
     h1,
@@ -171,6 +179,30 @@
     h1 {
       font-size: clamp(2rem, 8vw, 4.2rem);
       line-height: 0.95;
+    }
+
+    .app-heading-copy {
+      text-align: center;
+    }
+
+    .app-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      width: 100%;
+    }
+
+    .app-title-icon {
+      width: clamp(72px, 18vw, 118px);
+      height: clamp(72px, 18vw, 118px);
+      flex: 0 0 auto;
+    }
+
+    .topbar-actions,
+    .theme-strip,
+    .hero-actions {
+      justify-content: center;
     }
 
     .lead,
@@ -202,6 +234,25 @@
       border-radius: 8px;
       background: var(--surface-soft);
       padding: 12px;
+    }
+
+    .preview-grid div {
+      display: grid;
+      gap: 4px;
+      min-height: 72px;
+      align-content: center;
+    }
+
+    .preview-grid strong {
+      color: var(--ink);
+      font-size: 1.35rem;
+      line-height: 1;
+    }
+
+    .preview-grid span {
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.25;
     }
 
     .preview-grid,
@@ -241,51 +292,18 @@
       }
     }
   </style>
-  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="site-header" aria-label="Health & Task Tracker">
-    <a class="brand" href="#top" aria-label="Health & Task Tracker home">
-      <img src="../icons/icon-192.png" alt="" width="44" height="44">
-      <span>Health & Task Tracker</span>
-    </a>
-    <nav class="site-nav" aria-label="Main navigation">
-      <a href="#features">Features</a>
-      <a href="#ai">AI Coach</a>
-      <a href="#privacy">Privacy</a>
-    </nav>
-  </header>
-
   <main id="top">
     <section class="hero">
       <div class="hero-copy">
         <div class="app-heading-copy">
-          <p class="eyebrow today-pill">Today</p>
           <div class="app-title-row">
-            <img class="app-title-icon" src="../icons/icon-192.png" alt="" aria-hidden="true">
-            <h1>Health &amp; Task Tracker</h1>
-          </div>
-          <div class="topbar-actions" aria-label="App actions preview">
-            <button class="text-button settings-button dictate-button" type="button" aria-label="Dictate">
-              <svg class="dictate-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/>
-                <path d="M5 11a7 7 0 0 0 14 0"/>
-                <path d="M12 18v3"/>
-                <path d="M8 21h8"/>
-              </svg>
-            </button>
-            <button class="text-button settings-button" type="button">Get Started</button>
-            <button class="text-button settings-button" type="button">Settings</button>
+            <img class="app-title-icon" src="icons/icon-192.png" alt="" aria-hidden="true">
+            <h1>TaskLens AI</h1>
           </div>
         </div>
-        <p class="lead">A focused tracker for tasks, hydration, nutrition, vitals, symptoms, mood, journaling, and AI-supported pattern review.</p>
-        <div class="theme-strip" aria-label="Theme preview">
-          <span class="swatch blue"></span>
-          <span class="swatch soft-blue"></span>
-          <span class="swatch teal"></span>
-          <span class="swatch amber"></span>
-          <strong>Quicksand theme</strong>
-        </div>
+        <p class="lead">A focused task app that turns scattered thoughts and photos into clear checklists.</p>
         <div class="hero-actions">
           <a class="primary-link" href="#features">Explore Features</a>
           <a class="secondary-link" href="#privacy">How Data Is Handled</a>
@@ -294,19 +312,18 @@
 
       <div class="phone-preview" aria-label="App preview">
         <div class="phone-top">
-          <img src="../icons/icon-192.png" alt="" width="34" height="34">
           <strong>Today</strong>
         </div>
         <div class="preview-card progress">
-          <span>Weekly Task Progress</span>
+          <span>Today's Task Progress</span>
           <strong>72%</strong>
           <div class="meter"><i style="width: 72%"></i></div>
         </div>
         <div class="preview-grid">
-          <div><strong>5 / 7</strong><span>Tasks done</span></div>
-          <div><strong>64 oz</strong><span>Water</span></div>
-          <div><strong>118/76</strong><span>Blood pressure</span></div>
-          <div><strong>Good</strong><span>Mood</span></div>
+          <div><strong>3</strong><span>Now tasks ready</span></div>
+          <div><strong>5</strong><span>Next steps saved</span></div>
+          <div><strong>2</strong><span>Later tasks parked</span></div>
+          <div><strong>4</strong><span>Wins checked off</span></div>
         </div>
         <div class="preview-card coach">
           <span>AI Coach</span>
@@ -329,7 +346,7 @@
         <article class="font-card sample-regular">
           <span>Body</span>
           <strong>Quicksand Regular</strong>
-          <p>Clean tracking text for health notes, journals, and task details.</p>
+          <p>Clean tracking text for task notes, checklists, and task details.</p>
         </article>
         <article class="palette-card">
           <span>Palette</span>
@@ -346,56 +363,56 @@
 
     <section class="section" id="features">
       <div class="section-heading">
-        <p class="eyebrow">What it tracks</p>
-        <h2>One place for the daily details</h2>
+        <p class="eyebrow">What it organizes</p>
+        <h2>One place for the next step</h2>
       </div>
       <div class="feature-grid">
         <article>
           <h3>Tasks</h3>
-          <p>Track daily tasks, completion history, notes, scheduled times, deadlines, and missed deadline trends.</p>
+          <p>Track daily tasks, completion history, notes, scheduled times, deadlines, and clear next steps.</p>
         </article>
         <article>
-          <h3>Nutrition & Vitals</h3>
-          <p>Log calories, carbs, weight, ketosis phase, glucose, blood pressure, and hydration.</p>
+          <h3>Photo Checklists</h3>
+          <p>Start with a picture and turn a messy task into specific steps you can check off.</p>
         </article>
         <article>
-          <h3>Wellbeing</h3>
-          <p>Use a single dropdown for symptoms, mood, and private journal entries while keeping history available.</p>
+          <h3>Brain Dump</h3>
+          <p>Capture scattered thoughts and let the app shape them into a practical task list.</p>
         </article>
         <article>
-          <h3>Hydration</h3>
-          <p>Record water with cup controls and a goal based on profile data instead of a manual setting.</p>
+          <h3>Focus Timer</h3>
+          <p>Use short timers to stay with one step without switching to another app.</p>
         </article>
         <article>
           <h3>History</h3>
-          <p>Review long-term logs for vitals, symptoms, mood, task progress, and other trends.</p>
+          <p>Keep previous photo checklists and task progress available when you need to return.</p>
         </article>
         <article>
-          <h3>Security</h3>
-          <p>Protect the app with password and device biometric unlock where supported by the phone.</p>
+          <h3>AI Help</h3>
+          <p>Ask for help turning a task into smaller actions or finding the next useful move.</p>
         </article>
       </div>
     </section>
 
     <section class="section split" id="ai">
       <div>
-        <p class="eyebrow">AI-supported review</p>
-        <h2>Coach insights across the whole app</h2>
-        <p>The AI Coach can review task completions, deadlines, nutrition, vitals, water, symptoms, mood, ketosis, and journal patterns together to suggest practical next steps.</p>
-        <p class="note">The app does not diagnose medical conditions. It can flag patterns and suggest when urgent help may be appropriate.</p>
+        <p class="eyebrow">AI-supported planning</p>
+        <h2>Checklist help without leaving the app</h2>
+        <p>TaskLens AI can review the task name, typed details, selected photos, and checklist context to suggest practical next steps.</p>
+        <p class="note">AI output is only a suggestion. Review the checklist before acting on it.</p>
       </div>
       <div class="coach-stack">
         <article>
           <span>Task trend</span>
-          <strong>Late deadlines are checked against mood, symptoms, and journal notes.</strong>
+          <strong>Late tasks can be broken into a smaller next action.</strong>
         </article>
         <article>
-          <span>Health trend</span>
-          <strong>Vitals and nutrition are reviewed with recent symptoms and hydration.</strong>
+          <span>Focus trend</span>
+          <strong>Photo checklists and task patterns help surface what needs attention next.</strong>
         </article>
         <article>
-          <span>Journal safety</span>
-          <strong>Concerning language can trigger supportive guidance and crisis resources.</strong>
+          <span>Task clarity</span>
+          <strong>Brain dumps can be reorganized into a checklist you can finish one step at a time.</strong>
         </article>
       </div>
     </section>
@@ -406,17 +423,18 @@
         <h2>Built for personal tracking</h2>
       </div>
       <div class="privacy-grid">
-        <p>Journal entries stay private inside the app unless the user opens them. AI review looks for patterns and shows concerns to the user only.</p>
-        <p>Cloud AI features are optional and only work after the user enables internet sharing and saves an HTTPS AI backend URL.</p>
-        <p>AI features require the configured backend service and an active OpenAI API key with available quota.</p>
+        <p>Tasks and saved checklists stay on the user's phone unless the user chooses a cloud AI feature.</p>
+        <p>Cloud AI features are optional and only work after the user enables internet sharing.</p>
+        <p>AI checklist features send selected task details and photos to the TaskLens AI service to create checklist suggestions.</p>
+        <p><a href="privacy-policy.html">Privacy Policy</a></p>
         <p><a href="data-deletion.html">Request account and data deletion</a></p>
       </div>
     </section>
   </main>
 
   <footer class="site-footer">
-    <span>Health & Task Tracker</span>
-    <span>Information only. Not a medical device or diagnosis tool.</span>
+    <span>TaskLens AI</span>
+    <span>Organization support only. Review AI suggestions before acting.</span>
   </footer>
 </body>
 </html>

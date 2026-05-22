@@ -1,47 +1,100 @@
-# Store Listing Draft
+# TaskLens AI Store Listing Draft
 
 ## App Name
 
-Health & Task Tracker
+TaskLens AI
+
+## Brand Position
+
+Turn overwhelm into a clear next step.
+
+Use this idea everywhere: Play Store copy, screenshots, website text, review replies, and social posts. TaskLens AI should feel calm, practical, and useful before it feels "AI-powered."
 
 ## Short Description
 
-Track tasks, nutrition, vitals, symptoms, mood, journal entries, and wellness trends.
+Turn photos and scattered thoughts into clear checklists.
+
+Alternate short descriptions:
+
+- Capture the overwhelm. Start with one clear step.
+- Take a photo. Get a calmer checklist.
+- A focus-friendly task app for messy moments.
 
 ## Full Description
 
-Health & Task Tracker helps you keep daily tasks, nutrition, water, vitals,
-symptoms, mood, and journal entries in one private tracker.
+TaskLens AI is built for the moment when a room, pile, project, or chore feels too big to start.
+
+Take a photo, add a few words if needed, or drop everything into a brain dump. TaskLens AI helps turn the mess into a short, practical checklist so you can start with one visible step instead of trying to solve the whole thing at once.
+
+Use it for:
+
+- Messy rooms and doom piles
+- Desks, counters, kitchens, laundry, bags, and paperwork
+- Scattered thoughts that need sorting
+- Chores that feel too vague to start
+- Stuck projects that need one visible next action
+- Focus sessions when you only want to handle one thing
 
 Features include:
 
-- Daily and weekly task progress
-- Nutrition, water, weight, glucose, and blood pressure logs
-- Symptom and mood tracking
-- Journal entries with a dated journal log
-- History charting and master chart views
-- Dictation review for quickly filling tracker fields
-- Reminders and local app lock
-- Optional cloud AI summaries and safety scanning when you configure AI
+- Photo-to-checklist task breakdowns
+- Brain dump task capture
+- Now, Next, and Later organization
+- Tiny, Small, Medium, and Big task sizing
+- Saved project history with before photos, target looks, after photos, and checklist context
+- AI help for app questions and stuck moments
+- Stuck mode for finding the smallest next step
+- One-task focus sessions with 5, 10, 15, and 25 minute timers
+- Local task storage by default
 
-The app stores data locally by default. Optional cloud AI features only work
-after you allow internet sharing, enable AI extraction, and configure an AI
-service.
+TaskLens AI is not about streak pressure, guilt, or red overdue panic. It is a calm place to capture what is in front of you, break it down, and see your wins as you go.
 
-Health & Task Tracker is for personal tracking and wellness support. It does not
-diagnose, treat, cure, or prevent disease, and it should not replace
-professional medical advice. If you may hurt yourself or are in immediate
-danger, call or text emergency services where available.
+Privacy and AI:
+
+Your regular task list stays on this phone unless you choose an AI feature. Photo checklist features only use the task details and photos you choose to send. AI checklists are suggestions and may be wrong, so review them before acting.
+
+TaskLens AI is an organization and productivity tool.
+
+## Screenshot Storyboard
+
+Use 5 screenshots in this order:
+
+1. Capture the overwhelm
+   Caption: "Take a photo or brain dump what is stuck."
+2. Turn it into steps
+   Caption: "Get a short checklist you can actually start."
+3. Start with one
+   Caption: "Pick Now, Next, or Later and move one step forward."
+4. Track your wins
+   Caption: "See finished tasks without streak pressure."
+5. Keep the context
+   Caption: "Save before photos, after photos, and useful notes."
+
+## Trust Language
+
+No shame. No streak punishment. No red overdue panic.
+
+Safer wording to reuse:
+
+- "focus-friendly"
+- "built for scattered thoughts"
+- "helpful when a task feels too big"
+- "turns messy moments into visible next steps"
+
+Avoid medical claims like "treats ADHD" or "reduces anxiety." The app can be useful for those moments, but Play Store copy should stay in organization and productivity language.
+
+## Monetization Recommendation
+
+Launch with a simple free plan and a Premium upgrade once Google Play Billing is connected.
+
+- Free: local tasks, brain dump, manual checklists, focus timer, AI help chat, and 5 photo checklists/month
+- Premium: more photo checklists, saved project history, AI target-look pictures, and richer AI help
+- Suggested launch price: $4.99/month or $29.99/year
 
 ## Keywords
 
-health tracker, task tracker, journal, mood tracker, symptoms, nutrition,
-vitals, wellness, water tracker, blood pressure, glucose
+photo checklist, cleaning checklist, messy room, chores, task breakdown, brain dump, focus timer, productivity, task organizer, focus-friendly tasks, task planner
 
 ## App Access Instructions For Reviewers
 
-On first launch, complete or skip the setup screens. If app lock is enabled,
-use the password created during setup. Cloud AI features are optional and require
-the in-app internet sharing acknowledgement plus an AI backend URL or OpenAI API
-key in Settings.
-
+On first launch, complete or skip the setup screens. To test the core flow, tap Start with a photo, choose or take a photo, generate a checklist, then tap Save.
