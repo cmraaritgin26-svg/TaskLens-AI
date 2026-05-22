@@ -31,6 +31,11 @@
       --danger: #fb7185;
       --shadow: 0 18px 44px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.04);
       --font-body: "Quicksand", Arial, system-ui, sans-serif;
+      --heading: #f8fafc;
+      --accent-dark-rgb: 8, 20, 53;
+      --accent-mid-rgb: 37, 99, 235;
+      --accent-soft-rgb: 96, 165, 250;
+      --accent-contrast: #8ed8ff;
     }
 
     * {
@@ -62,18 +67,13 @@
       mask-image: linear-gradient(180deg, black, transparent 82%);
     }
 
-    .site-header,
     main,
     .site-footer {
-      width: min(1120px, calc(100% - 24px));
+      width: min(780px, calc(100% - 24px));
       margin-inline: auto;
     }
 
-    .site-header,
-    .brand,
-    .site-nav,
     .hero,
-    .theme-strip,
     .hero-actions,
     .phone-top,
     .preview-grid,
@@ -83,7 +83,6 @@
       display: flex;
     }
 
-    .site-header,
     .site-footer {
       align-items: center;
       justify-content: space-between;
@@ -91,55 +90,34 @@
       padding: 14px 0;
     }
 
-    .brand,
-    .site-nav a,
     .primary-link,
     .secondary-link {
       color: var(--ink);
       text-decoration: none;
     }
 
-    .brand {
-      align-items: center;
-      gap: 10px;
-      font-size: 1.05rem;
-      font-weight: 900;
-    }
-
-    .brand img,
-    .app-title-icon,
-    .phone-top img {
-      display: block;
-      border: 2px solid rgba(255, 255, 255, 0.92);
-      border-radius: 50%;
-      background: transparent;
-      box-shadow: none;
-    }
-
-    .site-nav,
-    .theme-strip,
     .hero-actions {
       flex-wrap: wrap;
       gap: 8px;
     }
 
-    .site-nav a,
     .primary-link,
     .secondary-link,
-    .text-button {
+    .text-button,
+    .primary-button {
       border: 1px solid var(--line);
-      border-radius: 999px;
+      border-radius: 8px;
       background: var(--surface-strong);
       padding: 9px 13px;
       font-weight: 900;
     }
 
     .hero {
-      min-height: 74vh;
-      align-items: center;
-      justify-content: space-between;
-      gap: 28px;
-      padding: 48px 0;
+      min-height: 86vh;
+      align-items: stretch;
+      flex-direction: column;
+      gap: 14px;
+      padding: 18px 0 34px;
     }
 
     .phone-preview,
@@ -165,7 +143,6 @@
     }
 
     .hero-copy {
-      max-width: 560px;
       text-align: center;
     }
 
@@ -177,11 +154,29 @@
     }
 
     h1 {
+      margin: 0;
+      color: var(--heading);
       font-size: clamp(2rem, 8vw, 4.2rem);
+      font-weight: 900;
       line-height: 0.95;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .app-heading-copy,
+    .app-promise-panel {
+      border: 1px solid rgba(var(--accent-soft-rgb), 0.2);
+      box-shadow: 0 22px 64px rgba(0, 0, 0, 0.3);
     }
 
     .app-heading-copy {
+      display: grid;
+      justify-items: center;
+      border-radius: 26px;
+      background:
+        radial-gradient(circle at 50% -20%, rgba(var(--accent-soft-rgb), 0.2), transparent 48%),
+        linear-gradient(150deg, rgba(var(--accent-dark-rgb), 0.9), rgba(var(--accent-dark-rgb), 0.74));
+      padding: clamp(16px, 5vw, 26px) clamp(14px, 4vw, 24px) clamp(18px, 5vw, 28px);
       text-align: center;
     }
 
@@ -189,20 +184,162 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 14px;
+      gap: 12px;
       width: 100%;
     }
 
     .app-title-icon {
-      width: clamp(72px, 18vw, 118px);
-      height: clamp(72px, 18vw, 118px);
+      display: block;
+      width: clamp(82px, 22vw, 124px);
+      height: clamp(82px, 22vw, 124px);
       flex: 0 0 auto;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      object-fit: contain;
+    }
+
+    .app-tagline {
+      max-width: 100%;
+      margin: 12px auto 0;
+      color: var(--muted);
+      font-size: clamp(0.78rem, 3.15vw, 1.08rem);
+      font-weight: 900;
+      line-height: 1.35;
+      white-space: nowrap;
+    }
+
+    .header-focus-strip {
+      display: inline-flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      max-width: 32rem;
+      margin-top: 14px;
+      color: var(--accent-contrast);
+      font-size: clamp(0.9rem, 3.8vw, 1.16rem);
+      font-weight: 950;
+    }
+
+    .header-focus-strip i {
+      color: var(--muted);
+      font-style: normal;
+    }
+
+    .header-divider {
+      position: relative;
+      width: min(220px, 66%);
+      height: 1px;
+      margin-top: 18px;
+      background: linear-gradient(90deg, transparent, rgba(var(--accent-soft-rgb), 0.32), transparent);
+    }
+
+    .header-divider::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--accent-contrast);
+      box-shadow: 0 0 16px rgba(142, 216, 255, 0.45);
+      transform: translate(-50%, -50%);
     }
 
     .topbar-actions,
-    .theme-strip,
     .hero-actions {
       justify-content: center;
+    }
+
+    .app-promise-panel {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      align-items: center;
+      gap: 12px;
+      border-radius: 18px;
+      background:
+        radial-gradient(circle at 88% 20%, rgba(56, 189, 248, 0.18), transparent 34%),
+        linear-gradient(135deg, rgba(var(--accent-dark-rgb), 0.98), rgba(var(--accent-mid-rgb), 0.84));
+      padding: 16px;
+      text-align: left;
+    }
+
+    .promise-copy h2 {
+      margin: 0;
+      color: var(--ink);
+      font-size: clamp(1.28rem, 4.2vw, 1.7rem);
+      line-height: 1.12;
+    }
+
+    .promise-copy p:last-child {
+      max-width: 58ch;
+      margin: 7px 0 0;
+      color: #cbdaf5;
+      font-size: 0.88rem;
+      font-weight: 800;
+      line-height: 1.35;
+    }
+
+    .brand-eyebrow {
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    .promise-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .promise-actions .primary-button,
+    .promise-actions .text-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      width: auto;
+      min-width: 0;
+      min-height: 42px;
+      padding: 10px 16px;
+      color: var(--ink);
+      font-size: 0.98rem;
+      line-height: 1.1;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .promise-actions .primary-button {
+      min-width: 142px;
+      border: 0;
+      background: linear-gradient(180deg, var(--accent-soft), var(--accent-mid) 56%, #081435);
+      box-shadow: 0 14px 28px rgba(var(--accent-soft-rgb), 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    }
+
+    .promise-actions .text-button {
+      border-color: rgba(203, 213, 225, 0.26);
+      background: rgba(15, 23, 42, 0.46);
+    }
+
+    .promise-actions img {
+      width: 26px;
+      height: 26px;
+      flex: 0 0 auto;
+      object-fit: contain;
+    }
+
+    .hero-actions {
+      margin-top: 2px;
+    }
+
+    .primary-link,
+    .secondary-link {
+      border-radius: 12px;
     }
 
     .lead,
@@ -223,7 +360,7 @@
     }
 
     .phone-preview {
-      width: min(380px, 100%);
+      width: 100%;
       display: grid;
       gap: 12px;
     }
@@ -231,9 +368,16 @@
     .preview-card,
     .preview-grid div {
       border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--surface-soft);
+      border-radius: 14px;
+      background: rgba(15, 23, 42, 0.58);
       padding: 12px;
+    }
+
+    .wins-card {
+      border-color: rgba(var(--accent-soft-rgb), 0.26);
+      background:
+        radial-gradient(circle at 88% 12%, rgba(var(--accent-soft-rgb), 0.16), transparent 32%),
+        linear-gradient(145deg, rgba(var(--accent-mid-rgb), 0.38), rgba(var(--accent-dark-rgb), 0.74));
     }
 
     .preview-grid div {
@@ -278,7 +422,6 @@
     }
 
     @media (max-width: 760px) {
-      .site-header,
       .hero,
       .site-footer {
         align-items: stretch;
@@ -290,6 +433,11 @@
       .privacy-grid {
         grid-template-columns: 1fr;
       }
+
+      h1,
+      .app-tagline {
+        white-space: normal;
+      }
     }
   </style>
 </head>
@@ -299,11 +447,39 @@
       <div class="hero-copy">
         <div class="app-heading-copy">
           <div class="app-title-row">
-            <img class="app-title-icon" src="icons/icon-192.png" alt="" aria-hidden="true">
+            <img class="app-title-icon" src="icons/tasklens-header-icon.png" alt="" aria-hidden="true">
             <h1>TaskLens AI</h1>
           </div>
+          <p class="app-tagline">Take a photo. Get a focus-friendly checklist.</p>
+          <div class="header-focus-strip" aria-label="Task flow">
+            <span>Capture</span>
+            <i aria-hidden="true">-></i>
+            <span>Break down</span>
+            <i aria-hidden="true">-></i>
+            <span>Start</span>
+          </div>
+          <div class="header-divider" aria-hidden="true"></div>
         </div>
-        <p class="lead">A focused task app that turns scattered thoughts and photos into clear checklists.</p>
+
+        <section class="app-promise-panel" aria-labelledby="appPromiseTitle">
+          <div class="promise-copy">
+            <p class="eyebrow brand-eyebrow">TaskLens AI</p>
+            <h2 id="appPromiseTitle">Take a photo. Get your next step.</h2>
+            <p>For messy rooms, stuck projects, and task paralysis.</p>
+          </div>
+          <div class="promise-actions">
+            <a class="primary-button" href="#features">
+              <img src="icons/tasklens-camera-button.png" alt="" aria-hidden="true">
+              <span>Take Photo</span>
+            </a>
+            <a class="text-button" href="#features">
+              <img src="icons/tasklens-brain-button.png" alt="" aria-hidden="true">
+              <span>Brain Dump</span>
+            </a>
+          </div>
+        </section>
+
+        <p class="lead">Capture the overwhelm, turn it into steps, and start with one clear action.</p>
         <div class="hero-actions">
           <a class="primary-link" href="#features">Explore Features</a>
           <a class="secondary-link" href="#privacy">How Data Is Handled</a>
@@ -313,6 +489,7 @@
       <div class="phone-preview" aria-label="App preview">
         <div class="phone-top">
           <strong>Today</strong>
+          <span>Now, Next, Later</span>
         </div>
         <div class="preview-card progress">
           <span>Today's Task Progress</span>
@@ -325,9 +502,9 @@
           <div><strong>2</strong><span>Later tasks parked</span></div>
           <div><strong>4</strong><span>Wins checked off</span></div>
         </div>
-        <div class="preview-card coach">
-          <span>AI Coach</span>
-          <p>Logging today gives the coach better patterns to work with tomorrow.</p>
+        <div class="preview-card wins-card">
+          <span>Wins</span>
+          <p>Checked-off tasks stay visible so progress does not disappear.</p>
         </div>
       </div>
     </section>
