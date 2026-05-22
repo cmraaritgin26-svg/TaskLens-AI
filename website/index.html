@@ -79,6 +79,9 @@
     .preview-grid,
     .feature-grid,
     .privacy-grid,
+    .app-title-row,
+    .header-focus-strip,
+    .page-actions,
     .site-footer {
       display: flex;
     }
@@ -101,10 +104,23 @@
       gap: 8px;
     }
 
+    .page-actions {
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .page-actions a {
+      color: var(--ink);
+      text-decoration: none;
+    }
+
     .primary-link,
     .secondary-link,
     .text-button,
-    .primary-button {
+    .primary-button,
+    .page-actions a {
       border: 1px solid var(--line);
       border-radius: 8px;
       background: var(--surface-strong);
@@ -121,6 +137,7 @@
     }
 
     .phone-preview,
+    .content-panel,
     .feature-card,
     .ai-panel,
     .privacy-card,
@@ -136,10 +153,16 @@
     }
 
     .phone-preview,
+    .content-panel,
     .feature-card,
     .ai-panel,
     .privacy-card {
       padding: 18px;
+    }
+
+    .content-panel {
+      margin-bottom: 14px;
+      border-radius: 18px;
     }
 
     .hero-copy {
@@ -172,6 +195,7 @@
     .app-heading-copy {
       display: grid;
       justify-items: center;
+      margin-bottom: 14px;
       border-radius: 26px;
       background:
         radial-gradient(circle at 50% -20%, rgba(var(--accent-soft-rgb), 0.2), transparent 48%),
@@ -181,7 +205,6 @@
     }
 
     .app-title-row {
-      display: flex;
       align-items: center;
       justify-content: center;
       gap: 12px;
@@ -211,7 +234,6 @@
     }
 
     .header-focus-strip {
-      display: inline-flex;
       flex-wrap: wrap;
       align-items: center;
       justify-content: center;
@@ -407,6 +429,15 @@
       gap: 12px;
     }
 
+    .feature-grid article,
+    .coach-stack article,
+    .privacy-grid p {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(15, 23, 42, 0.58);
+      padding: 12px;
+    }
+
     .meter {
       height: 10px;
       overflow: hidden;
@@ -443,69 +474,43 @@
 </head>
 <body>
   <main id="top">
-    <section class="hero">
-      <div class="hero-copy">
-        <div class="app-heading-copy">
-          <div class="app-title-row">
-            <img class="app-title-icon" src="icons/tasklens-header-icon.png" alt="" aria-hidden="true">
-            <h1>TaskLens AI</h1>
-          </div>
-          <p class="app-tagline">Take a photo. Get a focus-friendly checklist.</p>
-          <div class="header-focus-strip" aria-label="Task flow">
-            <span>Capture</span>
-            <i aria-hidden="true">-></i>
-            <span>Break down</span>
-            <i aria-hidden="true">-></i>
-            <span>Start</span>
-          </div>
-          <div class="header-divider" aria-hidden="true"></div>
-        </div>
-
-        <section class="app-promise-panel" aria-labelledby="appPromiseTitle">
-          <div class="promise-copy">
-            <p class="eyebrow brand-eyebrow">TaskLens AI</p>
-            <h2 id="appPromiseTitle">Take a photo. Get your next step.</h2>
-            <p>For messy rooms, stuck projects, and task paralysis.</p>
-          </div>
-          <div class="promise-actions">
-            <a class="primary-button" href="#features">
-              <img src="icons/tasklens-camera-button.png" alt="" aria-hidden="true">
-              <span>Take Photo</span>
-            </a>
-            <a class="text-button" href="#features">
-              <img src="icons/tasklens-brain-button.png" alt="" aria-hidden="true">
-              <span>Brain Dump</span>
-            </a>
-          </div>
-        </section>
-
-        <p class="lead">Capture the overwhelm, turn it into steps, and start with one clear action.</p>
+    <section class="app-heading-copy" aria-label="TaskLens AI">
+      <div class="app-title-row">
+        <img class="app-title-icon" src="icons/tasklens-header-icon.png" alt="" aria-hidden="true">
+        <h1>TaskLens AI</h1>
       </div>
-
-      <div class="phone-preview" aria-label="App preview">
-        <div class="phone-top">
-          <strong>Today</strong>
-          <span>Now, Next, Later</span>
-        </div>
-        <div class="preview-card progress">
-          <span>Today's Task Progress</span>
-          <strong>72%</strong>
-          <div class="meter"><i style="width: 72%"></i></div>
-        </div>
-        <div class="preview-grid">
-          <div><strong>3</strong><span>Now tasks ready</span></div>
-          <div><strong>5</strong><span>Next steps saved</span></div>
-          <div><strong>2</strong><span>Later tasks parked</span></div>
-          <div><strong>4</strong><span>Wins checked off</span></div>
-        </div>
-        <div class="preview-card wins-card">
-          <span>Wins</span>
-          <p>Checked-off tasks stay visible so progress does not disappear.</p>
-        </div>
+      <p class="app-tagline">Take a photo. Get a focus-friendly checklist.</p>
+      <div class="header-focus-strip" aria-label="Task flow">
+        <span>Capture</span>
+        <i aria-hidden="true">-&gt;</i>
+        <span>Break down</span>
+        <i aria-hidden="true">-&gt;</i>
+        <span>Start</span>
       </div>
+      <nav class="page-actions" aria-label="Site navigation">
+        <a href="privacy-policy.html">Privacy</a>
+        <a href="data-deletion.html">Delete Data</a>
+      </nav>
     </section>
 
-    <section class="section" id="features">
+    <article class="content-panel" aria-labelledby="appPromiseTitle">
+      <p class="eyebrow brand-eyebrow">TaskLens AI</p>
+      <h1 id="appPromiseTitle">Take a photo. Get your next step.</h1>
+      <p class="lead">Capture the overwhelm, turn it into steps, and start with one clear action.</p>
+      <p>For messy rooms, stuck projects, and task paralysis.</p>
+      <div class="promise-actions">
+        <a class="primary-button" href="#features">
+          <img src="icons/tasklens-camera-button.png" alt="" aria-hidden="true">
+          <span>Take Photo</span>
+        </a>
+        <a class="text-button" href="#features">
+          <img src="icons/tasklens-brain-button.png" alt="" aria-hidden="true">
+          <span>Brain Dump</span>
+        </a>
+      </div>
+    </article>
+
+    <section class="content-panel" id="features">
       <div class="section-heading">
         <h2>One place for the next step</h2>
       </div>
@@ -537,7 +542,7 @@
       </div>
     </section>
 
-    <section class="section split" id="ai">
+    <section class="content-panel split" id="ai">
       <div>
         <p class="eyebrow">AI-supported planning</p>
         <h2>Checklist help without leaving the app</h2>
@@ -560,7 +565,7 @@
       </div>
     </section>
 
-    <section class="section privacy" id="privacy">
+    <section class="content-panel privacy" id="privacy">
       <div class="section-heading">
         <p class="eyebrow">Privacy and safety</p>
         <h2>Built for personal tracking</h2>
