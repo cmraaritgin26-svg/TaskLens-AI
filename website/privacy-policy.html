@@ -135,15 +135,15 @@
       overflow: hidden;
       margin-bottom: 14px;
       border-color: rgba(var(--accent-soft-rgb), 0.2);
-      border-radius: 26px;
+      border-top: 0;
+      border-radius: 0 0 26px 26px;
       background:
-        radial-gradient(circle at 50% -20%, rgba(var(--accent-soft-rgb), 0.2), transparent 48%),
         linear-gradient(150deg, rgba(var(--accent-dark-rgb), 0.9), rgba(var(--accent-dark-rgb), 0.74));
       padding: clamp(16px, 5vw, 26px) clamp(14px, 4vw, 24px) clamp(18px, 5vw, 28px);
       text-align: center;
     }
 
-    .app-heading-copy::before {
+    .app-heading-copy::after {
       content: "";
       position: absolute;
       inset: auto -10% 0;
@@ -265,6 +265,7 @@
       </div>
       <nav class="page-actions" aria-label="Site navigation">
         <a href="index.html">Home</a>
+        <a href="privacy-policy.html">Privacy</a>
         <a href="data-deletion.html">Delete Data</a>
       </nav>
     </section>
