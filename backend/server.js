@@ -3,12 +3,14 @@ import crypto from "node:crypto";
 
 const PORT = Number(process.env.PORT || 8787);
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
-const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o";
-const OPENAI_TASK_MODEL = process.env.OPENAI_TASK_MODEL || "gpt-4o";
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
+const OPENAI_TASK_MODEL = process.env.OPENAI_TASK_MODEL || "gpt-4o-mini";
 const OPENAI_IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || "gpt-image-1";
 const OPENAI_TTS_MODEL = process.env.OPENAI_TTS_MODEL || "gpt-4o-mini-tts";
 const OPENAI_TTS_VOICE = process.env.OPENAI_TTS_VOICE || "coral";
 const GOOGLE_CLOUD_VISION_API_KEY = process.env.GOOGLE_CLOUD_VISION_API_KEY || "";
+const ENABLE_GOOGLE_VISION = process.env.ENABLE_GOOGLE_VISION === "true";
+const ENABLE_TASK_BREAKDOWN_REPAIR = process.env.ENABLE_TASK_BREAKDOWN_REPAIR === "true";
 const APP_CLIENT_TOKEN = process.env.APP_CLIENT_TOKEN || "";
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
 const MAX_BODY_BYTES = 5_500_000;
@@ -16,7 +18,7 @@ const MAX_TTS_INPUT_CHARS = 1800;
 const GOOGLE_VISION_TIMEOUT_MS = Number(process.env.GOOGLE_VISION_TIMEOUT_MS || 4500);
 const TASK_BREAKDOWN_CACHE_LIMIT = Number(process.env.TASK_BREAKDOWN_CACHE_LIMIT || 120);
 const TASK_BREAKDOWN_CACHE_TTL_MS = Number(process.env.TASK_BREAKDOWN_CACHE_TTL_MS || 1000 * 60 * 60 * 24);
-const TASK_BREAKDOWN_CACHE_VERSION = "vision-detail-v3";
+const TASK_BREAKDOWN_CACHE_VERSION = "fast-vision-v1";
 const taskBreakdownCache = new Map();
 const OPENAI_TTS_VOICES = new Set([
   "alloy",
@@ -84,12 +86,10 @@ Rules:
 - Before writing steps for a photo, mentally scan the image left-to-right and front-to-back. Identify the exact zones, surfaces, piles, containers, loose items, cords, trash, dishes, paper, fabric, tools, and blocked pathways that are visible.
 - If googleVisionContext is provided, use it as helper evidence from OCR, object localization, and image labels. Use OCR text to name visible papers, labels, boxes, notes, forms, receipts, mail, calendars, product names, or instructions when useful.
 - Use Google object zones to make steps more spatial: top-left, right side, lower center, front edge, etc. Do not let OCR or labels override your direct visual read of the image.
-- If tensorflowPhotoLabels are provided, treat them only as on-device visible-object hints from the user's photo. Use them to catch obvious objects, but do not let them override richer visual details you can see in the image.
-- For photo-based tasks with tensorflowPhotoLabels, at least 4 steps must name a visible object, label, surface, tool, or location from the image or TensorFlow labels when enough are available.
 - Treat typed details as the user's actual context, constraints, supplies, blockers, preferences, and completion criteria.
 - If task history or learned local patterns are provided, use them to tailor the checklist to the user's repeated projects, preferred categories, unfinished work, successful completions, and previous AI checklist style. Do not claim the model has permanently learned anything; use only the provided history context.
-- For photo tasks, return 9 to 12 highly specific micro-steps. Do not return fewer than 9 photo steps unless the image truly contains only one simple object.
-- Each photo step should usually be 40 to 80 words and include: where to look, the exact visible object or area, what to do with it, where it should go, and how the user knows that step is done.
+- For photo tasks, return 5 to 8 highly specific micro-steps. Do not return more than 8 photo steps unless the user explicitly asks for a longer checklist.
+- Each photo step should usually be 18 to 45 words and include: where to look, the exact visible object or area, what to do with it, and how the user knows that step is done.
 - If OCR text is visible, include the actual readable words in the relevant steps, such as the title on a paper, label, box, form, note, bill, envelope, or receipt.
 - Split document and paper tasks by visible document identity. Prefer "set the visible ELECTRIC BILL paper in a pay-today spot" over "sort papers."
 - The summary must mention 2 to 4 specific visible anchors from the photo, not a generic description.
@@ -276,6 +276,7 @@ async function handleAppChat(request, response) {
 }
 
 async function handleTaskBreakdown(request, response) {
+  const requestStartedAt = Date.now();
   if (!OPENAI_API_KEY) {
     sendJson(response, 500, { error: "OPENAI_API_KEY is not configured." });
     return;
@@ -296,19 +297,29 @@ async function handleTaskBreakdown(request, response) {
     const cacheKey = getTaskBreakdownCacheKey(task);
     const cachedBreakdown = getCachedTaskBreakdown(cacheKey);
     if (cachedBreakdown) {
+      logBackendTiming("taskBreakdown.total", requestStartedAt, {
+        hasImage: Boolean(task.imageDataUrl),
+        cached: true
+      });
       sendJson(response, 200, { ...cachedBreakdown, cached: true });
       return;
     }
-    const enrichedTask = await enrichTaskWithGoogleVision(task);
-    const breakdown = await breakDownTask(enrichedTask);
+    const enrichedTask = await timeBackendStep("taskBreakdown.googleVision", () => enrichTaskWithGoogleVision(task));
+    const breakdown = await timeBackendStep("taskBreakdown.openai", () => breakDownTask(enrichedTask));
     setCachedTaskBreakdown(cacheKey, breakdown);
+    logBackendTiming("taskBreakdown.total", requestStartedAt, {
+      hasImage: Boolean(task.imageDataUrl),
+      cached: false
+    });
     sendJson(response, 200, breakdown);
   } catch (error) {
+    logBackendTiming("taskBreakdown.error", requestStartedAt);
     sendJson(response, error.statusCode || 500, { error: error.message || "Server error" });
   }
 }
 
 async function handleTaskTargetImage(request, response) {
+  const requestStartedAt = Date.now();
   if (!OPENAI_API_KEY) {
     sendJson(response, 500, { error: "OPENAI_API_KEY is not configured." });
     return;
@@ -327,14 +338,17 @@ async function handleTaskTargetImage(request, response) {
       sendJson(response, 400, { error: "Missing task photo." });
       return;
     }
-    const targetImageDataUrl = await generateTaskTargetImage(task, breakdown);
+    const targetImageDataUrl = await timeBackendStep("targetImage.openai", () => generateTaskTargetImage(task, breakdown));
+    logBackendTiming("targetImage.total", requestStartedAt);
     sendJson(response, 200, { targetImageDataUrl });
   } catch (error) {
+    logBackendTiming("targetImage.error", requestStartedAt);
     sendJson(response, error.statusCode || 500, { error: error.message || "Server error" });
   }
 }
 
 async function handleTextToSpeech(request, response) {
+  const requestStartedAt = Date.now();
   if (!OPENAI_API_KEY) {
     sendJson(response, 500, { error: "OPENAI_API_KEY is not configured." });
     return;
@@ -352,11 +366,14 @@ async function handleTextToSpeech(request, response) {
       sendJson(response, 400, { error: "Missing text." });
       return;
     }
-    const audio = await synthesizeSpeech({
+    const audio = await timeBackendStep("tts.openai", () => synthesizeSpeech({
       text,
       model: limitText(body.model, 80) || OPENAI_TTS_MODEL,
       voice: normalizeTtsVoice(body.voice),
       instructions: limitText(body.instructions, 500) || "Speak in a warm, calm, supportive supportive task coach tone."
+    }));
+    logBackendTiming("tts.total", requestStartedAt, {
+      chars: text.length
     });
     response.writeHead(200, {
       "Content-Type": "audio/mpeg",
@@ -365,6 +382,7 @@ async function handleTextToSpeech(request, response) {
     });
     response.end(Buffer.from(audio));
   } catch (error) {
+    logBackendTiming("tts.error", requestStartedAt);
     sendJson(response, error.statusCode || 500, { error: error.message || "Server error" });
   }
 }
@@ -394,6 +412,25 @@ function sendJson(response, statusCode, payload) {
     "Pragma": "no-cache"
   });
   response.end(JSON.stringify(payload));
+}
+
+async function timeBackendStep(name, callback) {
+  const startedAt = Date.now();
+  try {
+    return await callback();
+  } finally {
+    logBackendTiming(name, startedAt);
+  }
+}
+
+function logBackendTiming(name, startedAt, details = {}) {
+  const elapsedMs = Math.max(0, Date.now() - startedAt);
+  console.info(JSON.stringify({
+    event: "backend_timing",
+    name,
+    elapsedMs,
+    ...details
+  }));
 }
 
 function isAuthorized(request) {
@@ -435,6 +472,7 @@ async function extractDictation(transcript) {
     body: JSON.stringify({
       model: OPENAI_MODEL,
       temperature: 0,
+      max_tokens: 900,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: extractionSchemaPrompt },
@@ -464,6 +502,7 @@ async function analyzeCoachSnapshot(snapshot) {
     body: JSON.stringify({
       model: OPENAI_MODEL,
       temperature: 0.2,
+      max_tokens: 360,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: coachSchemaPrompt },
@@ -493,7 +532,7 @@ async function answerAppChat(messages) {
     body: JSON.stringify({
       model: OPENAI_MODEL,
       temperature: 0.4,
-      max_tokens: 700,
+      max_tokens: 500,
       messages: [
         { role: "system", content: appChatSystemPrompt },
         ...messages
@@ -522,7 +561,7 @@ async function breakDownTask(task) {
     body: JSON.stringify({
       model: OPENAI_TASK_MODEL,
       temperature: 0.2,
-      max_tokens: 3600,
+      max_tokens: 2200,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: taskBreakdownSchemaPrompt },
@@ -540,7 +579,7 @@ async function breakDownTask(task) {
   const content = data.choices?.[0]?.message?.content || "";
   if (!content) throw new Error("OpenAI returned no task breakdown.");
   const breakdown = normalizeTaskBreakdownResponse(JSON.parse(content), task);
-  if (needsTaskBreakdownRepair(breakdown, task)) {
+  if (ENABLE_TASK_BREAKDOWN_REPAIR && needsTaskBreakdownRepair(breakdown, task)) {
     return repairTaskBreakdown(task, breakdown);
   }
   return breakdown;
@@ -561,7 +600,7 @@ Return only valid JSON with 9 to 12 steps.`;
     body: JSON.stringify({
       model: OPENAI_TASK_MODEL,
       temperature: 0.15,
-      max_tokens: 3800,
+      max_tokens: 2600,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: repairPrompt },
@@ -602,7 +641,7 @@ function isWeakPhotoChecklistStep(text) {
 }
 
 async function enrichTaskWithGoogleVision(task) {
-  if (!GOOGLE_CLOUD_VISION_API_KEY || !task?.imageDataUrl) return task;
+  if (!ENABLE_GOOGLE_VISION || !GOOGLE_CLOUD_VISION_API_KEY || !task?.imageDataUrl) return task;
   try {
     const visionContext = await analyzeImageWithGoogleVision(task.imageDataUrl);
     if (!visionContext) return task;
@@ -857,25 +896,9 @@ function sanitizeTaskForBreakdown(task) {
     note: limitText(task.note, 300),
     dictationDetails: limitText(task.dictationDetails, 2500),
     issueQuestion: limitText(task.issueQuestion, 500),
-    tensorflowPhotoLabels: sanitizeTensorFlowPhotoLabels(task.tensorflowPhotoLabels),
     googleVisionContext: limitText(task.googleVisionContext, 1800),
     imageDataUrl
   };
-}
-
-function sanitizeTensorFlowPhotoLabels(labels) {
-  if (!Array.isArray(labels)) return [];
-  const seen = new Set();
-  return labels
-    .map((item) => typeof item === "string" ? item : item?.label)
-    .map((label) => limitText(label, 48).toLowerCase())
-    .filter(Boolean)
-    .filter((label) => {
-      if (seen.has(label)) return false;
-      seen.add(label);
-      return true;
-    })
-    .slice(0, 8);
 }
 
 function sanitizeAppChatMessages(messages) {
@@ -899,7 +922,7 @@ function buildTaskBreakdownUserContent(task) {
   if (!imageDataUrl) return text;
   return [
     { type: "text", text },
-    { type: "image_url", image_url: { url: imageDataUrl, detail: "high" } }
+    { type: "image_url", image_url: { url: imageDataUrl, detail: "low" } }
   ];
 }
 
@@ -922,7 +945,7 @@ function buildTaskBreakdownRepairUserContent(task, breakdown) {
   if (!imageDataUrl) return text;
   return [
     { type: "text", text },
-    { type: "image_url", image_url: { url: imageDataUrl, detail: "high" } }
+    { type: "image_url", image_url: { url: imageDataUrl, detail: "low" } }
   ];
 }
 

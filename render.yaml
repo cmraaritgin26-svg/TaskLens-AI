@@ -11,9 +11,13 @@ services:
       - key: OPENAI_API_KEY
         sync: false
       - key: OPENAI_MODEL
-        value: gpt-4o
+        value: gpt-4o-mini
       - key: OPENAI_TASK_MODEL
-        value: gpt-4o
+        value: gpt-4o-mini
+      - key: ENABLE_GOOGLE_VISION
+        value: "false"
+      - key: ENABLE_TASK_BREAKDOWN_REPAIR
+        value: "false"
       - key: GOOGLE_CLOUD_VISION_API_KEY
         sync: false
       - key: OPENAI_TTS_MODEL
