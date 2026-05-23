@@ -132,6 +132,8 @@
     .app-heading-copy {
       display: grid;
       justify-items: center;
+      position: relative;
+      overflow: hidden;
       margin-bottom: 14px;
       border-color: rgba(var(--accent-soft-rgb), 0.2);
       border-radius: 26px;
@@ -140,6 +142,21 @@
         linear-gradient(150deg, rgba(var(--accent-dark-rgb), 0.9), rgba(var(--accent-dark-rgb), 0.74));
       padding: clamp(16px, 5vw, 26px) clamp(14px, 4vw, 24px) clamp(18px, 5vw, 28px);
       text-align: center;
+    }
+
+    .app-heading-copy::before {
+      content: "";
+      position: absolute;
+      inset: 0 -10% auto;
+      z-index: 0;
+      height: 48px;
+      background: linear-gradient(135deg, transparent 18%, rgba(var(--accent-soft-rgb), 0.2) 18%, rgba(var(--accent-contrast-rgb), 0.45) 68%, transparent 68%);
+      pointer-events: none;
+    }
+
+    .app-heading-copy > * {
+      position: relative;
+      z-index: 1;
     }
 
     .app-title-row {
