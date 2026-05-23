@@ -3,16 +3,16 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#0f2f68">
-    <meta name="description" content="Track daily tasks, health metrics, nutrition, and weight offline.">
-    <title>Health &amp; Task Tracker</title>
-    <link rel="manifest" href="manifest.webmanifest?v=35">
-    <link rel="icon" href="icons/icon.svg?v=35" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="icons/icon.svg?v=35">
-    <link rel="stylesheet" href="styles.css?v=196">
+    <meta name="theme-color" content="#081435">
+    <meta name="description" content="Take a photo and get a focus-friendly checklist for messy rooms, stuck projects, and task paralysis.">
+    <title>TaskLens AI</title>
+    <link rel="manifest" href="manifest.webmanifest?v=243">
+    <link rel="icon" href="icons/tasklens-icon-192.png?v=243" type="image/png">
+    <link rel="apple-touch-icon" href="icons/tasklens-icon-192.png?v=243">
+    <link rel="stylesheet" href="styles.css?v=203">
   </head>
   <body>
-    <div class="app-illustration" aria-hidden="true">
+    <div class="app-illustration" aria-hidden="true" hidden>
       <svg viewBox="0 0 1440 960" preserveAspectRatio="xMidYMid slice">
         <defs>
           <linearGradient id="bgWash" x1="0" x2="1" y1="0" y2="1">
@@ -85,13 +85,22 @@
         <div>
           <p class="eyebrow" id="todayLabel"></p>
           <div class="app-title-row">
-            <img class="app-title-icon" src="icons/icon-192.png?v=2" alt="" aria-hidden="true">
-            <h1>Health &amp; Task Tracker</h1>
+            <img class="app-title-icon" src="icons/tasklens-header-icon.png?v=243" alt="" aria-hidden="true">
+            <h1>TaskLens AI</h1>
           </div>
+          <p class="app-tagline">Take a photo. Get a focus-friendly checklist.</p>
+          <div class="header-focus-strip" aria-label="Task flow">
+            <span>Capture</span>
+            <i aria-hidden="true">→</i>
+            <span>Break down</span>
+            <i aria-hidden="true">→</i>
+            <span>Start</span>
+          </div>
+          <div class="header-divider" aria-hidden="true"></div>
         </div>
       </header>
 
-      <section class="overview-heading" aria-labelledby="overviewTitle">
+      <section class="overview-heading" aria-labelledby="overviewTitle" hidden>
         <h2 id="overviewTitle">Overview</h2>
       </section>
 
@@ -104,29 +113,21 @@
             <path d="M8 21h8"/>
           </svg>
         </button>
-        <button class="text-button settings-button get-started-button" id="getStartedButton" type="button">Guided Entry</button>
-        <button class="text-button ai-refresh-button" id="reviewTodayButton" type="button">Review</button>
-        <button class="text-button ai-refresh-button" id="aiRefreshButton" type="button">Refresh</button>
-        <button class="text-button settings-button" id="settingsButton" type="button">Settings</button>
+        <button class="text-button settings-button get-started-button" id="getStartedButton" type="button" hidden>Guided Entry</button>
+        <button class="text-button ai-refresh-button" id="reviewTodayButton" type="button" hidden>Review</button>
+        <button class="text-button ai-refresh-button" id="aiRefreshButton" type="button" hidden>Refresh</button>
+        <button class="text-button settings-button" id="settingsButton" type="button" onclick="window.openTaskLensSettingsFallback && window.openTaskLensSettingsFallback(); return false;">Settings</button>
         <span class="dictation-status" id="dictationStatus" hidden>Recording</span>
       </div>
 
-      <div class="overview-modules">
-      <section class="smart-coach overview-module" id="smartCoachSection" data-overview-panel="coach" aria-labelledby="smartCoachTitle">
+      <div class="overview-modules" hidden>
+      <section class="smart-coach overview-module" id="smartCoachSection" data-overview-panel="coach" aria-labelledby="smartCoachTitle" hidden>
         <div class="section-heading">
           <div>
             <h2 id="smartCoachTitle">AI Coach</h2>
           </div>
         </div>
         <div class="today-dashboard-grid coach-placards" aria-label="AI Coach placards">
-          <button class="dashboard-tile" type="button" data-dashboard-jump="mood">
-            <strong id="todayMoodSummary">--</strong>
-            <span>Mood</span>
-          </button>
-          <button class="dashboard-tile" type="button" data-dashboard-jump="symptoms">
-            <strong id="todaySymptomSummary">--</strong>
-            <span>Symptoms</span>
-          </button>
           <button class="dashboard-tile" type="button" data-dashboard-jump="weekly">
             <strong id="todayWeeklySummary">0%</strong>
             <span>Weekly progress</span>
@@ -149,322 +150,10 @@
             <strong id="todayCompletedCount">0/0</strong>
             <span>Tasks done</span>
           </button>
-          <button class="dashboard-tile" type="button" data-dashboard-jump="water">
-            <strong id="todayWaterTotal">0 oz</strong>
-            <span>Water today</span>
-          </button>
-          <button class="dashboard-tile" type="button" data-dashboard-jump="vitals">
-            <strong id="todayVitalsSummary">--</strong>
-            <span>Latest vitals</span>
-          </button>
         </div>
         <div class="today-task-list" id="todayTaskList"></div>
       </section>
       </div>
-
-      <section class="wellbeing-heading" id="wellbeingSection" aria-labelledby="wellbeingTitle">
-        <h2 id="wellbeingTitle">Wellbeing</h2>
-        <div class="wellbeing-swipe-menu" id="wellbeingModuleMenu" role="tablist" aria-label="Wellbeing modules">
-          <button class="wellbeing-tab" type="button" role="tab" data-wellbeing-module="vitals" aria-selected="true">Nutrition & Vitals</button>
-          <button class="wellbeing-tab" type="button" role="tab" data-wellbeing-module="symptoms" aria-selected="false">Symptom Tracker</button>
-          <button class="wellbeing-tab" type="button" role="tab" data-wellbeing-module="mood" aria-selected="false">Mood Tracker</button>
-          <button class="wellbeing-tab" type="button" role="tab" data-wellbeing-module="charts" aria-selected="false">Charts</button>
-        </div>
-      </section>
-
-      <section class="nutrition-panel" id="nutritionPanel" aria-labelledby="nutritionTitle">
-        <div class="section-heading">
-          <div>
-            <h2 id="nutritionTitle">Nutrition & Vitals</h2>
-          </div>
-        </div>
-        <form class="nutrition-form" id="nutritionForm">
-          <label class="field">
-            <span>Date</span>
-            <input id="nutritionDate" name="nutritionDate" type="date">
-          </label>
-          <label class="field">
-            <span>Calories (cal)</span>
-            <input id="calories" name="calories" type="number" min="0" step="1" inputmode="numeric">
-          </label>
-          <label class="field">
-            <span>Carbs (g)</span>
-            <input id="carbs" name="carbs" type="number" min="0" step="1" inputmode="numeric">
-          </label>
-          <label class="field">
-            <span id="weightUnitLabel">Weight (lbs)</span>
-            <div class="weight-inputs">
-              <input id="weight" name="weight" type="number" min="0" step="0.1" inputmode="decimal">
-              <button class="text-button unit-convert-button" id="convertWeight" type="button">lbs to kgs</button>
-            </div>
-          </label>
-          <label class="field">
-            <span>Ketosis phase</span>
-            <select id="ketosisPhase" name="ketosisPhase">
-              <option value=""></option>
-              <option value="Entering">Entering</option>
-              <option value="Ketosis">Ketosis</option>
-              <option value="Deep ketosis">Deep ketosis</option>
-              <option value="Exiting">Exiting</option>
-            </select>
-          </label>
-          <label class="field">
-            <span>Glucose (mg/dL)</span>
-            <input id="glucose" name="glucose" type="number" min="0" step="1" inputmode="numeric">
-          </label>
-          <label class="field">
-            <span>Blood pressure (mmHg)</span>
-            <div class="bp-inputs">
-              <input id="systolic" name="systolic" type="number" min="0" step="1" inputmode="numeric" aria-label="Systolic blood pressure">
-              <span aria-hidden="true">/</span>
-              <input id="diastolic" name="diastolic" type="number" min="0" step="1" inputmode="numeric" aria-label="Diastolic blood pressure">
-            </div>
-            <button class="text-button bp-import" id="importBloodPressure" type="button">Import BP</button>
-          </label>
-          <label class="field">
-            <span>Water (oz)</span>
-            <div class="water-control" id="waterControl">
-              <div class="water-summary">
-                <button class="water-toggle" id="waterToggle" type="button">
-                  <strong id="waterCount">0</strong>
-                  <span>10 water cups</span>
-                </button>
-                <button class="text-button water-clear" id="waterClear" type="button">Clear</button>
-              </div>
-              <div class="water-glasses collapsed" id="waterGlasses" role="group" aria-label="Tap cups to record water intake">
-                <button class="water-glass" type="button" data-glass-index="1" aria-label="1 cup, 8 ounces"><span>1</span></button>
-                <button class="water-glass" type="button" data-glass-index="2" aria-label="2 cups, 16 ounces"><span>2</span></button>
-                <button class="water-glass" type="button" data-glass-index="3" aria-label="3 cups, 24 ounces"><span>3</span></button>
-                <button class="water-glass" type="button" data-glass-index="4" aria-label="4 cups, 32 ounces"><span>4</span></button>
-                <button class="water-glass" type="button" data-glass-index="5" aria-label="5 cups, 40 ounces"><span>5</span></button>
-                <button class="water-glass" type="button" data-glass-index="6" aria-label="6 cups, 48 ounces"><span>6</span></button>
-                <button class="water-glass" type="button" data-glass-index="7" aria-label="7 cups, 56 ounces"><span>7</span></button>
-                <button class="water-glass" type="button" data-glass-index="8" aria-label="8 cups, 64 ounces"><span>8</span></button>
-                <button class="water-glass" type="button" data-glass-index="9" aria-label="9 cups, 72 ounces"><span>9</span></button>
-                <button class="water-glass" type="button" data-glass-index="10" aria-label="10 cups, 80 ounces"><span>10</span></button>
-              </div>
-              <input id="water" name="water" type="hidden">
-              <button class="primary-button" type="submit">Save</button>
-            </div>
-          </label>
-        </form>
-
-        <button class="vitals-history-link" id="vitals24Button" type="button">Last 24 hours</button>
-      </section>
-
-      <section class="history-modal" id="vitals24Modal" aria-labelledby="vitals24Title" aria-modal="true" role="dialog" hidden>
-        <div class="history-panel last24-panel">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">Vitals and nutrition</p>
-              <h2 id="vitals24Title">Last 24 hours</h2>
-            </div>
-            <button class="delete-button" id="vitals24Close" type="button" aria-label="Close last 24 hours">x</button>
-          </div>
-          <div class="last24-scroll" tabindex="0">
-            <div class="nutrition-summary" aria-label="Nutrition summary">
-              <article class="metric compact">
-                <span id="avgCalories">0</span>
-                <p>24-hour calories</p>
-              </article>
-              <article class="metric compact">
-                <span id="avgCarbs">0g</span>
-                <p>24-hour carbs</p>
-              </article>
-              <article class="metric compact">
-                <span id="latestWeight">--</span>
-                <p>Latest weight</p>
-              </article>
-              <article class="metric compact">
-                <span id="latestKetosis">--</span>
-                <p>Latest ketosis phase</p>
-              </article>
-              <article class="metric compact">
-                <span id="latestGlucose">--</span>
-                <p>Latest glucose</p>
-              </article>
-              <article class="metric compact">
-                <span id="latestBloodPressure">--</span>
-                <p>Latest blood pressure</p>
-              </article>
-              <article class="metric compact">
-                <span id="latestWater">--</span>
-                <p>24-hour water</p>
-              </article>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="symptom-panel" id="symptomPanel" aria-labelledby="symptomTitle">
-        <h2 class="sr-only" id="symptomTitle">Symptom Tracker</h2>
-        <form class="symptom-form" id="symptomForm">
-          <label class="field">
-            <span>Date</span>
-            <input id="symptomDate" type="date" autocomplete="off">
-          </label>
-          <label class="field">
-            <span>Symptom</span>
-            <input id="symptomName" type="text" maxlength="48" autocomplete="off">
-          </label>
-          <div class="preset-row" aria-label="Common symptoms">
-            <button class="preset-chip" type="button" data-symptom-preset="Headache">Headache</button>
-            <button class="preset-chip" type="button" data-symptom-preset="Fatigue">Fatigue</button>
-            <button class="preset-chip" type="button" data-symptom-preset="Nausea">Nausea</button>
-            <button class="preset-chip" type="button" data-symptom-preset="Dizziness">Dizziness</button>
-          </div>
-          <label class="field">
-            <span>Severity</span>
-            <select id="symptomSeverity">
-              <option value=""></option>
-              <option value="Mild">Mild</option>
-              <option value="Moderate">Moderate</option>
-              <option value="Severe">Severe</option>
-            </select>
-          </label>
-          <label class="field note-field">
-            <span>Note</span>
-            <input id="symptomNote" type="text" maxlength="96" autocomplete="off">
-          </label>
-          <div class="wellbeing-form-actions">
-            <button class="text-button symptom-history-button" id="symptomHistoryButton" type="button">History</button>
-            <button class="primary-button" type="submit">Log</button>
-          </div>
-        </form>
-      </section>
-
-      <section class="symptom-panel mood-panel" id="moodPanel" aria-labelledby="moodTitle">
-        <h2 class="sr-only" id="moodTitle">Mood Tracker</h2>
-        <form class="symptom-form mood-form" id="moodForm">
-          <label class="field">
-            <span>Date</span>
-            <input id="moodDate" type="date" autocomplete="off">
-          </label>
-          <label class="field">
-            <span>Mood</span>
-            <select id="moodName">
-              <option value=""></option>
-              <option value="Great">Great</option>
-              <option value="Good">Good</option>
-              <option value="Okay">Okay</option>
-              <option value="Low">Low</option>
-              <option value="Stressed">Stressed</option>
-              <option value="Anxious">Anxious</option>
-            </select>
-          </label>
-          <div class="preset-row" aria-label="Common moods">
-            <button class="preset-chip" type="button" data-mood-preset="Good">Good</button>
-            <button class="preset-chip" type="button" data-mood-preset="Okay">Okay</button>
-            <button class="preset-chip" type="button" data-mood-preset="Low">Low</button>
-            <button class="preset-chip" type="button" data-mood-preset="Stressed">Stressed</button>
-          </div>
-          <label class="field">
-            <span>Intensity</span>
-            <select id="moodIntensity">
-              <option value=""></option>
-              <option value="Light">Light</option>
-              <option value="Moderate">Moderate</option>
-              <option value="Strong">Strong</option>
-            </select>
-          </label>
-          <label class="field note-field">
-            <span>Notes</span>
-            <input id="moodNote" type="text" maxlength="96" autocomplete="off">
-          </label>
-          <div class="wellbeing-form-actions">
-            <button class="text-button symptom-history-button" id="moodHistoryButton" type="button">History</button>
-            <button class="primary-button" type="submit">Log</button>
-          </div>
-        </form>
-      </section>
-
-      <section class="symptom-panel charting-panel" id="chartsPanel" aria-labelledby="chartsTitle" hidden>
-        <div class="section-heading">
-          <div>
-            <h2 id="chartsTitle">Charts</h2>
-          </div>
-        </div>
-        <details class="vitals-history-dropdown" id="vitalsHistoryDropdown" open>
-          <summary class="sr-only">History charting</summary>
-          <div class="history-dropdown-actions">
-            <button class="text-button history-range-button" id="masterChartButton" type="button">Master Chart</button>
-          </div>
-          <div class="vitals-history-mount" id="vitalsHistoryMount"></div>
-        </details>
-      </section>
-
-      <section class="symptom-panel journal-panel" id="journalPanel" aria-labelledby="journalTitle">
-        <div class="section-heading">
-          <div>
-            <h2 id="journalTitle">Journal</h2>
-          </div>
-        </div>
-        <form class="symptom-form journal-form" id="journalForm">
-          <label class="field">
-            <span>Date</span>
-            <input id="journalDate" type="date">
-          </label>
-          <label class="field journal-entry-field">
-            <span>Journal entry</span>
-            <span class="journal-paper-date" id="journalPaperDate"></span>
-            <textarea id="journalEntry" maxlength="900" rows="4" autocomplete="off"></textarea>
-          </label>
-          <button class="primary-button" type="submit">Log</button>
-        </form>
-        <button class="journal-log-heading" id="journalLogLink" type="button">Journal Log</button>
-      </section>
-
-      <section class="history-modal" id="symptomHistoryModal" aria-labelledby="symptomHistoryTitle" aria-modal="true" role="dialog" hidden>
-        <div class="history-panel symptom-history-panel">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">10-year history</p>
-              <h2 id="symptomHistoryTitle">Symptom History</h2>
-            </div>
-            <button class="delete-button" id="symptomHistoryClose" type="button" aria-label="Close symptom history">x</button>
-          </div>
-          <div class="nutrition-table-wrap history-table-wrap">
-            <table class="nutrition-table history-table symptom-history-table">
-              <thead>
-                <tr>
-                  <th scope="col">Date</th>
-                  <th scope="col">Symptom</th>
-                  <th scope="col">Severity</th>
-                  <th scope="col">Note</th>
-                </tr>
-              </thead>
-              <tbody id="symptomHistoryRows"></tbody>
-            </table>
-            <p class="nutrition-empty" id="symptomHistoryEmpty">No symptoms logged in the last 10 years.</p>
-          </div>
-        </div>
-      </section>
-
-      <section class="history-modal" id="moodHistoryModal" aria-labelledby="moodHistoryTitle" aria-modal="true" role="dialog" hidden>
-        <div class="history-panel symptom-history-panel">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">10-year history</p>
-              <h2 id="moodHistoryTitle">Mood History</h2>
-            </div>
-            <button class="delete-button" id="moodHistoryClose" type="button" aria-label="Close mood history">x</button>
-          </div>
-          <div class="nutrition-table-wrap history-table-wrap">
-            <table class="nutrition-table history-table symptom-history-table">
-              <thead>
-                <tr>
-                  <th scope="col">Date</th>
-                  <th scope="col">Mood</th>
-                  <th scope="col">Intensity</th>
-                  <th scope="col">Note</th>
-                </tr>
-              </thead>
-              <tbody id="moodHistoryRows"></tbody>
-            </table>
-            <p class="nutrition-empty" id="moodHistoryEmpty">No moods logged in the last 10 years.</p>
-          </div>
-        </div>
-      </section>
 
       <section class="affirmation-modal" id="affirmationModal" aria-labelledby="affirmationTitle" aria-modal="true" role="dialog" tabindex="-1" hidden>
         <div class="affirmation-panel">
@@ -534,114 +223,60 @@
           </div>
           <label class="field settings-search-field">
             <span>Search settings</span>
-            <input id="settingsSearch" type="search" autocomplete="off" placeholder="Theme, reminders, security">
+            <input id="settingsSearch" type="search" autocomplete="off" placeholder="Theme, reminders, AI, data">
           </label>
           <div class="settings-grid">
-            <div class="settings-group-title">Theme</div>
-            <label class="setting-row">
-              <span>Dark mode</span>
-              <input id="themeToggle" type="checkbox">
-            </label>
-            <div class="settings-group-title">Reminders</div>
-            <label class="setting-row">
-              <span>Dated task reminder</span>
-              <input id="reminderToggle" type="checkbox">
-            </label>
-            <label class="field">
-              <span>Reminder time</span>
-              <input id="reminderTime" type="time">
-            </label>
-            <label class="field">
-              <span>Height</span>
-              <div class="height-inputs">
-                <input id="heightFeet" type="number" min="3" max="8" step="1" inputmode="numeric" placeholder="ft">
-                <input id="heightInches" type="number" min="0" max="11" step="1" inputmode="numeric" placeholder="in">
-              </div>
-            </label>
-            <div class="settings-group-title">Security</div>
-            <label class="setting-row">
-              <span>Guest mode</span>
-              <input id="guestModeToggle" type="checkbox">
-            </label>
-            <label class="setting-row">
-              <span>Biometric unlock</span>
-              <input id="biometricToggle" type="checkbox">
-            </label>
-            <label class="field">
-              <span>Current password</span>
-              <input id="securityPasswordCurrent" type="password" autocomplete="current-password" placeholder="Current password">
-            </label>
-            <label class="field">
-              <span>New password</span>
-              <input id="securityPasswordNew" type="password" autocomplete="new-password" placeholder="4+ characters">
-            </label>
             <div class="settings-group-title">AI</div>
             <label class="setting-row">
-              <span>Use AI dictation</span>
-              <input id="hipaaCloudToggle" type="checkbox">
+              <span>Allow AI task processing</span>
+              <input id="cloudAiToggle" type="checkbox">
             </label>
             <label class="setting-row">
-              <span>AI coach and voice features</span>
+              <span>AI checklist features</span>
               <input id="aiExtractionToggle" type="checkbox">
             </label>
-            <label class="field" hidden>
-              <span>OpenAI API key</span>
-              <input id="aiApiKey" type="password" autocomplete="off" placeholder="Use backend only">
-            </label>
-            <label class="field">
-              <span>AI backend URL</span>
-              <input id="aiBackendUrl" type="url" autocomplete="off" placeholder="https://your-domain.com">
-            </label>
-            <label class="field">
-              <span>AI backend token</span>
-              <input id="aiBackendToken" type="password" autocomplete="off" placeholder="Optional app token">
-            </label>
-            <label class="field">
-              <span>AI model</span>
-              <input id="aiModel" type="text" autocomplete="off" placeholder="gpt-4o-mini">
-            </label>
-            <label class="field">
-              <span>Text-to-speech model</span>
-              <input id="aiTtsModel" type="text" autocomplete="off" placeholder="gpt-4o-mini-tts">
-            </label>
-            <label class="field">
-              <span>AI voice</span>
-              <select id="aiTtsVoice">
-                <option value="coral">Coral</option>
-                <option value="marin">Marin</option>
-                <option value="cedar">Cedar</option>
-                <option value="nova">Nova</option>
-                <option value="sage">Sage</option>
-                <option value="shimmer">Shimmer</option>
-                <option value="alloy">Alloy</option>
-                <option value="ash">Ash</option>
-                <option value="ballad">Ballad</option>
-                <option value="echo">Echo</option>
-                <option value="fable">Fable</option>
-                <option value="onyx">Onyx</option>
-                <option value="verse">Verse</option>
-              </select>
-            </label>
-            <div class="settings-actions inline-settings-actions">
-              <button class="text-button" id="testAiTtsButton" type="button">Test AI voice</button>
-              <button class="text-button" id="installTtsVoiceButton" type="button">Install phone voice data</button>
+            <input id="aiApiKey" type="hidden" autocomplete="off">
+            <input id="aiBackendUrl" type="hidden" autocomplete="off">
+            <input id="aiBackendToken" type="hidden" autocomplete="off">
+            <input id="aiModel" type="hidden" autocomplete="off">
+            <p class="settings-note onboarding-wide">Photo checklists use the photos and details you choose to send. The free plan includes 5 photo checklists per month.</p>
+            <div class="settings-group-title">Premium</div>
+            <div class="settings-privacy-panel onboarding-wide premium-panel">
+              <h3>TaskLens Premium</h3>
+              <p id="photoAiUsageSetting">Free plan: 5 photo checklists per month.</p>
+              <div class="premium-price-grid" aria-label="TaskLens pricing">
+                <div class="premium-price-card">
+                  <span>Monthly</span>
+                  <strong>$4.99</strong>
+                  <small>per month</small>
+                </div>
+                <div class="premium-price-card">
+                  <span>Yearly</span>
+                  <strong>$29.99</strong>
+                  <small>per year</small>
+                </div>
+              </div>
+              <p>Premium unlocks more photo checklists, saved project history, AI target-look pictures, and richer AI help. No ads.</p>
+              <button class="primary-button" id="upgradeButton" type="button">Choose Premium</button>
             </div>
-            <p class="settings-note onboarding-wide">AI features will not work unless internet sharing is allowed, Cloud AI features are enabled, and an HTTPS AI backend URL is saved. OpenAI API keys should stay on the backend, not in the app. AI voice audio is generated by artificial intelligence.</p>
             <div class="settings-group-title">Data</div>
-            <p class="settings-note">Export a backup regularly so your personal logs are not only stored on this phone.</p>
+            <p class="settings-note">Export a backup regularly so your task list is not only stored on this phone.</p>
           </div>
           <div class="settings-privacy-panel">
-            <h3>Privacy & safety</h3>
-            <p>Medical data stays on this device unless you check the internet sharing acknowledgement and enable cloud AI.</p>
-            <p>Cloud AI can transmit journal, mood, symptom, nutrition, vitals, and task details to the configured AI service over the internet.</p>
-            <p><a href="https://cmraaritgin26-svg.github.io/Habit-Tracker/data-deletion.html" target="_blank" rel="noopener">Request account and data deletion</a></p>
-            <p>AI Coach is guidance only. It does not diagnose disease and should not replace professional medical advice.</p>
+            <h3>Privacy</h3>
+            <p>Your task list stays on this phone unless you choose a cloud AI feature.</p>
+            <p>Only the photos and task details you send from an AI checklist are used to create that checklist.</p>
+            <p>Before, target, and after photos are saved locally with the task session for progress comparison.</p>
+            <p>Checklist feedback and edits are stored locally so you can export examples later for product improvement. Feedback export does not include raw photos.</p>
+            <p><a href="https://www.tasklensai.com/data-deletion.html" target="_blank" rel="noopener">Request account and data deletion at TaskLensAI.com</a></p>
+            <p>AI checklists are suggestions and may be wrong. Review them before using them.</p>
           </div>
           <div class="settings-actions">
-            <button class="text-button" id="setPasswordButton" type="button">Change password</button>
-            <button class="text-button" id="clearPasswordButton" type="button">Clear password</button>
-            <button class="text-button" id="exportDataButton" type="button">Export data</button>
-            <button class="text-button" id="importDataButton" type="button">Import data</button>
+            <button class="text-button" id="setPasswordButton" type="button" hidden>Change password</button>
+            <button class="text-button" id="clearPasswordButton" type="button" hidden>Clear password</button>
+            <button class="text-button" id="exportDataButton" type="button" hidden>Export data</button>
+            <button class="text-button" id="exportTrainingDataButton" type="button" hidden>Export AI feedback data</button>
+            <button class="text-button" id="importDataButton" type="button" hidden>Import data</button>
             <button class="text-button danger-action" id="masterResetButton" type="button">Master reset</button>
             <input id="importDataFile" type="file" accept="application/json,.json" hidden>
           </div>
@@ -704,119 +339,58 @@
         </div>
       </section>
 
-      <section class="history-modal" id="historyModal" aria-labelledby="historyTitle" aria-modal="true" role="dialog" hidden>
-        <div class="history-panel">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">10-year history</p>
-              <h2 id="historyTitle">Nutrition & Vitals</h2>
-            </div>
-            <button class="delete-button" id="historyClose" type="button" aria-label="Close history">x</button>
-          </div>
-          <div class="history-chart-wrap">
-            <div class="chart-legend history-legend" aria-label="History chart lines">
-              <button class="legend-item weight" type="button" data-history-metric="weight">Weight</button>
-              <button class="legend-item calories" type="button" data-history-metric="calories">Calories</button>
-              <button class="legend-item carbs" type="button" data-history-metric="carbs">Carbs</button>
-              <button class="legend-item glucose" type="button" data-history-metric="glucose">Glucose</button>
-              <button class="legend-item blood-pressure" type="button" data-history-metric="pressure">Blood Pressure</button>
-              <button class="legend-item water" type="button" data-history-metric="water">Water</button>
-            </div>
-            <div class="history-chart-controls">
-              <label>
-                <span>Filter</span>
-                <select id="historyMetricFilter">
-                  <option value="all">All</option>
-                  <option value="nutrition">Nutrition</option>
-                  <option value="vitals">Vitals</option>
-                  <option value="calories">Calories</option>
-                  <option value="carbs">Carbs</option>
-                  <option value="weight">Weight</option>
-                  <option value="glucose">Glucose</option>
-                  <option value="pressure">Blood Pressure</option>
-                  <option value="water">Water</option>
-                </select>
-              </label>
-              <label>
-                <span>Focus date</span>
-                <input id="historyFocusDate" type="date">
-              </label>
-              <label>
-                <span>Zoom</span>
-                <input id="historyZoomRange" type="range" min="1" max="3650" value="3650">
-              </label>
-              <output id="historyZoomLabel">10 years</output>
-            </div>
-            <div class="history-quick-filters" aria-label="Quick history ranges">
-              <button class="text-button history-range-button" type="button" data-history-days="7">7 days</button>
-              <button class="text-button history-range-button" type="button" data-history-days="30">30 days</button>
-              <button class="text-button history-range-button" type="button" data-history-days="90">90 days</button>
-              <button class="text-button history-range-button" type="button" data-history-days="365">1 year</button>
-              <button class="text-button history-range-button" type="button" data-history-days="3650">10 years</button>
-            </div>
-            <svg class="history-chart" id="historyChart" viewBox="0 0 640 240" role="img" aria-label="10-year nutrition, vitals, and water trends">
-              <g id="historyGrid"></g>
-              <path class="history-line history-weight-line" d=""></path>
-              <path class="history-line history-calories-line" d=""></path>
-              <path class="history-line history-carbs-line" d=""></path>
-              <path class="history-line history-glucose-line" d=""></path>
-              <path class="history-line history-pressure-line" d=""></path>
-              <path class="history-line history-water-line" d=""></path>
-            </svg>
-            <p class="nutrition-empty" id="historyChartEmpty">Add nutrition, vitals, or water entries to see date and time trends.</p>
-          </div>
+      <section class="app-promise-panel" aria-labelledby="appPromiseTitle">
+        <div class="promise-copy">
+          <p class="eyebrow brand-eyebrow">TaskLens AI</p>
+          <h2 id="appPromiseTitle">Take a photo. Get your next step.</h2>
+          <p>For messy rooms, stuck projects, and task paralysis.</p>
+        </div>
+        <div class="promise-actions">
+          <button class="primary-button photo-mark-button" id="photoAiHeroButton" type="button">
+            <img src="icons/tasklens-camera-button.png?v=245" alt="" aria-hidden="true">
+            <span>Take Photo</span>
+          </button>
+          <button class="text-button" id="brainDumpHeroButton" type="button">Brain Dump</button>
         </div>
       </section>
 
-      <section class="history-modal" id="masterChartModal" aria-labelledby="masterChartTitle" aria-modal="true" role="dialog" hidden>
-        <div class="history-panel master-chart-panel">
-          <div class="section-heading">
-            <div>
-              <h2 id="masterChartTitle">Master Chart</h2>
-            </div>
-            <button class="delete-button" id="masterChartClose" type="button" aria-label="Close master chart">x</button>
+      <section class="template-panel" aria-labelledby="templateTitle" hidden>
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Focus modes</p>
+            <h2 id="templateTitle">Pick the kind of stuck</h2>
           </div>
-          <div class="master-chart-tools">
-            <div class="master-chart-ranges" aria-label="Master chart ranges">
-              <button class="text-button history-range-button" type="button" data-master-chart-days="1">Today</button>
-              <button class="text-button history-range-button" type="button" data-master-chart-days="7">This Week</button>
-              <button class="text-button history-range-button" type="button" data-master-chart-days="3650">10 Years</button>
-            </div>
-            <div class="master-chart-legend" aria-label="Weekday color legend">
-              <span><i data-weekday="0"></i>Sun</span>
-              <span><i data-weekday="1"></i>Mon</span>
-              <span><i data-weekday="2"></i>Tue</span>
-              <span><i data-weekday="3"></i>Wed</span>
-              <span><i data-weekday="4"></i>Thu</span>
-              <span><i data-weekday="5"></i>Fri</span>
-              <span><i data-weekday="6"></i>Sat</span>
-            </div>
-          </div>
-          <div class="nutrition-table-wrap history-table-wrap">
-            <table class="nutrition-table history-table master-chart-table">
-              <thead>
-                <tr>
-                  <th scope="col">Date / Time</th>
-                  <th scope="col">Calories</th>
-                  <th scope="col">Carbs</th>
-                  <th scope="col">Weight</th>
-                  <th scope="col">Ketosis</th>
-                  <th scope="col">Glucose</th>
-                  <th scope="col">Blood Pressure</th>
-                  <th scope="col">Water</th>
-                  <th scope="col">Symptom</th>
-                  <th scope="col">Severity</th>
-                  <th scope="col">Mood</th>
-                  <th scope="col">Intensity</th>
-                </tr>
-              </thead>
-              <tbody id="masterChartRows"></tbody>
-            </table>
-            <p class="nutrition-empty" id="masterChartEmpty">No nutrition, vitals, water, symptoms, or mood history recorded in the last 10 years.</p>
-          </div>
+        </div>
+        <div class="template-grid">
+          <button class="template-card" type="button" data-task-preset="Clean this room" data-task-note-preset="Use a photo to identify the first visible surface, trash, dishes, clothes, papers, and where each item should go.">
+            <strong>Room reset</strong>
+            <span>Doom piles, laundry, trash, dishes, surfaces</span>
+          </button>
+          <button class="template-card" type="button" data-task-preset="Handle this paperwork pile" data-task-note-preset="Sort visible mail, forms, receipts, and documents into trash, file, pay, sign, and follow-up piles.">
+            <strong>Paperwork panic</strong>
+            <span>Mail, forms, receipts, documents</span>
+          </button>
+          <button class="template-card" type="button" data-task-preset="Start this project" data-task-note-preset="Break the project into the first physical setup step, one tiny action, and a clear stopping point.">
+            <strong>Start project</strong>
+            <span>When starting feels too big</span>
+          </button>
+          <button class="template-card" type="button" data-task-preset="Plan tomorrow" data-task-note-preset="Choose the first three tasks for tomorrow, make the first task tiny, and decide what can wait.">
+            <strong>Plan tomorrow</strong>
+            <span>Reduce morning decision fog</span>
+          </button>
         </div>
       </section>
 
+      <section class="wins-panel" id="winsPanel" aria-labelledby="winsTitle" role="button" tabindex="0" aria-label="Open task list">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Wins</p>
+            <h2 id="winsTitle">Proof you made progress</h2>
+          </div>
+          <span class="graph-score" id="winsSummary">0 wins</span>
+        </div>
+        <div class="wins-list" id="winsList"></div>
+      </section>
 
       <section class="graph-panel" aria-labelledby="graphTitle">
         <div class="section-heading">
@@ -833,64 +407,88 @@
 
       <form class="composer" id="habitForm" aria-labelledby="taskEntryTitle">
         <div class="composer-heading">
-          <h2 id="taskEntryTitle">Tasks</h2>
+          <h2 id="taskEntryTitle">Capture the overwhelm</h2>
         </div>
         <label class="field">
-          <span>Title</span>
-          <input id="habitName" name="habitName" type="text" maxlength="32" autocomplete="off" required>
+          <span>What needs attention?</span>
+          <input id="habitName" name="habitName" type="text" maxlength="48" autocomplete="off" placeholder="Messy room, paperwork pile, errand, or task" required>
         </label>
         <label class="field">
           <span>Date</span>
           <input id="taskDate" name="taskDate" type="date">
         </label>
-        <label class="field">
+        <div class="field choice-field">
           <span>Category</span>
-          <select id="habitCategory" name="habitCategory">
-            <option value=""></option>
-            <option value="Health">Health</option>
-            <option value="Fitness">Fitness</option>
-            <option value="Mind">Mind</option>
+          <select class="task-choice-select" id="habitCategory" name="habitCategory" aria-hidden="true" tabindex="-1">
+            <option value="General">General</option>
+            <option value="Personal">Personal</option>
             <option value="Home">Home</option>
             <option value="Work">Work</option>
+            <option value="Errand">Errand</option>
           </select>
-        </label>
+          <div class="task-choice-group" role="radiogroup" aria-label="Category">
+            <button class="task-choice" type="button" role="radio" data-task-choice-target="habitCategory" data-task-choice-value="General">General</button>
+            <button class="task-choice" type="button" role="radio" data-task-choice-target="habitCategory" data-task-choice-value="Personal">Personal</button>
+            <button class="task-choice" type="button" role="radio" data-task-choice-target="habitCategory" data-task-choice-value="Home">Home</button>
+            <button class="task-choice" type="button" role="radio" data-task-choice-target="habitCategory" data-task-choice-value="Work">Work</button>
+            <button class="task-choice" type="button" role="radio" data-task-choice-target="habitCategory" data-task-choice-value="Errand">Errand</button>
+          </div>
+        </div>
         <label class="field">
           <span>Deadline</span>
           <input id="habitDeadline" name="habitDeadline" type="time">
         </label>
-        <label class="field">
-          <span>Priority</span>
-          <select id="habitPriority" name="habitPriority">
-            <option value=""></option>
-            <option value="Normal">Normal</option>
-            <option value="High">High</option>
-            <option value="Low">Low</option>
+        <div class="field choice-field">
+          <span>When</span>
+          <select class="task-choice-select" id="habitPriority" name="habitPriority" aria-hidden="true" tabindex="-1">
+            <option value="Now">Now</option>
+            <option value="Next">Next</option>
+            <option value="Later">Later</option>
           </select>
-        </label>
-        <label class="field note-field">
-          <span>Notes</span>
-          <input id="habitNote" name="habitNote" type="text" maxlength="72" autocomplete="off" placeholder="Notes">
-        </label>
-        <div class="preset-row task-preset-row" aria-label="Common tasks">
-          <button class="preset-chip" type="button" data-task-preset="Walk for 10 minutes">Walk</button>
-          <button class="preset-chip" type="button" data-task-preset="Take medication">Medication</button>
-          <button class="preset-chip" type="button" data-task-preset="Stretch">Stretch</button>
-          <button class="preset-chip" type="button" data-task-preset="Plan the day">Plan</button>
+          <div class="task-choice-group task-choice-group-compact" role="radiogroup" aria-label="When">
+            <button class="task-choice" type="button" role="radio" data-task-choice-target="habitPriority" data-task-choice-value="Now">Now</button>
+            <button class="task-choice" type="button" role="radio" data-task-choice-target="habitPriority" data-task-choice-value="Next">Next</button>
+            <button class="task-choice" type="button" role="radio" data-task-choice-target="habitPriority" data-task-choice-value="Later">Later</button>
+          </div>
         </div>
-        <button class="primary-button" type="submit">Add</button>
+        <div class="field choice-field">
+          <span>Size</span>
+          <select class="task-choice-select" id="habitSize" name="habitSize" aria-hidden="true" tabindex="-1">
+            <option value="Tiny">Tiny</option>
+            <option value="Small">Small</option>
+            <option value="Medium">Medium</option>
+            <option value="Big">Big</option>
+          </select>
+          <div class="task-choice-group" role="radiogroup" aria-label="Size">
+            <button class="task-choice" type="button" role="radio" data-task-choice-target="habitSize" data-task-choice-value="Tiny">Tiny</button>
+            <button class="task-choice" type="button" role="radio" data-task-choice-target="habitSize" data-task-choice-value="Small">Small</button>
+            <button class="task-choice" type="button" role="radio" data-task-choice-target="habitSize" data-task-choice-value="Medium">Medium</button>
+            <button class="task-choice" type="button" role="radio" data-task-choice-target="habitSize" data-task-choice-value="Big">Big</button>
+          </div>
+        </div>
+        <label class="field note-field">
+          <span>What feels stuck?</span>
+          <input id="habitNote" name="habitNote" type="text" maxlength="140" autocomplete="off" placeholder="What you can see, what is blocking you, or what done looks like">
+        </label>
+        <div class="preset-row task-preset-row" aria-label="Common overwhelm presets">
+          <button class="preset-chip" type="button" data-task-preset="Clean this room" data-task-note-preset="Use a photo to identify the first visible surface, trash, dishes, clothes, paper, and where each item should go.">Room reset</button>
+          <button class="preset-chip" type="button" data-task-preset="Handle this paperwork pile" data-task-note-preset="Sort visible mail, forms, receipts, and documents into trash, file, pay, sign, and follow-up piles.">Paperwork</button>
+          <button class="preset-chip" type="button" data-task-preset="Pack this bag" data-task-note-preset="Use the visible bag and surrounding items to make a packing checklist with missed-item checks.">Pack bag</button>
+          <button class="preset-chip" type="button" data-task-preset="Fix this area" data-task-note-preset="Use a photo to identify what looks broken, messy, blocked, or unfinished and turn it into micro-steps.">Fix area</button>
+          <button class="preset-chip" type="button" data-task-preset="Start this project" data-task-note-preset="Break the project into the first physical setup step, one tiny action, and a clear stopping point.">Start project</button>
+        </div>
+        <button class="primary-button" type="submit">Turn into task</button>
       </form>
       <section class="habit-list" id="habitList" aria-live="polite"></section>
 
       <div class="floating-add" id="floatingAddMenu">
-        <button class="floating-add-main" id="floatingAddButton" type="button" aria-label="Open quick add menu">+</button>
-        <div class="floating-add-actions" aria-label="Quick add menu">
-          <button type="button" data-quick-action="tasks">Task</button>
-          <button type="button" data-quick-action="vitals">Vitals</button>
-          <button type="button" data-quick-action="water">Water</button>
-          <button type="button" data-quick-action="mood">Mood</button>
-          <button type="button" data-quick-action="symptoms">Symptom</button>
-          <button type="button" data-quick-action="journal">Journal</button>
-        </div>
+        <button class="floating-add-main" id="floatingAddButton" type="button" aria-label="Open AI help bot">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5.5 18.5 3 21V6.5C3 4.6 4.6 3 6.5 3h11C19.4 3 21 4.6 21 6.5v8.5c0 1.9-1.6 3.5-3.5 3.5h-12z"/>
+            <path d="M8 9h8"/>
+            <path d="M8 13h5"/>
+          </svg>
+        </button>
       </div>
 
       <template id="habitTemplate">
@@ -899,16 +497,16 @@
           <div class="habit-main">
             <div class="habit-row">
               <h2></h2>
-              <button class="delete-button" type="button" aria-label="Delete task">x</button>
+              <span class="week-score"></span>
             </div>
             <div class="habit-stats">
               <span class="streak"></span>
-              <span class="week-score"></span>
+              <button class="delete-button" type="button" aria-label="Delete task">x</button>
             </div>
             <div class="habit-attributes"></div>
             <p class="habit-note"></p>
             <div class="habit-actions">
-              <a class="calendar-link" target="_blank" rel="noopener">Add to Google Calendar</a>
+              <a class="calendar-link" target="_blank" rel="noopener">Calendar</a>
             </div>
           </div>
         </article>
@@ -916,12 +514,44 @@
 
       <section class="empty-state" id="emptyState" hidden>
         <h2>No tasks yet</h2>
-        <p>Add one daily task to start tracking your progress.</p>
+        <p>Add one task to start your list.</p>
       </section>
 
     </main>
     <div class="app-toast" id="appToast" role="status" aria-live="polite" hidden></div>
 
-    <script src="app.js?v=196" defer></script>
+    <script>
+      (() => {
+        const openSettings = () => {
+          const modal = document.querySelector("#settingsModal");
+          const panel = document.querySelector(".settings-panel");
+          if (!modal || !panel) return;
+          modal.hidden = false;
+          modal.removeAttribute("hidden");
+          modal.style.display = "grid";
+          modal.style.zIndex = "9999";
+          modal.scrollTop = 0;
+          panel.scrollTop = 0;
+          document.body.classList.add("dialog-open");
+        };
+        document.addEventListener("click", (event) => {
+          const target = event.target;
+          if (target && target.closest && target.closest("#settingsButton")) {
+            openSettings();
+          }
+          if (target && target.closest && target.closest("#settingsClose")) {
+            const modal = document.querySelector("#settingsModal");
+            if (modal) {
+              modal.hidden = true;
+              modal.style.display = "";
+              modal.style.zIndex = "";
+            }
+            document.body.classList.remove("dialog-open");
+          }
+        }, true);
+        window.openTaskLensSettingsFallback = openSettings;
+      })();
+    </script>
+    <script src="app.js?v=243" defer></script>
   </body>
 </html>
