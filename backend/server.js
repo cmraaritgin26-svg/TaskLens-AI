@@ -19,6 +19,7 @@ const GOOGLE_VISION_TIMEOUT_MS = Number(process.env.GOOGLE_VISION_TIMEOUT_MS || 
 const TASK_BREAKDOWN_CACHE_LIMIT = Number(process.env.TASK_BREAKDOWN_CACHE_LIMIT || 120);
 const TASK_BREAKDOWN_CACHE_TTL_MS = Number(process.env.TASK_BREAKDOWN_CACHE_TTL_MS || 1000 * 60 * 60 * 24);
 const TASK_BREAKDOWN_CACHE_VERSION = "fast-vision-v1";
+const BACKEND_BUILD = "fast-ai-v1";
 const taskBreakdownCache = new Map();
 const OPENAI_TTS_VOICES = new Set([
   "alloy",
@@ -131,7 +132,7 @@ const server = http.createServer(async (request, response) => {
   }
 
   if (requestPath === "/status" && request.method === "GET") {
-    sendJson(response, 200, { ok: true });
+    sendJson(response, 200, { ok: true, build: BACKEND_BUILD });
     return;
   }
 
